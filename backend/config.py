@@ -21,4 +21,5 @@ class Settings(BaseSettings):
     default_language: str = "en"
 
 
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]
+
