@@ -10,7 +10,6 @@ from fastapi.staticfiles import StaticFiles
 
 from config import settings
 
-from middleware import DashboardAuthMiddleware
 from telegram.client import delete_webhook, register_webhook
 from telegram.router import router as telegram_router
 
@@ -29,9 +28,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await app.state.db_pool.close()
 
 
-app = FastAPI(title="Customer Service AI Agent", version="0.1.0", lifespan=lifespan)
-
-app.add_middleware(DashboardAuthMiddleware)
+app = FastAPI(title="Parish Companion", version="0.1.0", lifespan=lifespan)
 
 app.include_router(telegram_router)
 
