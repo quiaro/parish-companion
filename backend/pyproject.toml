@@ -1,38 +1,5 @@
 [project]
-name = "customer-service-ai-agent"
+name = "parish-companion"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = [
-    "fastapi==0.115.12",
-    "uvicorn[standard]==0.34.0",
-    "pydantic==2.11.3",
-    "pydantic-settings==2.9.1",
-    "httpx==0.28.1",
-    "redis==5.2.1",
-    "asyncpg==0.30.0",
-    "pgvector==0.4.1",
-    "sqlalchemy[asyncio]==2.0.40",
-    "anthropic==0.50.0",
-    "openai==2.32.0",
-    "python-dotenv==1.1.0",
-    "twilio==9.10.5",
-    "python-multipart==0.0.27",
-    "lingua-language-detector==2.2.0",
-    "resend==2.30.0",
-    "jsonschema==4.23.0",
-    "langfuse",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest==8.3.5",
-    "pytest-asyncio==0.26.0",
-]
-
-[tool.setuptools.packages.find]
-include = ["dashboard*", "telegram*", "whatsapp*"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["."]
-asyncio_mode = "auto"
+dependencies = []
