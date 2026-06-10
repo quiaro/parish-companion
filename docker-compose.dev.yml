@@ -1,0 +1,15 @@
+services:
+  backend:
+    build:
+      target: dev
+    env_file:
+      - .env
+      - .env.dev
+
+  redis:
+    ports:
+      - "6380:6379"
+
+  postgres:
+    ports:
+      - "5433:5432"
