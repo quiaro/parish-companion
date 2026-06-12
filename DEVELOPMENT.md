@@ -23,7 +23,6 @@
    | ---------------------------- | --------------------------------------------------------------------------- |
    | `TELEGRAM_BOT_TOKEN`         | Token from [@BotFather](https://t.me/botfather)                             |
    | `TELEGRAM_WEBHOOK_SECRET`    | Random string used to authenticate Telegram's POST requests                 |
-   | `POSTGRES_PASSWORD`          | Postgres password (any string for local dev)                                |
    | `OPENROUTER_API_KEY`         | Key from [openrouter.ai/keys](https://openrouter.ai/keys)                   |
    | `OPENROUTER_EMBEDDING_MODEL` | Open Router embedding model identifier (e.g. openai/text-embedding-3-small) |
    | `OPENROUTER_CHAT_MODEL`      | Open Router LLM identifier (e.g. anthropic/claude-sonnet-4.6)               |
@@ -34,17 +33,14 @@
 docker compose up --build
 ```
 
-This starts three services:
+This starts two services:
 
-| Service    | Host port | Description               |
-| ---------- | --------- | ------------------------- |
-| `backend`  | 8000      | FastAPI app + Uvicorn     |
-| `postgres` | —         | Postgres 16 with pgvector |
-| `redis`    | —         | Session cache             |
+| Service   | Host port | Description           |
+| --------- | --------- | --------------------- |
+| `backend` | 8000      | FastAPI app + Uvicorn |
+| `redis`   | —         | Session cache         |
 
-`postgres` and `redis` are intentionally not exposed to the host in production — the backend reaches them over Docker's internal network. See [Observability (Langfuse)](#observability-langfuse) for the remapped dev ports.
-
-The database schema (tables and vector indexes) is applied automatically on first start via `backend/db/init.sql`.
+`redis` is intentionally not exposed to the host in production — the backend reaches it over Docker's internal network. See [Observability (Langfuse)](#observability-langfuse) for the remapped dev ports.
 
 Verify everything is up:
 
@@ -74,28 +70,6 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build bac
 
 > **Note:** `postgres` and `redis` services use pre-built images from Docker Hub so, since there are no local source files baked into them, they don't need to be rebuilt.
 
-### Picking up DB schema changes
-
-`backend/db/init.sql` is only executed by Postgres on the very first start. If the volume already exists, changes to `init.sql` won't take effect with a normal restart or rebuild.
-
-To apply schema changes, wipe the volume and restart.
-
-**Production:**
-
-```bash
-docker compose down -v
-docker compose up -d --build
-```
-
-**Development:**
-
-```bash
-docker compose down -v
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
-```
-
-> **Note:** This deletes all Postgres data.
-
 ### Picking up `.env` changes
 
 Making any changes to the `.env` file will require a forced recreation of the affected service.
@@ -118,8 +92,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --force-rec
 ### Stopping
 
 ```bash
-docker compose down          # stop and remove containers
-docker compose down -v       # also remove the postgres volume
+docker compose down
 ```
 
 ## Connecting to Telegram
@@ -205,7 +178,7 @@ Then run the suite:
 docker compose exec backend pytest -v
 ```
 
-No database or Redis connection is made during the unit tests — the suite uses FastAPI's `TestClient` and stubs out external dependencies via `monkeypatch`.
+No external connections (Redis, etc.) are made during the unit tests — the suite uses FastAPI's `TestClient` and stubs out external dependencies via `monkeypatch`.
 
 ## Development with VS Code Dev Containers
 
@@ -217,7 +190,7 @@ The repo includes a `.devcontainer` configuration that attaches VS Code directly
 
 1. Complete the [Setup](#setup) step (`.env` file must exist before the container starts).
 2. Open the Command Palette (`Cmd+Shift+P`) and run **Dev Containers: Reopen in Container**.
-   VS Code will build the image, start all three services, and attach to the `backend` container.
+   VS Code will build the image, start all services, and attach to the `backend` container.
 3. Port 8000 is forwarded automatically — you'll get a notification when it's ready.
 
 **What's included in the container:**
@@ -236,17 +209,6 @@ python -c "import httpx; r = httpx.get('http://localhost:8000/health'); print(r.
 
 # Redis (addressed by service name, not localhost)
 python -c "import redis; r = redis.from_url('redis://redis:6379'); print(r.ping())"
-
-# Postgres (addressed by service name, not localhost)
-# IMPORTANT! Remember to replace `pg_user`, `pg_password` and `pg_db` with the values set in the .env file.
-python -c "
-import asyncpg, asyncio
-async def check():
-    conn = await asyncpg.connect('postgresql://pg_user:pg_password@postgres:5432/pg_db')
-    print(await conn.fetchval('SELECT version()'))
-    await conn.close()
-asyncio.run(check())
-"
 ```
 
 **Rebuilding after dependency changes:**
