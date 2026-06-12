@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import cast
 
 from redis.asyncio import Redis
 
@@ -31,7 +32,7 @@ async def get_history(session_id: str) -> list[dict]:
 async def get_language(session_id: str) -> str | None:
     try:
         async with Redis.from_url(settings.redis_url, decode_responses=True) as r:
-            return await r.get(_lang_key(session_id))
+            return cast(str | None, await r.get(_lang_key(session_id)))
     except Exception as exc:
         logger.error("get_language failed session=%s: %s", session_id, exc)
         return None
