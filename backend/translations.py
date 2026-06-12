@@ -14,6 +14,8 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "telegram_cmd_help": (
             "Here is what I can do:\n\n"
+            "/ayuda — Lista de comandos (español)\n"
+            "/help — List available commands (English)\n"
             "/start — Welcome message"
         ),
         "telegram_cmd_unknown": (
@@ -29,7 +31,9 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "telegram_cmd_help": (
             "Esto es lo que puedo hacer:\n\n"
-            "/start — Mensaje de bienvenida"
+            "/ayuda — Lista de comandos (español)\n"
+            "/help — List available commands (English)\n"
+            "/inicio — Mensaje de bienvenida"
         ),
         "telegram_cmd_unknown": (
             "Lo siento, no reconozco ese comando. Escribe /help para ver lo que puedo hacer."
