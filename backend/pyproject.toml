@@ -4,6 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.136.3",
+    "gspread>=6.2.1",
     "httpx2>=2.4.0",
     "lingua-language-detector>=2.2.0",
     "pydantic>=2.13.4",
