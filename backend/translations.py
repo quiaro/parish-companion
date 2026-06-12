@@ -12,6 +12,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "telegram_cmd_start": (
             "Hello! This is the bot for Nuestra Señora del Pilar.\n"
         ),
+        "telegram_cmd_help": (
+            "Here is what I can do:\n\n"
+            "/start — Welcome message"
+        ),
         "telegram_cmd_unknown": (
             "Sorry, I don't recognize that command. Type /help to see what I can do."
         ),
@@ -22,6 +26,10 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "telegram_cmd_start": (
             "¡Hola! Soy el bot de Nuestra Señora del Pilar.\n"
+        ),
+        "telegram_cmd_help": (
+            "Esto es lo que puedo hacer:\n\n"
+            "/start — Mensaje de bienvenida"
         ),
         "telegram_cmd_unknown": (
             "Lo siento, no reconozco ese comando. Escribe /help para ver lo que puedo hacer."
