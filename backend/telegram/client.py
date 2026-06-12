@@ -1,6 +1,6 @@
 import logging
 
-import httpx
+import httpx2
 
 from config import settings
 from telegram.formatting import split_message
@@ -12,7 +12,7 @@ async def register_webhook() -> None:
     if not settings.telegram_webhook_url:
         logger.info("TELEGRAM_WEBHOOK_URL not set, skipping webhook registration")
         return
-    async with httpx.AsyncClient() as http:
+    async with httpx2.AsyncClient() as http:
         resp = await http.post(
             f"https://api.telegram.org/bot{settings.telegram_bot_token}/setWebhook",
             json={
@@ -30,7 +30,7 @@ async def register_webhook() -> None:
 async def delete_webhook() -> None:
     if not settings.telegram_webhook_url:
         return
-    async with httpx.AsyncClient() as http:
+    async with httpx2.AsyncClient() as http:
         await http.post(
             f"https://api.telegram.org/bot{settings.telegram_bot_token}/deleteWebhook",
             timeout=10.0,
@@ -42,7 +42,7 @@ async def send_message(chat_id: int, text: str) -> None:
     if not settings.telegram_bot_token:
         logger.warning("TELEGRAM_BOT_TOKEN not configured, skipping outbound message to chat_id=%d", chat_id)
         return
-    async with httpx.AsyncClient() as http:
+    async with httpx2.AsyncClient() as http:
         for part in split_message(text):
             resp = await http.post(
                 f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage",
