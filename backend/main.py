@@ -1,12 +1,10 @@
 import logging
-import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 import asyncpg
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 
 from config import settings
 

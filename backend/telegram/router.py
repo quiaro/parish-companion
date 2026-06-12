@@ -1,4 +1,3 @@
-import asyncio
 import logging
 
 from fastapi import APIRouter, Header, HTTPException, Request, status
@@ -55,7 +54,6 @@ async def receive_update(
         await send_message(chat_id, commands.get_reply(command, language))
         return JSONResponse({"status": "ok"})
 
-    # TODO: Implement actual message handling and remove the placeholder response below.
+    # TODO: Implement actual message handling.
     # reply = await handle_message(text, session_id, pool)
-    await send_message(chat_id, 'DONE')
     return JSONResponse({"status": "ok"})
