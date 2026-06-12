@@ -13,7 +13,6 @@ class Settings(BaseSettings):
     openrouter_embedding_model: str = ""
     openrouter_chat_model: str = ""
 
-    database_url: str
     redis_url: str
 
     session_ttl_seconds: int = 86_400

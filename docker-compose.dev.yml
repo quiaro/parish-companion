@@ -10,6 +10,3 @@ services:
     ports:
       - "6380:6379"
 
-  postgres:
-    ports:
-      - "5433:5432"

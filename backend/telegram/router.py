@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Header, HTTPException, Request, status
+from fastapi import APIRouter, Header, HTTPException, status
 from fastapi.responses import JSONResponse
 
 from config import settings
@@ -28,7 +28,6 @@ def _verify_secret(secret_token: str | None) -> None:
 
 @router.post("/webhook")
 async def receive_update(
-    request: Request,
     update: Update,
     x_telegram_bot_api_secret_token: str | None = Header(default=None),
 ) -> JSONResponse:
@@ -39,7 +38,6 @@ async def receive_update(
 
     chat_id = update.message.chat.id
     session_id = str(chat_id)
-    pool = getattr(request.app.state, "db_pool", None)
     logger.info("update=%d session=%s", update.update_id, session_id)
 
     language = await get_language(session_id) or settings.default_language
