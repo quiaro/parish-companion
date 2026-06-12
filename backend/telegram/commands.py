@@ -3,7 +3,6 @@ from translations import get_string
 _KEY_MAP: dict[str, str] = {
     "/start": "telegram_cmd_start",
     "/help": "telegram_cmd_start",
-    "/handoff": "telegram_cmd_handoff",
 }
 
 

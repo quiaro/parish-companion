@@ -5,7 +5,6 @@ from fastapi import APIRouter, Header, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 
 from config import settings
-from pipeline import handle_message, log_handoff
 from session import get_language
 from telegram import commands
 from telegram.client import send_message
@@ -53,11 +52,10 @@ async def receive_update(
     text = update.message.text
     if text.startswith("/"):
         command = text.split()[0].split("@")[0].lower()
-        if command == "/handoff" and pool is not None:
-            asyncio.create_task(log_handoff(pool, session_id))
         await send_message(chat_id, commands.get_reply(command, language))
         return JSONResponse({"status": "ok"})
 
-    reply = await handle_message(text, session_id, pool)
-    await send_message(chat_id, reply.answer)
+    # TODO: Implement actual message handling and remove the placeholder response below.
+    # reply = await handle_message(text, session_id, pool)
+    await send_message(chat_id, 'DONE')
     return JSONResponse({"status": "ok"})

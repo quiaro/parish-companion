@@ -12,9 +12,6 @@ STRINGS: dict[str, dict[str, str]] = {
         "telegram_cmd_start": (
             "Hello! This is the bot for Nuestra Señora del Pilar.\n"
         ),
-        "telegram_cmd_handoff": (
-            "I've flagged this for our team. A support agent will follow up with you shortly."
-        ),
         "telegram_cmd_unknown": (
             "Sorry, I don't recognize that command. Type /help to see what I can do."
         ),
@@ -25,9 +22,6 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "telegram_cmd_start": (
             "¡Hola! Soy el bot de Nuestra Señora del Pilar.\n"
-        ),
-        "telegram_cmd_handoff": (
-            "He enviado tu solicitud a nuestro equipo. Un agente de soporte se comunicará contigo pronto."
         ),
         "telegram_cmd_unknown": (
             "Lo siento, no reconozco ese comando. Escribe /help para ver lo que puedo hacer."
