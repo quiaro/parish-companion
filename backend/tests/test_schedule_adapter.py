@@ -384,6 +384,45 @@ class TestParseEntry:
 
 
 # ---------------------------------------------------------------------------
+# GoogleSheetsScheduleAdapter — _sort_entries
+# ---------------------------------------------------------------------------
+
+def _entry(day: str, start_time: str) -> ScheduleEntry:
+    return ScheduleEntry(type=ScheduleType.MASS, day=day, start_time=start_time)
+
+
+class TestSortEntries:
+    def test_sorts_by_day_of_week(self):
+        entries = [_entry("Saturday", "09:00"), _entry("Sunday", "09:00"), _entry("Friday", "09:00")]
+        result = GoogleSheetsScheduleAdapter._sort_entries(entries)
+        assert [e.day for e in result] == ["Sunday", "Friday", "Saturday"]
+
+    def test_sorts_by_time_within_same_day(self):
+        entries = [_entry("Sunday", "11:00"), _entry("Sunday", "09:00"), _entry("Sunday", "18:00")]
+        result = GoogleSheetsScheduleAdapter._sort_entries(entries)
+        assert [e.start_time for e in result] == ["09:00", "11:00", "18:00"]
+
+    def test_sorts_spanish_days_correctly(self):
+        entries = [_entry("Sábado", "09:00"), _entry("Domingo", "09:00"), _entry("Viernes", "09:00")]
+        result = GoogleSheetsScheduleAdapter._sort_entries(entries)
+        assert [e.day for e in result] == ["Domingo", "Viernes", "Sábado"]
+
+    def test_spanish_and_english_days_share_same_ordinal(self):
+        entries = [_entry("Sábado", "10:00"), _entry("Sunday", "09:00"), _entry("Domingo", "11:00")]
+        result = GoogleSheetsScheduleAdapter._sort_entries(entries)
+        assert result[0].day == "Sunday"
+        assert result[1].day == "Domingo"
+        assert result[2].day == "Sábado"
+
+    def test_empty_list_returns_empty(self):
+        assert GoogleSheetsScheduleAdapter._sort_entries([]) == []
+
+    def test_single_entry_is_returned_unchanged(self):
+        entries = [_entry("Wednesday", "12:00")]
+        assert GoogleSheetsScheduleAdapter._sort_entries(entries) == entries
+
+
+# ---------------------------------------------------------------------------
 # GoogleSheetsScheduleAdapter — _read_special
 # ---------------------------------------------------------------------------
 

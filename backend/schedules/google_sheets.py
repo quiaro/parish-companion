@@ -23,6 +23,10 @@ _VALID_DAYS: frozenset[str] = frozenset({
     "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
     "domingo", "lunes", "martes", "miércoles", "miercoles", "jueves", "viernes", "sábado", "sabado",
 })
+_DAY_ORDER: dict[str, int] = {
+    "sunday": 0, "monday": 1, "tuesday": 2, "wednesday": 3, "thursday": 4, "friday": 5, "saturday": 6,
+    "domingo": 0, "lunes": 1, "martes": 2, "miércoles": 3, "miercoles": 3, "jueves": 4, "viernes": 5, "sábado": 6, "sabado": 6,
+}
 
 
 class GoogleSheetsScheduleAdapter(ScheduleAdapter):
@@ -74,7 +78,7 @@ class GoogleSheetsScheduleAdapter(ScheduleAdapter):
             entry = self._parse_entry(row, row_index)
             if entry is not None:
                 entries.append(entry)
-        return entries
+        return self._sort_entries(entries)
 
     def _read_special(self, spreadsheet: gspread.Spreadsheet) -> Optional[SpecialSchedule]:
         try:
@@ -104,7 +108,8 @@ class GoogleSheetsScheduleAdapter(ScheduleAdapter):
             if entry is not None:
                 groups[key].append(entry)
 
-        return self._pick_relevant_schedule(groups)
+        sorted_groups = {k: self._sort_entries(v) for k, v in groups.items()}
+        return self._pick_relevant_schedule(sorted_groups)
 
     def _parse_entry(self, row: dict, row_index: int = 0) -> Optional[ScheduleEntry]:
         raw_type = str(row.get("Type", "")).strip().lower()
@@ -149,6 +154,13 @@ class GoogleSheetsScheduleAdapter(ScheduleAdapter):
         except ValueError:
             logger.warning("Row %d: unrecognized language code %r — ignoring", row_index, raw)
             return None
+
+    @staticmethod
+    def _sort_entries(entries: list[ScheduleEntry]) -> list[ScheduleEntry]:
+        return sorted(
+            entries,
+            key=lambda e: (_DAY_ORDER.get(e.day.lower(), 99), e.start_time or ""),
+        )
 
     @staticmethod
     def _pick_relevant_schedule(
