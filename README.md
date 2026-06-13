@@ -138,6 +138,17 @@ Example:
 | Holy Week | 2026-03-29 | 2026-04-05 | mass       | Sunday | 10:00 |          | es       |       |
 | Holy Week | 2026-03-29 | 2026-04-05 | confession | Friday | 17:00 | 19:00    |          |       |
 
+### Setting up the spreadsheet
+
+CSV templates for both tabs are provided in [`docs/templates/`](docs/templates/). To use them:
+
+1. Create a new Google Spreadsheet.
+2. For each template file, go to **File → Import**, upload the CSV, and choose **Insert new sheet** — this creates a tab with the correct column headers and example rows already filled in.
+3. Rename each tab to match your `REGULAR_SCHEDULE_TAB` and `SPECIAL_SCHEDULE_TAB` settings (defaults: `Regular Schedule` and `Special Schedules`).
+4. Replace the example rows with your parish's actual schedule.
+
+The `Type` column accepts values in English (`mass`, `confession`) or Spanish (`misa`, `confesión`).
+
 ### Special schedule behavior
 
 When a parishioner requests the schedule:
