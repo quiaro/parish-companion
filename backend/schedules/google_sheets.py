@@ -68,10 +68,10 @@ class GoogleSheetsScheduleAdapter(ScheduleAdapter):
         worksheet = spreadsheet.worksheet(settings.regular_schedule_tab)
         rows = worksheet.get_all_records()
         entries = []
-        for row in rows:
+        for row_index, row in enumerate(rows, start=2):
             if not (row.get("Type") and row.get("Day") and row.get("Time")):
                 continue
-            entry = self._parse_entry(row)
+            entry = self._parse_entry(row, row_index)
             if entry is not None:
                 entries.append(entry)
         return entries
@@ -88,7 +88,7 @@ class GoogleSheetsScheduleAdapter(ScheduleAdapter):
 
         # Group entry rows by (name, start_date, end_date).
         groups: dict[tuple[str, date, date], list[ScheduleEntry]] = defaultdict(list)
-        for row in rows:
+        for row_index, row in enumerate(rows, start=2):
             if not (row.get("Name") and row.get("Start Date") and row.get("End Date")):
                 continue
             if not (row.get("Type") and row.get("Day") and row.get("Time")):
@@ -97,28 +97,28 @@ class GoogleSheetsScheduleAdapter(ScheduleAdapter):
                 start = date.fromisoformat(str(row["Start Date"]).strip())
                 end = date.fromisoformat(str(row["End Date"]).strip())
             except ValueError:
-                logger.warning("Skipping special schedule row with unparseable dates: %s", row)
+                logger.warning("Row %d: invalid dates — skipping", row_index)
                 continue
             key = (str(row["Name"]).strip(), start, end)
-            entry = self._parse_entry(row)
+            entry = self._parse_entry(row, row_index)
             if entry is not None:
                 groups[key].append(entry)
 
         return self._pick_relevant_schedule(groups)
 
-    def _parse_entry(self, row: dict) -> Optional[ScheduleEntry]:
+    def _parse_entry(self, row: dict, row_index: int = 0) -> Optional[ScheduleEntry]:
         raw_type = str(row.get("Type", "")).strip().lower()
         raw_type = _TYPE_ALIASES.get(raw_type, raw_type)
         try:
             schedule_type = ScheduleType(raw_type)
         except ValueError:
-            logger.warning("Skipping row with unrecognized type %r: %s", raw_type, row)
+            logger.warning("Row %d: unrecognized type %r — skipping", row_index, raw_type)
             return None
         raw_day = str(row.get("Day", "")).strip()
         if raw_day.lower() not in _VALID_DAYS:
-            logger.warning("Skipping row with unrecognized day %r: %s", raw_day, row)
+            logger.warning("Row %d: unrecognized day %r — skipping", row_index, raw_day)
             return None
-        start_time = self._parse_time(str(row.get("Time", "")).strip())
+        start_time = self._parse_time(str(row.get("Time", "")).strip(), row_index)
         if start_time is None:
             return None
         raw_end = str(row.get("End Time", "")).strip() if row.get("End Time") else ""
@@ -126,28 +126,28 @@ class GoogleSheetsScheduleAdapter(ScheduleAdapter):
             type=schedule_type,
             day=raw_day,
             start_time=start_time,
-            end_time=self._parse_time(raw_end),
-            language=self._parse_language(row.get("Language")),
+            end_time=self._parse_time(raw_end, row_index),
+            language=self._parse_language(row.get("Language"), row_index),
             notes=str(row["Notes"]).strip() or None if row.get("Notes") else None,
         )
 
     @staticmethod
-    def _parse_time(raw: str) -> Optional[str]:
+    def _parse_time(raw: str, row_index: int = 0) -> Optional[str]:
         if not raw:
             return None
         try:
             return datetime.strptime(raw, "%H:%M").strftime("%H:%M")
         except ValueError:
-            logger.warning("Unrecognized time format %r, expected HH:MM", raw)
+            logger.warning("Row %d: invalid time %r, expected HH:MM — skipping", row_index, raw)
             return None
 
-    def _parse_language(self, raw) -> Optional[Language]:
+    def _parse_language(self, raw, row_index: int = 0) -> Optional[Language]:
         if not raw:
             return None
         try:
             return Language(str(raw).strip().lower())
         except ValueError:
-            logger.warning("Unrecognized language code %r, ignoring", raw)
+            logger.warning("Row %d: unrecognized language code %r — ignoring", row_index, raw)
             return None
 
     @staticmethod
