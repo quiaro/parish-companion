@@ -20,6 +20,9 @@ dev = [
     "pytest-asyncio>=1.4.0",
 ]
 
+[tool.setuptools]
+packages = ["telegram", "schedules"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
