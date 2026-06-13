@@ -14,6 +14,11 @@ logger = logging.getLogger(__name__)
 
 _SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 _UPCOMING_WINDOW_DAYS = 7
+_TYPE_ALIASES: dict[str, str] = {
+    "misa": "mass",
+    "confesión": "confession",
+    "confesion": "confession",
+}
 
 
 class GoogleSheetsScheduleAdapter(ScheduleAdapter):
@@ -99,6 +104,7 @@ class GoogleSheetsScheduleAdapter(ScheduleAdapter):
 
     def _parse_entry(self, row: dict) -> Optional[ScheduleEntry]:
         raw_type = str(row.get("Type", "")).strip().lower()
+        raw_type = _TYPE_ALIASES.get(raw_type, raw_type)
         try:
             schedule_type = ScheduleType(raw_type)
         except ValueError:

@@ -312,6 +312,21 @@ class TestParseEntry:
         assert entry is not None
         assert entry.type == ScheduleType.MASS
 
+    def test_spanish_alias_misa_maps_to_mass(self, adapter):
+        entry = adapter._parse_entry(_row(Type="misa"))
+        assert entry is not None
+        assert entry.type == ScheduleType.MASS
+
+    def test_spanish_alias_confesion_maps_to_confession(self, adapter):
+        entry = adapter._parse_entry(_row(Type="confesión"))
+        assert entry is not None
+        assert entry.type == ScheduleType.CONFESSION
+
+    def test_spanish_alias_confesion_without_accent_maps_to_confession(self, adapter):
+        entry = adapter._parse_entry(_row(Type="confesion"))
+        assert entry is not None
+        assert entry.type == ScheduleType.CONFESSION
+
 
 # ---------------------------------------------------------------------------
 # GoogleSheetsScheduleAdapter — _read_special
