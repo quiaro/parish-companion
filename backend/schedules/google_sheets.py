@@ -19,6 +19,10 @@ _TYPE_ALIASES: dict[str, str] = {
     "confesión": "confession",
     "confesion": "confession",
 }
+_VALID_DAYS: frozenset[str] = frozenset({
+    "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
+    "domingo", "lunes", "martes", "miércoles", "miercoles", "jueves", "viernes", "sábado", "sabado",
+})
 
 
 class GoogleSheetsScheduleAdapter(ScheduleAdapter):
@@ -110,9 +114,13 @@ class GoogleSheetsScheduleAdapter(ScheduleAdapter):
         except ValueError:
             logger.warning("Skipping row with unrecognized type %r: %s", raw_type, row)
             return None
+        raw_day = str(row.get("Day", "")).strip()
+        if raw_day.lower() not in _VALID_DAYS:
+            logger.warning("Skipping row with unrecognized day %r: %s", raw_day, row)
+            return None
         return ScheduleEntry(
             type=schedule_type,
-            day=str(row["Day"]).strip(),
+            day=raw_day,
             start_time=str(row["Time"]).strip(),
             end_time=str(row["End Time"]).strip() or None if row.get("End Time") else None,
             language=self._parse_language(row.get("Language")),

@@ -312,6 +312,37 @@ class TestParseEntry:
         assert entry is not None
         assert entry.type == ScheduleType.MASS
 
+    def test_valid_english_day_is_accepted(self, adapter):
+        entry = adapter._parse_entry(_row(Day="Friday"))
+        assert entry is not None
+        assert entry.day == "Friday"
+
+    def test_valid_spanish_day_is_accepted(self, adapter):
+        entry = adapter._parse_entry(_row(Day="Domingo"))
+        assert entry is not None
+        assert entry.day == "Domingo"
+
+    def test_valid_spanish_day_with_accent_is_accepted(self, adapter):
+        entry = adapter._parse_entry(_row(Day="Miércoles"))
+        assert entry is not None
+
+    def test_valid_spanish_day_without_accent_is_accepted(self, adapter):
+        entry = adapter._parse_entry(_row(Day="Miercoles"))
+        assert entry is not None
+
+    def test_unrecognized_day_returns_none(self, adapter):
+        entry = adapter._parse_entry(_row(Day="Lundi"))
+        assert entry is None
+
+    def test_day_comparison_is_case_insensitive(self, adapter):
+        entry = adapter._parse_entry(_row(Day="SUNDAY"))
+        assert entry is not None
+
+    def test_day_value_preserves_original_casing(self, adapter):
+        entry = adapter._parse_entry(_row(Day="Sábado"))
+        assert entry is not None
+        assert entry.day == "Sábado"
+
     def test_spanish_alias_misa_maps_to_mass(self, adapter):
         entry = adapter._parse_entry(_row(Type="misa"))
         assert entry is not None
