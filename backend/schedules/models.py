@@ -31,6 +31,10 @@ class SpecialSchedule:
     end_date: date
     entries: list[ScheduleEntry] = field(default_factory=list)
 
+    @property
+    def is_active(self) -> bool:
+        return self.start_date <= date.today() <= self.end_date
+
 
 @dataclass
 class ParishSchedule:

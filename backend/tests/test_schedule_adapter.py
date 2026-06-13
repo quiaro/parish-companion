@@ -12,9 +12,41 @@ from schedules import (
     ScheduleEntry,
     ScheduleType,
     ScheduleUnavailableError,
+    SpecialSchedule,
     StaticScheduleAdapter,
 )
 from schedules.google_sheets import GoogleSheetsScheduleAdapter
+
+
+# ---------------------------------------------------------------------------
+# SpecialSchedule.is_active
+# ---------------------------------------------------------------------------
+
+class TestSpecialScheduleIsActive:
+    today = date.today()
+
+    def _schedule(self, start: date, end: date) -> SpecialSchedule:
+        return SpecialSchedule(name="Test", start_date=start, end_date=end)
+
+    def test_is_active_when_today_is_within_range(self):
+        s = self._schedule(self.today - timedelta(days=1), self.today + timedelta(days=1))
+        assert s.is_active is True
+
+    def test_is_active_on_start_date(self):
+        s = self._schedule(self.today, self.today + timedelta(days=3))
+        assert s.is_active is True
+
+    def test_is_active_on_end_date(self):
+        s = self._schedule(self.today - timedelta(days=3), self.today)
+        assert s.is_active is True
+
+    def test_not_active_before_start_date(self):
+        s = self._schedule(self.today + timedelta(days=1), self.today + timedelta(days=5))
+        assert s.is_active is False
+
+    def test_not_active_after_end_date(self):
+        s = self._schedule(self.today - timedelta(days=5), self.today - timedelta(days=1))
+        assert s.is_active is False
 
 
 # ---------------------------------------------------------------------------
