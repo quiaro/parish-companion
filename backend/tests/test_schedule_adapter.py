@@ -343,6 +343,30 @@ class TestParseEntry:
         assert entry is not None
         assert entry.day == "Sábado"
 
+    def test_valid_start_time_is_accepted(self, adapter):
+        entry = adapter._parse_entry(_row(Time="09:00"))
+        assert entry is not None
+        assert entry.start_time == "09:00"
+
+    def test_start_time_is_normalized_to_zero_padded_hhmm(self, adapter):
+        entry = adapter._parse_entry(_row(Time="9:00"))
+        assert entry is not None
+        assert entry.start_time == "09:00"
+
+    def test_invalid_start_time_returns_none(self, adapter):
+        entry = adapter._parse_entry(_row(Time="9am"))
+        assert entry is None
+
+    def test_valid_end_time_is_accepted(self, adapter):
+        entry = adapter._parse_entry(_row(**{"End Time": "10:00"}))
+        assert entry is not None
+        assert entry.end_time == "10:00"
+
+    def test_invalid_end_time_sets_none_but_keeps_entry(self, adapter):
+        entry = adapter._parse_entry(_row(**{"End Time": "10am"}))
+        assert entry is not None
+        assert entry.end_time is None
+
     def test_spanish_alias_misa_maps_to_mass(self, adapter):
         entry = adapter._parse_entry(_row(Type="misa"))
         assert entry is not None

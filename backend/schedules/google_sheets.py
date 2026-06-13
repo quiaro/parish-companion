@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 import gspread
@@ -118,14 +118,28 @@ class GoogleSheetsScheduleAdapter(ScheduleAdapter):
         if raw_day.lower() not in _VALID_DAYS:
             logger.warning("Skipping row with unrecognized day %r: %s", raw_day, row)
             return None
+        start_time = self._parse_time(str(row.get("Time", "")).strip())
+        if start_time is None:
+            return None
+        raw_end = str(row.get("End Time", "")).strip() if row.get("End Time") else ""
         return ScheduleEntry(
             type=schedule_type,
             day=raw_day,
-            start_time=str(row["Time"]).strip(),
-            end_time=str(row["End Time"]).strip() or None if row.get("End Time") else None,
+            start_time=start_time,
+            end_time=self._parse_time(raw_end),
             language=self._parse_language(row.get("Language")),
             notes=str(row["Notes"]).strip() or None if row.get("Notes") else None,
         )
+
+    @staticmethod
+    def _parse_time(raw: str) -> Optional[str]:
+        if not raw:
+            return None
+        try:
+            return datetime.strptime(raw, "%H:%M").strftime("%H:%M")
+        except ValueError:
+            logger.warning("Unrecognized time format %r, expected HH:MM", raw)
+            return None
 
     def _parse_language(self, raw) -> Optional[Language]:
         if not raw:
