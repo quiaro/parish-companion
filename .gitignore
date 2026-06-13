@@ -16,3 +16,4 @@ dist/
 postgres_data/
 *.pem
 *.key
+secrets/
