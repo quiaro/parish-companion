@@ -4,7 +4,7 @@
 
 | File | Audience | Contents |
 | ---- | -------- | -------- |
-| `README.md` | Anyone | Mission, vision, principles, privacy, and a Contributing section pointing to the right place. Pure overview — nothing operational. |
+| `README.md` | Anyone | Mission, vision, principles, privacy, a "Features" table listing available bot commands, and a Contributing section pointing to the right place. |
 | `DEPLOYMENT.md` | Parish adopters | Everything a parish needs to go live: spreadsheet setup, CSV templates, configuration reference, and how to wire in a custom data source. |
 | `DEVELOPMENT.md` | Contributors | Everything needed to work on the project: Docker setup, running tests, DevContainers, viewing logs. No deployment or adapter content. |
 | `docs/templates/` | Parish adopters | CSV templates for the Regular Schedule and Special Schedules spreadsheet tabs. |
@@ -30,3 +30,5 @@ backend/
 **Telegram command tests** — Integration tests for Telegram commands go in `tests/commands/`, one file per command. Keep `test_static.py` for commands whose replies are static strings from `translations.py`, and create a new file for each command whose reply requires a handler or external data.
 
 **Language forcing** — Telegram commands that are inherently in one language (e.g. `/schedules` → English, `/horarios` → Spanish) override the session language in the router. The mapping lives in `_SCHEDULE_COMMAND_LANGUAGES` in `telegram/router.py`. Do not use the session language for these commands.
+
+**Adding a new command** — update all of the following: `translations.py` (both languages), the router, `tests/commands/` (new file or `test_static.py`), the `/help` and `/ayuda` strings in `translations.py`, and the Features table in `README.md`.

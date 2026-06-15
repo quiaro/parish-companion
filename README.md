@@ -54,6 +54,13 @@ Parish Companion seeks to use technology in service of the Gospel by helping peo
 - Serve others with love.
 - Share the hope they have found in Christ.
 
+## Features (what parishioners can do)
+
+| Command                     | Description                                                                       |
+| --------------------------- | --------------------------------------------------------------------------------- |
+| `/schedules` or `/horarios` | View Mass and Confession times, including any active or upcoming special schedule |
+| `/help` or `/ayuda`         | List available commands                                                           |
+
 ## What Parish Companion Is Not
 
 Parish Companion is NOT:
