@@ -11,13 +11,13 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "telegram_cmd_start": (
             "Hello! This is the bot for Nuestra Señora del Pilar.\n"
+            "Use /help or /ayuda (Spanish) to know what I can do."
         ),
         "telegram_cmd_help": (
-            "Here is what I can do:\n\n"
-            "/ayuda — Lista de comandos (español)\n"
-            "/help — List available commands (English)\n"
-            "/start — Welcome message\n"
-            "/schedules — View Mass and Confession times"
+            "Here is what I can do:\n"
+            "/help: List available commands\n"
+            "/schedules: View Mass and Confession times\n"
+            "/start: Welcome message"
         ),
         "telegram_cmd_unknown": (
             "Sorry, I don't recognize that command. Type /help to see what I can do."
@@ -40,13 +40,13 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "telegram_cmd_start": (
             "¡Hola! Soy el bot de Nuestra Señora del Pilar.\n"
+            "Utiliza /ayuda o /help (inglés) para ver lo que puedo hacer."
         ),
         "telegram_cmd_help": (
-            "Esto es lo que puedo hacer:\n\n"
-            "/ayuda — Lista de comandos (español)\n"
-            "/help — List available commands (English)\n"
-            "/inicio — Mensaje de bienvenida\n"
-            "/horarios — Ver horarios de Misa y Confesiones"
+            "Esto es lo que puedo hacer:\n"
+            "/ayuda: Lista de comandos\n"
+            "/horarios: Ver horarios de Misa y Confesiones\n"
+            "/inicio: Mensaje de bienvenida"
         ),
         "telegram_cmd_unknown": (
             "Lo siento, no reconozco ese comando. Escribe /help para ver lo que puedo hacer."
