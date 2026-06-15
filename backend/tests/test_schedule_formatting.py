@@ -1,6 +1,8 @@
+from datetime import date, timedelta
+
 import pytest
 
-from schedules.models import Language, ParishSchedule, ScheduleEntry, ScheduleType, ScheduleUnavailableError
+from schedules.models import Language, ParishSchedule, ScheduleEntry, ScheduleType, ScheduleUnavailableError, SpecialSchedule
 from telegram.schedule import format_schedule, handle_schedules
 
 
@@ -166,6 +168,95 @@ def test_no_confession_spanish_fallback() -> None:
     schedule = ParishSchedule(regular=[_mass("Sunday", "09:00")])
     result = format_schedule(schedule, "es")
     assert "/contacto" in result
+
+
+# ---------------------------------------------------------------------------
+# Special schedule (S-03)
+# ---------------------------------------------------------------------------
+
+def _special(name: str, days_from_today: int, duration: int, entries: list[ScheduleEntry] | None = None) -> SpecialSchedule:
+    today = date.today()
+    start = today + timedelta(days=days_from_today)
+    return SpecialSchedule(
+        name=name,
+        start_date=start,
+        end_date=start + timedelta(days=duration - 1),
+        entries=entries or [_mass("Sunday", "10:00")],
+    )
+
+
+def test_active_special_schedule_replaces_regular() -> None:
+    regular = [_mass("Sunday", "09:00", Language.EN)]
+    special = _special("Holy Week", days_from_today=-1, duration=7)
+    schedule = ParishSchedule(regular=regular, special=special)
+    result = format_schedule(schedule, "en")
+    assert "9 AM" not in result
+    assert "10 AM" in result
+
+
+def test_active_special_schedule_shows_name() -> None:
+    special = _special("Holy Week", days_from_today=-1, duration=7)
+    schedule = ParishSchedule(regular=[], special=special)
+    result = format_schedule(schedule, "en")
+    assert "Holy Week" in result
+
+
+def test_active_special_schedule_shows_date_range() -> None:
+    from telegram.schedule import _format_date_range
+    today = date.today()
+    special = SpecialSchedule(
+        name="Holy Week",
+        start_date=today - timedelta(days=1),
+        end_date=today + timedelta(days=5),
+        entries=[_mass("Sunday", "10:00")],
+    )
+    schedule = ParishSchedule(regular=[], special=special)
+    result = format_schedule(schedule, "en")
+    assert _format_date_range(special.start_date, special.end_date) in result
+
+
+def test_upcoming_special_schedule_shown_after_regular() -> None:
+    regular = [_mass("Sunday", "09:00")]
+    special = _special("Christmas", days_from_today=3, duration=3)
+    schedule = ParishSchedule(regular=regular, special=special)
+    result = format_schedule(schedule, "en")
+    assert "9 AM" in result
+    assert "Christmas" in result
+    assert result.index("9 AM") < result.index("Christmas")
+
+
+def test_upcoming_special_schedule_shows_upcoming_label() -> None:
+    special = _special("Christmas", days_from_today=3, duration=3)
+    schedule = ParishSchedule(regular=[], special=special)
+    result = format_schedule(schedule, "en")
+    assert "Upcoming" in result
+
+
+def test_upcoming_special_schedule_spanish_label() -> None:
+    special = _special("Navidad", days_from_today=3, duration=3)
+    schedule = ParishSchedule(regular=[], special=special)
+    result = format_schedule(schedule, "es")
+    assert "Próximamente" in result
+
+
+def test_no_special_schedule_not_mentioned() -> None:
+    schedule = ParishSchedule(regular=[_mass("Sunday", "09:00")])
+    result = format_schedule(schedule, "en")
+    assert "Upcoming" not in result
+
+
+def test_date_range_same_month() -> None:
+    from telegram.schedule import _format_date_range
+    start = date(2026, 4, 13)
+    end = date(2026, 4, 20)
+    assert _format_date_range(start, end) == "Apr 13–20"
+
+
+def test_date_range_different_months() -> None:
+    from telegram.schedule import _format_date_range
+    start = date(2025, 12, 24)
+    end = date(2026, 1, 6)
+    assert _format_date_range(start, end) == "Dec 24 – Jan 6"
 
 
 # ---------------------------------------------------------------------------

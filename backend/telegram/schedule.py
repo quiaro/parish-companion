@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import date
 
 from schedules.adapter import ScheduleAdapter
 from schedules.models import Language, ParishSchedule, ScheduleEntry, ScheduleType, ScheduleUnavailableError
@@ -39,15 +40,37 @@ def handle_schedules(adapter: ScheduleAdapter, language: str) -> str:
 
 
 def format_schedule(schedule: ParishSchedule, language: str) -> str:
-    mass = [e for e in schedule.regular if e.type == ScheduleType.MASS]
-    confession = [e for e in schedule.regular if e.type == ScheduleType.CONFESSION]
+    special = schedule.special
 
-    parts: list[str] = [f"*{get_string('schedule_mass_header', language)}*", ""]
+    if special and special.is_active:
+        date_range = _format_date_range(special.start_date, special.end_date)
+        return "\n".join([
+            f"*{special.name}* ({date_range})",
+            "",
+            _format_entry_sections(special.entries, language),
+        ])
+
+    parts = [_format_entry_sections(schedule.regular, language)]
+
+    if special:
+        date_range = _format_date_range(special.start_date, special.end_date)
+        upcoming_label = get_string("schedule_upcoming_label", language)
+        parts += ["", "---", f"*{upcoming_label}: {special.name}* ({date_range})", ""]
+        parts.append(_format_entry_sections(special.entries, language))
+
+    return "\n".join(parts)
+
+
+def _format_entry_sections(entries: list[ScheduleEntry], language: str) -> str:
+    mass = [e for e in entries if e.type == ScheduleType.MASS]
+    confession = [e for e in entries if e.type == ScheduleType.CONFESSION]
+
+    parts: list[str] = [f"*{get_string('schedule_mass_header', language)}*"]
 
     if mass:
         parts.append(_format_entries_by_day(mass, language))
 
-    parts += ["", f"*{get_string('schedule_confession_header', language)}*", ""]
+    parts += ["", f"*{get_string('schedule_confession_header', language)}*"]
 
     if confession:
         parts.append(_format_entries_by_day(confession, language))
@@ -55,6 +78,12 @@ def format_schedule(schedule: ParishSchedule, language: str) -> str:
         parts.append(get_string("schedule_no_confession", language))
 
     return "\n".join(parts)
+
+
+def _format_date_range(start: date, end: date) -> str:
+    if start.month == end.month and start.year == end.year:
+        return f"{start.strftime('%b')} {start.day}–{end.day}"
+    return f"{start.strftime('%b')} {start.day} – {end.strftime('%b')} {end.day}"
 
 
 def _format_entries_by_day(entries: list[ScheduleEntry], language: str) -> str:

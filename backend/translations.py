@@ -32,6 +32,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "Sorry, I wasn't able to retrieve the schedule right now. "
             "Please check the parish website or use /contact for assistance."
         ),
+        "schedule_upcoming_label": "Upcoming",
     },
     "es": {
         "telegram_text_only": (
@@ -60,6 +61,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "Lo siento, no pude obtener los horarios en este momento. "
             "Por favor visita el sitio web de la parroquia o usa /contacto para obtener ayuda."
         ),
+        "schedule_upcoming_label": "Próximamente",
     },
 }
 
