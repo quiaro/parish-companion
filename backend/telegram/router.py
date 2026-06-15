@@ -27,7 +27,10 @@ def _verify_secret(secret_token: str | None) -> None:
         )
 
 
-_SCHEDULE_COMMANDS = frozenset({"/schedules", "/horarios"})
+_SCHEDULE_COMMAND_LANGUAGES: dict[str, str] = {
+    "/schedules": "en",
+    "/horarios": "es",
+}
 
 
 @router.post("/webhook")
@@ -54,8 +57,9 @@ async def receive_update(
     text = update.message.text
     if text.startswith("/"):
         command = text.split()[0].split("@")[0].lower()
-        if command in _SCHEDULE_COMMANDS:
-            reply = telegram_schedule.handle_schedules(request.app.state.schedule_adapter, language)
+        if command in _SCHEDULE_COMMAND_LANGUAGES:
+            forced_lang = _SCHEDULE_COMMAND_LANGUAGES[command]
+            reply = telegram_schedule.handle_schedules(request.app.state.schedule_adapter, forced_lang)
         else:
             reply = commands.get_reply(command, language)
         await send_message(chat_id, reply)
