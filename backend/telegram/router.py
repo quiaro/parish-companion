@@ -1,11 +1,12 @@
 import logging
 
-from fastapi import APIRouter, Header, HTTPException, status
+from fastapi import APIRouter, Header, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 
 from config import settings
 from session import get_language
 from telegram import commands
+from telegram import schedule as telegram_schedule
 from telegram.client import send_message
 from telegram.models import Update
 from translations import get_string
@@ -26,8 +27,12 @@ def _verify_secret(secret_token: str | None) -> None:
         )
 
 
+_SCHEDULE_COMMANDS = frozenset({"/schedules", "/horarios"})
+
+
 @router.post("/webhook")
 async def receive_update(
+    request: Request,
     update: Update,
     x_telegram_bot_api_secret_token: str | None = Header(default=None),
 ) -> JSONResponse:
@@ -49,7 +54,11 @@ async def receive_update(
     text = update.message.text
     if text.startswith("/"):
         command = text.split()[0].split("@")[0].lower()
-        await send_message(chat_id, commands.get_reply(command, language))
+        if command in _SCHEDULE_COMMANDS:
+            reply = telegram_schedule.handle_schedules(request.app.state.schedule_adapter, language)
+        else:
+            reply = commands.get_reply(command, language)
+        await send_message(chat_id, reply)
         return JSONResponse({"status": "ok"})
 
     # TODO: Implement actual message handling.

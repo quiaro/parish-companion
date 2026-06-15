@@ -16,10 +16,21 @@ STRINGS: dict[str, dict[str, str]] = {
             "Here is what I can do:\n\n"
             "/ayuda — Lista de comandos (español)\n"
             "/help — List available commands (English)\n"
-            "/start — Welcome message"
+            "/start — Welcome message\n"
+            "/schedules — View Mass and Confession times"
         ),
         "telegram_cmd_unknown": (
             "Sorry, I don't recognize that command. Type /help to see what I can do."
+        ),
+        "schedule_mass_header": "Mass Times",
+        "schedule_confession_header": "Confession",
+        "schedule_no_confession": (
+            "No Confession times are currently scheduled. "
+            "For more information, use /contact or call the parish office."
+        ),
+        "schedule_unavailable": (
+            "Sorry, I wasn't able to retrieve the schedule right now. "
+            "Please check the parish website or use /contact for assistance."
         ),
     },
     "es": {
@@ -33,10 +44,21 @@ STRINGS: dict[str, dict[str, str]] = {
             "Esto es lo que puedo hacer:\n\n"
             "/ayuda — Lista de comandos (español)\n"
             "/help — List available commands (English)\n"
-            "/inicio — Mensaje de bienvenida"
+            "/inicio — Mensaje de bienvenida\n"
+            "/horarios — Ver horarios de Misa y Confesiones"
         ),
         "telegram_cmd_unknown": (
             "Lo siento, no reconozco ese comando. Escribe /help para ver lo que puedo hacer."
+        ),
+        "schedule_mass_header": "Horarios de Misa",
+        "schedule_confession_header": "Confesiones",
+        "schedule_no_confession": (
+            "Por el momento no hay horarios de confesión programados. "
+            "Para más información, usa /contacto o llama a la parroquia."
+        ),
+        "schedule_unavailable": (
+            "Lo siento, no pude obtener los horarios en este momento. "
+            "Por favor visita el sitio web de la parroquia o usa /contacto para obtener ayuda."
         ),
     },
 }
