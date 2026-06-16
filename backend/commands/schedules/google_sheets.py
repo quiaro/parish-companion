@@ -7,8 +7,8 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 from config import settings
-from schedules.adapter import ScheduleAdapter
-from schedules.models import Language, ParishSchedule, ScheduleEntry, ScheduleType, ScheduleUnavailableError, SpecialSchedule
+from commands.schedules.adapter import ScheduleAdapter
+from commands.schedules.models import Language, ParishSchedule, ScheduleEntry, ScheduleType, ScheduleUnavailableError, SpecialSchedule
 
 logger = logging.getLogger(__name__)
 

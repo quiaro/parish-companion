@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from contact.models import ContactRequest
+from commands.contact.models import ContactRequest
 
 
 class ContactNotifier(ABC):

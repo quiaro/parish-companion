@@ -1,8 +1,8 @@
 from collections import defaultdict
 from datetime import date
 
-from schedules.adapter import ScheduleAdapter
-from schedules.models import Language, ParishSchedule, ScheduleEntry, ScheduleType, ScheduleUnavailableError
+from commands.schedules.adapter import ScheduleAdapter
+from commands.schedules.models import Language, ParishSchedule, ScheduleEntry, ScheduleType, ScheduleUnavailableError
 from translations import get_string
 
 _DAY_INDEX: dict[str, int] = {

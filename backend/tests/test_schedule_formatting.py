@@ -2,7 +2,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from schedules.models import Language, ParishSchedule, ScheduleEntry, ScheduleType, ScheduleUnavailableError, SpecialSchedule
+from commands.schedules.models import Language, ParishSchedule, ScheduleEntry, ScheduleType, ScheduleUnavailableError, SpecialSchedule
 from telegram.schedule import format_schedule, handle_schedules
 
 

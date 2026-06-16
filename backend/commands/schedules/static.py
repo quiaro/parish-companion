@@ -1,5 +1,5 @@
-from schedules.adapter import ScheduleAdapter
-from schedules.models import Language, ParishSchedule, ScheduleEntry, ScheduleType
+from commands.schedules.adapter import ScheduleAdapter
+from commands.schedules.models import Language, ParishSchedule, ScheduleEntry, ScheduleType
 
 
 class StaticScheduleAdapter(ScheduleAdapter):

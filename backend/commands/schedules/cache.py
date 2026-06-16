@@ -1,8 +1,8 @@
 import time
 from typing import Optional
 
-from schedules.adapter import ScheduleAdapter
-from schedules.models import ParishSchedule
+from commands.schedules.adapter import ScheduleAdapter
+from commands.schedules.models import ParishSchedule
 
 
 class CachedScheduleAdapter(ScheduleAdapter):

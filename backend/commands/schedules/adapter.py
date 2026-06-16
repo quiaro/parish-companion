@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from schedules.models import ParishSchedule
+from commands.schedules.models import ParishSchedule
 
 
 class ScheduleAdapter(ABC):

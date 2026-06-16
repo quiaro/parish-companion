@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from config import settings
-from schedules import CachedScheduleAdapter, GoogleSheetsScheduleAdapter, StaticScheduleAdapter
+from commands.schedules import CachedScheduleAdapter, GoogleSheetsScheduleAdapter, StaticScheduleAdapter
 from telegram.client import delete_webhook, register_webhook
 from telegram.router import router as telegram_router
 

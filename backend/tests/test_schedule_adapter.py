@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import gspread
 import pytest
 
-from schedules import (
+from commands.schedules import (
     CachedScheduleAdapter,
     Language,
     ParishSchedule,
@@ -15,7 +15,7 @@ from schedules import (
     SpecialSchedule,
     StaticScheduleAdapter,
 )
-from schedules.google_sheets import GoogleSheetsScheduleAdapter
+from commands.schedules.google_sheets import GoogleSheetsScheduleAdapter
 
 
 # ---------------------------------------------------------------------------
@@ -113,10 +113,10 @@ class TestCachedScheduleAdapter:
         inner = self._make_inner()
         adapter = CachedScheduleAdapter(inner, ttl_seconds=60)
 
-        with patch("schedules.cache.time.time", return_value=0.0):
+        with patch("commands.schedules.cache.time.time", return_value=0.0):
             adapter.get_schedule()
 
-        with patch("schedules.cache.time.time", return_value=61.0):
+        with patch("commands.schedules.cache.time.time", return_value=61.0):
             adapter.get_schedule()
 
         assert inner.get_schedule.call_count == 2
@@ -125,10 +125,10 @@ class TestCachedScheduleAdapter:
         inner = self._make_inner()
         adapter = CachedScheduleAdapter(inner, ttl_seconds=60)
 
-        with patch("schedules.cache.time.time", return_value=0.0):
+        with patch("commands.schedules.cache.time.time", return_value=0.0):
             adapter.get_schedule()
 
-        with patch("schedules.cache.time.time", return_value=59.0):
+        with patch("commands.schedules.cache.time.time", return_value=59.0):
             adapter.get_schedule()
 
         inner.get_schedule.assert_called_once()

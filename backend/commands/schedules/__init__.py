@@ -1,7 +1,7 @@
-from schedules.adapter import ScheduleAdapter
-from schedules.cache import CachedScheduleAdapter
-from schedules.google_sheets import GoogleSheetsScheduleAdapter
-from schedules.models import (
+from commands.schedules.adapter import ScheduleAdapter
+from commands.schedules.cache import CachedScheduleAdapter
+from commands.schedules.google_sheets import GoogleSheetsScheduleAdapter
+from commands.schedules.models import (
     Language,
     ParishSchedule,
     ScheduleEntry,
@@ -9,7 +9,7 @@ from schedules.models import (
     ScheduleUnavailableError,
     SpecialSchedule,
 )
-from schedules.static import StaticScheduleAdapter
+from commands.schedules.static import StaticScheduleAdapter
 
 __all__ = [
     "Language",
