@@ -15,19 +15,21 @@ When deciding where to add or update documentation, use the audience column to p
 
 ```
 backend/
-  schedules/      Data layer — ScheduleAdapter interface, models, GoogleSheetsScheduleAdapter, CachedScheduleAdapter, StaticScheduleAdapter
+  commands/
+    schedules/    Data layer — ScheduleAdapter interface, models, GoogleSheetsScheduleAdapter, CachedScheduleAdapter, StaticScheduleAdapter
+    contact/      Contact request feature — ContactNotifier interface, EmailContactNotifier, multi-step intake flow
   telegram/       Presentation layer — webhook router, command handlers, schedule formatter, message splitting
   tests/
     commands/     Telegram command integration tests — one file per command (test_static.py, test_schedule.py, …)
   translations.py All user-facing strings (English and Spanish)
-  main.py         App entry point; wires the schedule adapter and registers the Telegram webhook
+  main.py         App entry point; wires adapters/notifiers and registers the Telegram webhook
 ```
 
 ## Conventions
 
 **Translations** — All user-facing strings live in `translations.py`. When adding a new string, add it in both `en` and `es` at the same time. `tests/test_translations.py` enforces that both languages always have identical key sets.
 
-**Telegram command tests** — Integration tests for Telegram commands go in `tests/commands/`, one file per command. Keep `test_static.py` for commands whose replies are static strings from `translations.py`, and create a new file for each command whose reply requires a handler or external data.
+**Telegram command tests** — Integration tests for Telegram commands go in `tests/commands/`, one file per command. Keep `test_static.py` for commands whose replies are static strings from `translations.py`, and create a new file for each command whose reply requires a handler or external data. `tests/commands/` has no `__init__.py` — pytest discovers test files without it, and its absence prevents the directory from shadowing `backend/commands/` in `sys.path`.
 
 **Language forcing** — Telegram commands that are inherently in one language (e.g. `/schedules` → English, `/horarios` → Spanish) override the session language in the router. The mapping lives in `_SCHEDULE_COMMAND_LANGUAGES` in `telegram/router.py`. Do not use the session language for these commands.
 
