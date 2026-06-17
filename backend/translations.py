@@ -17,6 +17,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "Here is what I can do:\n"
             "/help: List available commands\n"
             "/schedules: View Mass and Confession times\n"
+            "/contact: Reach a member of our parish staff\n"
             "/start: Welcome message"
         ),
         "telegram_cmd_unknown": (
@@ -41,6 +42,17 @@ STRINGS: dict[str, dict[str, str]] = {
         "contact_email_label_telegram": "Telegram contact:",
         "contact_email_label_message": "Message:",
         "contact_email_label_preferred_time": "Best time to reach:",
+        "contact_ask_name": "What is your name?",
+        "contact_ask_request_type": "What type of assistance are you looking for?",
+        "contact_ask_message": "Please briefly describe what you need help with.",
+        "contact_ask_preferred_time": (
+            "What is the best time to reach you? (e.g. weekday mornings, evenings)"
+        ),
+        "contact_cancelled": (
+            "Your request has been cancelled. Feel free to reach out again any time."
+        ),
+        "contact_invalid_choice": "Please enter a number from the list above.",
+        "contact_intake_complete": "Thank you! We received your information and will be in touch soon.",
     },
     "es": {
         "telegram_text_only": (
@@ -54,6 +66,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "Esto es lo que puedo hacer:\n"
             "/ayuda: Lista de comandos\n"
             "/horarios: Ver horarios de Misa y Confesiones\n"
+            "/contacto: Comunicarse con el personal de la parroquia\n"
             "/inicio: Mensaje de bienvenida"
         ),
         "telegram_cmd_unknown": (
@@ -78,6 +91,18 @@ STRINGS: dict[str, dict[str, str]] = {
         "contact_email_label_telegram": "Contacto de Telegram:",
         "contact_email_label_message": "Mensaje:",
         "contact_email_label_preferred_time": "Mejor horario para comunicarse:",
+        "contact_ask_name": "¿Cuál es su nombre?",
+        "contact_ask_request_type": "¿Qué tipo de ayuda está buscando?",
+        "contact_ask_message": "Por favor, describa brevemente en qué necesita ayuda.",
+        "contact_ask_preferred_time": (
+            "¿Cuál es el mejor horario para comunicarnos con usted? "
+            "(e.g. mañanas entre semana, por las tardes)"
+        ),
+        "contact_cancelled": (
+            "Su solicitud ha sido cancelada. No dude en contactarnos cuando lo necesite."
+        ),
+        "contact_invalid_choice": "Por favor, ingrese un número de la lista anterior.",
+        "contact_intake_complete": "Gracias! Su información ha sido recibida. Pronto nos comunicaremos con usted.",
     },
 }
 

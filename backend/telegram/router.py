@@ -3,6 +3,7 @@ import logging
 from fastapi import APIRouter, Header, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 
+from commands.contact import flow as contact_flow
 from config import settings
 from session import get_language
 from telegram import commands
@@ -30,6 +31,11 @@ def _verify_secret(secret_token: str | None) -> None:
 _SCHEDULE_COMMAND_LANGUAGES: dict[str, str] = {
     "/schedules": "en",
     "/horarios": "es",
+}
+
+_CONTACT_COMMAND_LANGUAGES: dict[str, str] = {
+    "/contact": "en",
+    "/contacto": "es",
 }
 
 
@@ -60,11 +66,25 @@ async def receive_update(
         if command in _SCHEDULE_COMMAND_LANGUAGES:
             forced_lang = _SCHEDULE_COMMAND_LANGUAGES[command]
             reply = telegram_schedule.handle_schedules(request.app.state.schedule_adapter, forced_lang)
+        elif command in _CONTACT_COMMAND_LANGUAGES:
+            forced_lang = _CONTACT_COMMAND_LANGUAGES[command]
+            reply = await contact_flow.start(session_id, forced_lang)
+        elif command == "/cancel":
+            flow_state = await contact_flow.get_state(session_id)
+            if flow_state:
+                reply = await contact_flow.cancel(session_id)
+            else:
+                reply = commands.get_reply(command, language)
         else:
             reply = commands.get_reply(command, language)
         await send_message(chat_id, reply)
         return JSONResponse({"status": "ok"})
 
-    # TODO: Implement actual message handling.
-    # reply = await handle_message(text, session_id, pool)
+    flow_state = await contact_flow.get_state(session_id)
+    if flow_state and flow_state["step"] != "done":
+        reply, done = await contact_flow.advance(session_id, text)
+        # TODO C-04: when done=True, replace reply with summary and confirmation prompt
+        await send_message(chat_id, reply)
+        return JSONResponse({"status": "ok"})
+
     return JSONResponse({"status": "ok"})
