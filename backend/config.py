@@ -22,8 +22,23 @@ class Settings(BaseSettings):
     redis_url: str
 
     session_ttl_seconds: int = 86_400
-    
+
     default_language: str = "en"
+
+    contact_email_recipients: str = ""
+    contact_phone: str = ""
+    contact_request_types: str = (
+        '["Speak with a priest", "Spiritual director appointment",'
+        ' "Pastoral minister", "General question"]'
+    )
+    contact_request_types_es: str = ""
+
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_use_tls: bool = True
+    smtp_from_address: str = ""
 
 
 settings = Settings()  # type: ignore[call-arg]

@@ -33,6 +33,14 @@ STRINGS: dict[str, dict[str, str]] = {
             "Please check the parish website or use /contact for assistance."
         ),
         "schedule_upcoming_label": "Upcoming",
+        "contact_email_intro": (
+            "A parishioner has submitted a contact request through Parish Companion."
+        ),
+        "contact_email_label_request_type": "Request type:",
+        "contact_email_label_name": "Name:",
+        "contact_email_label_telegram": "Telegram contact:",
+        "contact_email_label_message": "Message:",
+        "contact_email_label_preferred_time": "Best time to reach:",
     },
     "es": {
         "telegram_text_only": (
@@ -62,6 +70,14 @@ STRINGS: dict[str, dict[str, str]] = {
             "Por favor visita el sitio web de la parroquia o usa /contacto para obtener ayuda."
         ),
         "schedule_upcoming_label": "Próximamente",
+        "contact_email_intro": (
+            "Se ha enviado una solicitud de contacto a través de Parish Companion."
+        ),
+        "contact_email_label_request_type": "Tipo de solicitud:",
+        "contact_email_label_name": "Nombre:",
+        "contact_email_label_telegram": "Contacto de Telegram:",
+        "contact_email_label_message": "Mensaje:",
+        "contact_email_label_preferred_time": "Mejor horario para comunicarse:",
     },
 }
 
