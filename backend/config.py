@@ -1,3 +1,6 @@
+import json
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -32,6 +35,17 @@ class Settings(BaseSettings):
         ' "Pastoral minister", "General question"]'
     )
     contact_request_types_es: str = ""
+
+    @field_validator("contact_request_types")
+    @classmethod
+    def must_be_non_empty_json_list(cls, v: str) -> str:
+        try:
+            parsed = json.loads(v)
+        except json.JSONDecodeError:
+            raise ValueError("CONTACT_REQUEST_TYPES must be a valid JSON array")
+        if not isinstance(parsed, list) or not parsed:
+            raise ValueError("CONTACT_REQUEST_TYPES must be a non-empty JSON array")
+        return v
 
     smtp_host: str = ""
     smtp_port: int = 587
