@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 
@@ -175,7 +176,7 @@ async def submit(
         telegram_username=telegram_username,
         language=language,
     )
-    if notifier.send(contact_request):
+    if await asyncio.to_thread(notifier.send, contact_request):
         await _clear_state(session_id)
         return get_string("contact_confirm_success", language)
 
