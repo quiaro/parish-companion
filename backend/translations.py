@@ -52,7 +52,22 @@ STRINGS: dict[str, dict[str, str]] = {
             "Your request has been cancelled. Feel free to reach out again any time."
         ),
         "contact_invalid_choice": "Please enter a number from the list above.",
-        "contact_intake_complete": "Thank you! We received your information and will be in touch soon.",
+        "contact_intake_complete": "Thank you! We have received your information.",
+        "contact_confirm_summary_header": "Here is a summary of your request:",
+        "contact_confirm_prompt": (
+            "Does this look right? Reply Yes to send, or No to cancel."
+        ),
+        "contact_confirm_re_ask": (
+            "Please reply Yes to send your request, or No to cancel."
+        ),
+        "contact_confirm_success": (
+            "Your request has been sent. "
+            "A member of our parish staff will be in touch with you soon."
+        ),
+        "contact_confirm_send_error": (
+            "Something went wrong sending your request. "
+            "Please try replying Yes again, or type /cancel to start over."
+        ),
     },
     "es": {
         "telegram_text_only": (
@@ -102,7 +117,22 @@ STRINGS: dict[str, dict[str, str]] = {
             "Su solicitud ha sido cancelada. No dude en contactarnos cuando lo necesite."
         ),
         "contact_invalid_choice": "Por favor, ingrese un número de la lista anterior.",
-        "contact_intake_complete": "Gracias! Su información ha sido recibida. Pronto nos comunicaremos con usted.",
+        "contact_intake_complete": "Gracias! Su información ha sido recibida.",
+        "contact_confirm_summary_header": "Aquí está un resumen de su solicitud:",
+        "contact_confirm_prompt": (
+            "¿Es correcto? Responda Sí para enviar, o No para cancelar."
+        ),
+        "contact_confirm_re_ask": (
+            "Por favor, responda Sí para enviar su solicitud, o No para cancelar."
+        ),
+        "contact_confirm_success": (
+            "Su solicitud ha sido enviada. "
+            "Un miembro del personal de la parroquia se pondrá en contacto con usted pronto."
+        ),
+        "contact_confirm_send_error": (
+            "Algo salió mal al enviar su solicitud. "
+            "Intente respondiendo Sí nuevamente, o escriba /cancel para empezar de nuevo."
+        ),
     },
 }
 

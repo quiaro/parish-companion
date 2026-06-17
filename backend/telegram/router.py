@@ -81,9 +81,23 @@ async def receive_update(
         return JSONResponse({"status": "ok"})
 
     flow_state = await contact_flow.get_state(session_id)
-    if flow_state and flow_state["step"] != "done":
-        reply, done = await contact_flow.advance(session_id, text)
-        # TODO C-04: when done=True, replace reply with summary and confirmation prompt
+    if flow_state:
+        step = flow_state["step"]
+        if step == "confirm":
+            sender = update.message.from_
+            reply = await contact_flow.submit(
+                session_id,
+                text,
+                request.app.state.contact_notifier,
+                sender.id if sender else chat_id,
+                sender.username if sender else None,
+            )
+        elif step == "done":
+            reply = await contact_flow.present_confirmation(session_id)
+        else:
+            reply, done = await contact_flow.advance(session_id, text)
+            if done:
+                reply = await contact_flow.present_confirmation(session_id)
         await send_message(chat_id, reply)
         return JSONResponse({"status": "ok"})
 

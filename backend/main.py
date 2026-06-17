@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from config import settings
+from commands.contact.email_notifier import EmailContactNotifier
 from commands.schedules import CachedScheduleAdapter, GoogleSheetsScheduleAdapter, StaticScheduleAdapter
 from telegram.client import delete_webhook, register_webhook
 from telegram.router import router as telegram_router
@@ -26,6 +27,7 @@ def _build_schedule_adapter():
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     _app.state.schedule_adapter = _build_schedule_adapter()
+    _app.state.contact_notifier = EmailContactNotifier()
     # TODO: In production, gracefully handle the case where Telegram is down or the webhook registration fails.
     await register_webhook()
     yield
