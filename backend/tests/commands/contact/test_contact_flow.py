@@ -343,6 +343,22 @@ class TestSubmit:
         reply = await flow.submit(_SESSION, "yes", _make_notifier(False), 123, None)
         assert get_string("contact_confirm_send_error", "en") in reply
 
+    @pytest.mark.asyncio
+    async def test_send_failure_with_phone_includes_number(self, flow_store, configured_types, monkeypatch) -> None:
+        import config
+        monkeypatch.setattr(config.settings, "contact_phone", "(555) 123-4567")
+        await _advance_to_confirm()
+        reply = await flow.submit(_SESSION, "yes", _make_notifier(False), 123, None)
+        assert "(555) 123-4567" in reply
+
+    @pytest.mark.asyncio
+    async def test_send_failure_without_phone_omits_phone(self, flow_store, configured_types, monkeypatch) -> None:
+        import config
+        monkeypatch.setattr(config.settings, "contact_phone", "")
+        await _advance_to_confirm()
+        reply = await flow.submit(_SESSION, "yes", _make_notifier(False), 123, None)
+        assert get_string("contact_confirm_send_error", "en") in reply
+
 
 class TestSpanishFlow:
     @pytest.mark.asyncio

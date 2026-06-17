@@ -180,7 +180,11 @@ async def submit(
         await _clear_state(session_id)
         return get_string("contact_confirm_success", language)
 
-    # C-05: state kept at "confirm" so the user can retry
+    # State kept at "confirm" so the user can retry
+    if settings.contact_phone:
+        return get_string("contact_confirm_send_error_with_phone", language).format(
+            phone=settings.contact_phone
+        )
     return get_string("contact_confirm_send_error", language)
 
 

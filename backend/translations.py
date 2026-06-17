@@ -68,6 +68,10 @@ STRINGS: dict[str, dict[str, str]] = {
             "Something went wrong sending your request. "
             "Please try replying Yes again, or type /cancel to start over."
         ),
+        "contact_confirm_send_error_with_phone": (
+            "Something went wrong sending your request. Please try replying Yes again."
+            "If the problem persists, call the parish office directly at {phone} or type /cancel to start over."
+        ),
     },
     "es": {
         "telegram_text_only": (
@@ -126,12 +130,16 @@ STRINGS: dict[str, dict[str, str]] = {
             "Por favor, responda Sí para enviar su solicitud, o No para cancelar."
         ),
         "contact_confirm_success": (
-            "Su solicitud ha sido enviada. "
+            "Su solicitud ha sido enviada."
             "Un miembro del personal de la parroquia se pondrá en contacto con usted pronto."
         ),
         "contact_confirm_send_error": (
             "Algo salió mal al enviar su solicitud. "
             "Intente respondiendo Sí nuevamente, o escriba /cancel para empezar de nuevo."
+        ),
+        "contact_confirm_send_error_with_phone": (
+            "Algo salió mal enviando su solicitud. Por favor, intente respondiendo Sí nuevamente."
+            "Si el problema persiste, llame a la parroquia directamente al {phone} o escriba /cancel para empezar de nuevo."
         ),
     },
 }
