@@ -59,6 +59,7 @@ Parish Companion seeks to use technology in service of the Gospel by helping peo
 | Command                     | Description                                                                       |
 | --------------------------- | --------------------------------------------------------------------------------- |
 | `/schedules` or `/horarios` | View Mass and Confession times, including any active or upcoming special schedule |
+| `/contact` or `/contacto`   | Reach a member of parish staff for follow-up, appointments, or questions          |
 | `/help` or `/ayuda`         | List available commands                                                           |
 
 ## What Parish Companion Is Not

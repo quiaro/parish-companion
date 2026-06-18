@@ -18,14 +18,14 @@ The spreadsheet must contain two tabs. Their names are configurable via environm
 
 Tab name: `REGULAR_SCHEDULE_TAB` (default: `Regular Schedule`)
 
-| Column   | Required | Description                                 |
-| -------- | -------- | ------------------------------------------- |
-| Type     | Yes      | `mass` or `confession`                      |
-| Day      | Yes      | Day of the week, e.g. `Sunday`              |
+| Column   | Required | Description                                |
+| -------- | -------- | ------------------------------------------ |
+| Type     | Yes      | `mass` or `confession`                     |
+| Day      | Yes      | Day of the week, e.g. `Sunday`             |
 | Time     | Yes      | Start time in `HH:MM` format, e.g. `09:00` |
-| End Time | No       | End time in `HH:MM` format                  |
-| Language | No       | BCP 47 language code: `en` or `es`          |
-| Notes    | No       | Any additional information                  |
+| End Time | No       | End time in `HH:MM` format                 |
+| Language | No       | BCP 47 language code: `en` or `es`         |
+| Notes    | No       | Any additional information                 |
 
 Example:
 
@@ -95,6 +95,83 @@ If more than one special schedule is active at the same time, the one that start
 | `CACHED_SCHEDULE_TTL`          | `3600`                                  | How long (in seconds) to cache schedule data      |
 
 Schedule data is cached for `CACHED_SCHEDULE_TTL` seconds (default: 1 hour). Updates made to the spreadsheet will be visible to users within that window without any restart required.
+
+## Contact requests
+
+The `/contact` command (and its Spanish equivalent `/contacto`) lets a parishioner reach a member of your parish staff directly through the bot.
+
+### What parishioners experience
+
+1. They type `/contact` or `/contacto`.
+2. The bot asks four questions, one at a time:
+   - Their name
+   - The type of assistance they need (from a list you configure)
+   - A brief description of their request
+   - The best time to reach them
+3. The bot displays a summary of their answers and asks them to confirm.
+4. They reply **Yes** (or **Sí**) to send, or **No** to cancel.
+5. On confirmation, the bot sends an email to your staff and tells the parishioner that someone will be in touch.
+
+At any point they can type `/cancel` to abandon the request.
+
+### What the staff email looks like
+
+The subject line identifies the request type so staff can route it at a glance:
+
+```
+Subject: Parish Companion: Speak with a priest
+```
+
+The body includes all the information collected:
+
+```
+A parishioner has submitted a contact request through Parish Companion.
+
+Request type: Speak with a priest
+Name: Jane Smith
+Telegram contact: @janesmith (ID: 111222333)
+Message:
+I would like to schedule a time to speak with a priest about my upcoming marriage.
+
+Best time to reach: Weekday evenings
+```
+
+### Configuration
+
+#### Email delivery
+
+| Variable                   | Default                         | Description                                                       |
+| -------------------------- | ------------------------------- | ----------------------------------------------------------------- |
+| `CONTACT_EMAIL_RECIPIENTS` | _(required)_                    | JSON array of staff email addresses, e.g. `["pastor@parish.org"]` |
+| `SMTP_HOST`                | _(required)_                    | SMTP server hostname, e.g. `smtp.gmail.com`                       |
+| `SMTP_PORT`                | `587`                           | SMTP server port                                                  |
+| `SMTP_USERNAME`            | _(none)_                        | SMTP username (usually your full email address)                   |
+| `SMTP_PASSWORD`            | _(none)_                        | SMTP password or app password                                     |
+| `SMTP_USE_TLS`             | `true`                          | Set to `false` only if your mail server does not support STARTTLS |
+| `SMTP_FROM_ADDRESS`        | _(falls back to SMTP_USERNAME)_ | The sender address shown on outgoing emails                       |
+
+**Gmail users:** Generate an [App Password](https://support.google.com/accounts/answer/185833) rather than using your account password. Set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, and `SMTP_USE_TLS=true`.
+
+#### Request type options
+
+| Variable                   | Default                                                                                              | Description                                                 |
+| -------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `CONTACT_REQUEST_TYPES`    | `["Speak with a priest", "Spiritual director appointment", "Pastoral minister", "General question"]` | Options shown to English-speaking parishioners (JSON array) |
+| `CONTACT_REQUEST_TYPES_ES` | _(falls back to English list)_                                                                       | Options shown to Spanish-speaking parishioners (JSON array) |
+
+The selected type appears in the email subject line, so staff can see immediately who should handle the request. To change the options, update the environment variable — no code change is required.
+
+Example Spanish list to match the default English options:
+
+```
+CONTACT_REQUEST_TYPES_ES=["Hablar con un sacerdote", "Cita con director espiritual", "Ministro pastoral", "Pregunta general"]
+```
+
+#### Fallback contact
+
+| Variable        | Default  | Description                                                                                     |
+| --------------- | -------- | ----------------------------------------------------------------------------------------------- |
+| `CONTACT_PHONE` | _(none)_ | Parish phone number. If set, shown to parishioners in the rare event that email delivery fails. |
 
 ## Custom schedule data sources
 
