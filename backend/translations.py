@@ -15,9 +15,9 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "telegram_cmd_help": (
             "Here is what I can do:\n"
+            "/contact: Reach a member of our parish staff\n"
             "/help: List available commands\n"
             "/schedules: View Mass and Confession times\n"
-            "/contact: Reach a member of our parish staff\n"
             "/start: Welcome message"
         ),
         "telegram_cmd_unknown": (
@@ -84,8 +84,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "telegram_cmd_help": (
             "Esto es lo que puedo hacer:\n"
             "/ayuda: Lista de comandos\n"
-            "/horarios: Ver horarios de Misa y Confesiones\n"
             "/contacto: Comunicarse con el personal de la parroquia\n"
+            "/horarios: Ver horarios de Misa y Confesiones\n"
             "/inicio: Mensaje de bienvenida"
         ),
         "telegram_cmd_unknown": (
