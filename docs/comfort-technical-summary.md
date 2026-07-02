@@ -143,7 +143,7 @@ Passages are removed from a parishioner's sent-history after 2 weeks, which is w
 **Qdrant point (per verse):**
 | Field | Type | Embedded or Payload |
 |---|---|---|
-| Vector | embedding | Vector (from synthesized blob) |
+| Vector | embedding | Vector (synthesized from emotional tags, situational tags, and example user phrasings — not stored as payload) |
 | `reference` | string | Payload |
 | `verse_text` | string | Payload |
 | `emotional_tags` | list of tag strings | Payload |
