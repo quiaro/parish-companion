@@ -18,3 +18,10 @@ services:
     ports:
       - "5433:5432"
 
+  # Backups aren't needed for local dev data, and requiring AWS credentials just to
+  # run `docker compose up` locally would be unnecessary friction. Assigning a profile
+  # that's never activated in dev commands excludes it here without touching its
+  # always-on-by-default behavior in docker-compose.yml (used as-is in production).
+  backup:
+    profiles: ["production-only"]
+

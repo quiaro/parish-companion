@@ -33,14 +33,18 @@
 docker compose up --build
 ```
 
-This starts two services:
+This starts:
 
-| Service   | Host port | Description           |
-| --------- | --------- | --------------------- |
-| `backend` | 8000      | FastAPI app + Uvicorn |
-| `redis`   | —         | Session cache         |
+| Service    | Host port | Description                                   |
+| ---------- | --------- | ---------------------------------------------- |
+| `backend`  | 8000      | FastAPI app + Uvicorn                          |
+| `redis`    | —         | Session cache                                  |
+| `postgres` | —         | Per-parishioner persistent state (e.g. `/comfort`) |
+| `backup`   | —         | Daily `pg_dump` → S3 (production only, see below) |
 
-`redis` is intentionally not exposed to the host in production — the backend reaches it over Docker's internal network. See [Observability (Langfuse)](#observability-langfuse) for the remapped dev ports.
+`redis` and `postgres` are intentionally not exposed to the host in production — the backend reaches them over Docker's internal network. `docker-compose.dev.yml` remaps both to host ports (`6380` and `5433` respectively) so you can connect a local client while developing.
+
+**`backup` doesn't start in local dev.** It's assigned a profile (`production-only`) in `docker-compose.dev.yml` that's never activated by the documented dev command, so it's excluded whenever you use the dev override — no AWS credentials are needed just to run the stack locally. Running `docker compose up --build` with the base file alone (i.e. without `-f docker-compose.dev.yml`) still starts it normally, which is what production deployments do.
 
 Verify everything is up:
 
