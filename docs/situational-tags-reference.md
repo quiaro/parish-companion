@@ -9,7 +9,6 @@ Situational tags capture **what is happening** in a parishioner's life (the circ
 | Tag                          | Covers                                                     |
 | ---------------------------- | ---------------------------------------------------------- |
 | `bereavement`                | Death of a loved one.                                      |
-| `pet_loss`                   | Death of a pet.                                            |
 | `miscarriage_or_infertility` | Pregnancy loss, or struggles to conceive.                  |
 | `terminal_illness`           | Facing a terminal diagnosis — one's own, or a loved one's. |
 
@@ -66,10 +65,10 @@ Situational tags capture **what is happening** in a parishioner's life (the circ
 
 ## Crisis & trauma
 
-| Tag                  | Covers                                                                              |
-| -------------------- | ----------------------------------------------------------------------------------- |
-| `natural_disaster`   | Experiencing or recovering from a hurricane, wildfire, flood, or similar event.     |
-| `accident_or_injury` | A sudden, traumatic physical event — one's own injury or that of a loved one.       |
+| Tag                  | Covers                                                                          |
+| -------------------- | ------------------------------------------------------------------------------- |
+| `natural_disaster`   | Experiencing or recovering from a hurricane, wildfire, flood, or similar event. |
+| `accident_or_injury` | A sudden, traumatic physical event — one's own injury or that of a loved one.   |
 
 ## Conflict & social
 
