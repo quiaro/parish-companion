@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This is the curated subset of the negative emotional tag vocabulary that triggers **frequency-based pastoral nudges** (Step D of the runtime flow): when a parishioner's classified emotional tag falls within this set _and_ their passage-request frequency in the past rolling 12 hours crosses a threshold, the bot adds a gentle parish-contact reminder (>3 passages) or sends an urgent staff notification (>10 passages).
+This is the curated subset of the negative emotional tag vocabulary that triggers **frequency-based pastoral nudges** (Step E of the runtime flow): when a parishioner's classified emotional tag falls within this set _and_ their passage-request frequency in the past rolling 1 hour crosses a threshold, the bot adds a gentle parish-contact reminder (>= 3 passages) or sends an urgent staff notification (>= 10 passages).
 
 ## Scope — what this is, and what it is not
 
