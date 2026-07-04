@@ -24,6 +24,8 @@ class Settings(BaseSettings):
 
     redis_url: str
 
+    database_url: str
+
     session_ttl_seconds: int = 86_400
 
     default_language: str = "en"

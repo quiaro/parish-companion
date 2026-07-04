@@ -173,6 +173,57 @@ CONTACT_REQUEST_TYPES_ES=["Hablar con un sacerdote", "Cita con director espiritu
 | --------------- | -------- | ----------------------------------------------------------------------------------------------- |
 | `CONTACT_PHONE` | _(none)_ | Parish phone number. If set, shown to parishioners in the rare event that email delivery fails. |
 
+## Database & backups
+
+Parish Companion stores per-parishioner state (used by features like `/comfort`) in Postgres, which runs as part of the Docker Compose stack alongside the bot and Redis.
+
+### Backups
+
+A dedicated `backup` service runs `pg_dump` once daily and uploads the result to an Amazon S3 Standard bucket, naming the file after the day of the week (`backup-monday.sql`, `backup-tuesday.sql`, ...). Each new backup overwrites that same weekday's file from the previous week, giving a **rolling one-week history of 7 files**.
+
+**Recovery window tradeoff, chosen deliberately:** you can restore to any of the past 7 days (whichever weekday's backup predates the issue), but not further back than one week, and not to a granularity finer than once per day. This is an accepted tradeoff for the project's current stage — revisit (longer retention, multiple snapshots per day) if this stops being acceptable once real usage exists.
+
+### Restore procedure
+
+1. Download the desired weekday's backup from S3:
+
+   ```bash
+   aws s3 cp s3://$BACKUP_S3_BUCKET/backup-monday.sql ./restore.sql
+   ```
+
+2. Stop the backend so nothing writes to Postgres during the restore:
+
+   ```bash
+   docker compose stop backend
+   ```
+
+3. Restore into the running Postgres instance (this expects a fresh/empty database — if restoring after data corruption, drop and recreate the database first):
+
+   ```bash
+   docker compose exec -T postgres psql -U $POSTGRES_USER -d $POSTGRES_DB < restore.sql
+   ```
+
+4. Restart the backend:
+
+   ```bash
+   docker compose start backend
+   ```
+
+### Configuration
+
+| Variable                | Default       | Description                                                          |
+| ------------------------ | ------------- | ---------------------------------------------------------------------- |
+| `POSTGRES_USER`          | _(required)_  | Postgres username                                                       |
+| `POSTGRES_PASSWORD`      | _(required)_  | Postgres password                                                       |
+| `POSTGRES_DB`             | _(required)_  | Postgres database name                                                  |
+| `DATABASE_URL`            | _(required)_  | SQLAlchemy connection string, e.g. `postgresql+psycopg://user:pass@postgres:5432/db` |
+| `AWS_ACCESS_KEY_ID`       | _(required)_  | AWS credential used to upload backups to S3                            |
+| `AWS_SECRET_ACCESS_KEY`   | _(required)_  | AWS credential used to upload backups to S3                            |
+| `AWS_DEFAULT_REGION`      | _(required)_  | AWS region of the backup bucket                                         |
+| `BACKUP_S3_BUCKET`        | _(required)_  | Name of the S3 Standard bucket backups are uploaded to                 |
+
+Postgres is not exposed on a public port — it's only reachable from the bot's and backup job's containers, over Docker's internal network.
+
 ## Custom schedule data sources
 
 The schedule feature is built around a `ScheduleAdapter` interface defined in [`backend/schedules/adapter.py`](backend/schedules/adapter.py). The Google Sheets integration is one concrete implementation; you can replace it with any data source — a parish website scraper, a local database, a different spreadsheet tool — without touching bot logic.
