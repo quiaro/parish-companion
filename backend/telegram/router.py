@@ -3,6 +3,7 @@ import logging
 from fastapi import APIRouter, Header, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 
+from commands.comfort import flow as comfort_flow
 from commands.contact import flow as contact_flow
 from config import settings
 from session import get_language
@@ -38,6 +39,11 @@ _CONTACT_COMMAND_LANGUAGES: dict[str, str] = {
     "/contacto": "es",
 }
 
+# /consolar and Spanish copy are covered by a separate localization story — English only for now.
+_COMFORT_COMMAND_LANGUAGES: dict[str, str] = {
+    "/comfort": "en",
+}
+
 
 @router.post("/webhook")
 async def receive_update(
@@ -60,6 +66,8 @@ async def receive_update(
         await send_message(chat_id, get_string("telegram_text_only", language))
         return JSONResponse({"status": "ok"})
 
+    sender = update.message.from_
+
     text = update.message.text
     if text.startswith("/"):
         command = text.split()[0].split("@")[0].lower()
@@ -69,6 +77,9 @@ async def receive_update(
         elif command in _CONTACT_COMMAND_LANGUAGES:
             forced_lang = _CONTACT_COMMAND_LANGUAGES[command]
             reply = await contact_flow.start(session_id, forced_lang)
+        elif command in _COMFORT_COMMAND_LANGUAGES:
+            forced_lang = _COMFORT_COMMAND_LANGUAGES[command]
+            reply = await comfort_flow.start(sender.id if sender else chat_id, forced_lang)
         elif command == "/cancel":
             flow_state = await contact_flow.get_state(session_id)
             if flow_state:
@@ -84,7 +95,6 @@ async def receive_update(
     if flow_state:
         step = flow_state["step"]
         if step == "confirm":
-            sender = update.message.from_
             reply = await contact_flow.submit(
                 session_id,
                 text,

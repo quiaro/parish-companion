@@ -15,6 +15,7 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "telegram_cmd_help": (
             "Here is what I can do:\n"
+            "/comfort: Share what's on your heart and receive an encouraging Bible passage\n"
             "/contact: Reach a parish staff member\n"
             "/help: List available commands\n"
             "/schedules: View Mass and Confession times\n"
@@ -72,6 +73,21 @@ STRINGS: dict[str, dict[str, str]] = {
             "Something went wrong sending your request. Please try replying Yes again."
             "If the problem persists, call the parish office directly at {phone} or type /cancel to start over."
         ),
+        "comfort_intro": (
+            "Welcome to /comfort.\n"
+            "\n"
+            "Share what's on your heart and I will find a Bible verse from our parish's "
+            "curated list, along with a brief reflection. You can ask for another verse anytime.\n"
+            "\n"
+            "We care about your privacy so we don't store any personal or identifiable information, "
+            "only a history of passages shared to avoid repeating them.\n"
+            "\n"
+            "If you are going through something difficult or seek frequent guidance, a priest or "
+            "staff member may reach out to talk.\n"
+            "\n"
+            "Ready when you are."
+        ),
+        "comfort_prompt_brief": "Share what's on your heart.",
     },
     "es": {
         "telegram_text_only": (
@@ -141,6 +157,22 @@ STRINGS: dict[str, dict[str, str]] = {
             "Algo salió mal enviando su solicitud. Por favor, intente respondiendo Sí nuevamente."
             "Si el problema persiste, llame a la parroquia directamente al {phone} o escriba /cancel para empezar de nuevo."
         ),
+        "comfort_intro": (
+            "Bienvenido a /comfort.\n"
+            "\n"
+            "Comparta lo que lleva en el corazón y yo trataré de ayudarle con un versículo bíblico de la lista "
+            "seleccionada por nuestra parroquia, junto con una breve reflexión. Puede pedir otro "
+            "versículo en cualquier momento.\n"
+            "\n"
+            "Nos importa su privacidad, por eso no guardamos ninguna información personal o identificable, "
+            "solo un historial de los pasajes compartidos para evitar repetirlos.\n"
+            "\n"
+            "Si está atravesando algo difícil o busca orientación con frecuencia, un sacerdote o "
+            "miembro del personal podría comunicarse con usted.\n"
+            "\n"
+            "Si gusta, podemos comenzar."
+        ),
+        "comfort_prompt_brief": "Comparta lo que lleva en el corazón.",
     },
 }
 

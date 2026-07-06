@@ -24,7 +24,7 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["telegram", "commands", "commands.schedules", "commands.contact", "db"]
+packages = ["telegram", "commands", "commands.schedules", "commands.contact", "commands.comfort", "db"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
