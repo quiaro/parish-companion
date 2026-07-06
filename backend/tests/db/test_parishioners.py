@@ -83,6 +83,18 @@ class TestComfortIntroShown:
         assert store.is_comfort_intro_shown(_UID) is True
 
 
+class TestRecordSentPassage:
+    def test_stores_a_row_retrievable_via_get_recent_sent_passages(self):
+        store.ensure_parishioner(_UID)
+        store.record_sent_passage(_UID, "Philippians 4:13")
+
+        results = store.get_recent_sent_passages(_UID)
+
+        assert len(results) == 1
+        assert results[0].passage_reference == "Philippians 4:13"
+        assert results[0].sent_at > datetime.now(timezone.utc) - timedelta(seconds=5)
+
+
 class TestGetRecentSentPassages:
     def test_prunes_rows_older_than_two_weeks(self):
         store.ensure_parishioner(_UID)
