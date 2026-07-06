@@ -3,14 +3,17 @@ name = "parish-companion"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.13.2",
     "fastapi>=0.136.3",
     "gspread>=6.2.1",
     "httpx2>=2.4.0",
     "lingua-language-detector>=2.2.0",
+    "psycopg[binary]>=3.2.1",
     "pydantic>=2.13.4",
     "pydantic-settings>=2.14.1",
     "python-multipart>=0.0.32",
     "redis>=8.0.0",
+    "sqlalchemy>=2.0.35",
     "uvicorn[standard]>=0.49.0",
 ]
 
@@ -21,7 +24,7 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["telegram", "commands", "commands.schedules", "commands.contact"]
+packages = ["telegram", "commands", "commands.schedules", "commands.contact", "db"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

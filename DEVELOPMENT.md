@@ -166,6 +166,36 @@ The backend `Dockerfile` defines two stages:
 
 The `docker-compose.dev.yml` override file sets `target: dev`, replacing the `production` target for that run without modifying `docker-compose.yml`.
 
+## Database migrations
+
+Schema changes are managed with [Alembic](https://alembic.sqlalchemy.org/). There's no auto-migrate-on-boot step — this project's convention is explicit, manual commands for anything that changes running state (see the `--force-recreate` steps above), and migrations follow the same pattern.
+
+After starting the stack, apply migrations by running:
+
+```bash
+docker compose exec backend alembic upgrade head
+```
+
+Run this once after first bringing up the stack, and again after pulling any update that adds a new file under `backend/alembic/versions/`.
+
+To add a new migration, create a new revision file under `backend/alembic/versions/` (see the existing ones for the pattern — hand-written to match the target schema exactly, rather than relying on autogenerate) and apply it the same way.
+
+### Querying the database
+
+**From inside the container** (no local tools needed):
+
+```bash
+docker compose exec postgres psql -U $POSTGRES_USER -d $POSTGRES_DB
+```
+
+**From the host**, with a local `psql` install or a GUI client (TablePlus, DBeaver, pgAdmin, etc.): the dev override remaps Postgres to `localhost:5433`, so connect with:
+
+```bash
+psql "postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5433/$POSTGRES_DB"
+```
+
+This only works when the stack is up via the dev override (`docker compose -f docker-compose.yml -f docker-compose.dev.yml up ...`) — the base production compose file doesn't expose the port to the host at all.
+
 ## Running tests
 
 ### Backend
@@ -176,13 +206,19 @@ Backend tests must be run inside the `dev` stage container, which includes `pyte
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
 ```
 
+This also brings up `postgres` and `redis` as dependencies. Apply migrations before running the suite (see [Database migrations](#database-migrations) above) — the tests under `tests/db/` expect the schema to already exist:
+
+```bash
+docker compose exec backend alembic upgrade head
+```
+
 Then run the suite:
 
 ```bash
 docker compose exec backend pytest -v
 ```
 
-No external connections (Redis, etc.) are made during the unit tests — the suite uses FastAPI's `TestClient` and stubs out external dependencies via `monkeypatch`.
+Most of the suite makes no external connections (Redis, Postgres, etc.) — it uses FastAPI's `TestClient` and stubs out external dependencies via `monkeypatch`. The one exception is `tests/db/`, which talks to the real `postgres` sibling service to exercise behavior (`ON CONFLICT` idempotency under concurrent writes, rolling-window timestamp boundaries) that can't be meaningfully faked. Those tests truncate the relevant tables before each test, so they're safe to re-run but will clear out any data you'd put in your local dev database.
 
 ## Development with VS Code Dev Containers
 

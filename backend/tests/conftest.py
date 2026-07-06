@@ -4,6 +4,7 @@ import os
 # Settings() is instantiated at module level there, so these must be in place
 # before any test file imports main or config.
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
+os.environ.setdefault("DATABASE_URL", "postgresql+psycopg://postgres:postgres@postgres:5432/parish_companion")
 os.environ.setdefault("TELEGRAM_WEBHOOK_SECRET", "test-secret")
 
 from typing import Generator
