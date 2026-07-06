@@ -48,7 +48,7 @@ async def start(session_id: str, telegram_user_id: int, language: str = "en") ->
     await asyncio.to_thread(ensure_parishioner, telegram_user_id)
 
     if await asyncio.to_thread(is_comfort_intro_shown, telegram_user_id):
-        reply = get_string("comfort_prompt_brief", language)
+        reply = get_string("comfort_brief_intro", language)
     else:
         await asyncio.to_thread(mark_comfort_intro_shown, telegram_user_id)
         reply = get_string("comfort_intro", language)

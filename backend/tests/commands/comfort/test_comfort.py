@@ -82,7 +82,7 @@ def test_comfort_command_sends_brief_prompt_on_subsequent_use(
     mock_send.assert_awaited_once()
     assert mock_send.await_args is not None
     sent_text = mock_send.await_args[0][1]
-    assert sent_text == get_string("comfort_prompt_brief", "en")
+    assert sent_text == get_string("comfort_brief_intro", "en")
 
 
 def test_comfort_command_always_replies_in_english_even_when_session_language_is_spanish(
@@ -96,7 +96,7 @@ def test_comfort_command_always_replies_in_english_even_when_session_language_is
     mock_send.assert_awaited_once()
     assert mock_send.await_args is not None
     sent_text = mock_send.await_args[0][1]
-    assert sent_text == get_string("comfort_prompt_brief", "en")
+    assert sent_text == get_string("comfort_brief_intro", "en")
 
 
 def _text_message(text: str) -> dict:

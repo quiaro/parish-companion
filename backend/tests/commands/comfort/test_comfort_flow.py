@@ -65,7 +65,7 @@ class TestStart:
     async def test_subsequent_use_sends_brief_prompt(self, db_mocks, flow_store) -> None:
         db_mocks["is_comfort_intro_shown"].return_value = True
         reply = await flow.start(_SESSION, _UID, "en")
-        assert reply == get_string("comfort_prompt_brief", "en")
+        assert reply == get_string("comfort_brief_intro", "en")
 
     @pytest.mark.asyncio
     async def test_subsequent_use_does_not_remark_intro_shown(self, db_mocks, flow_store) -> None:
@@ -77,7 +77,7 @@ class TestStart:
     async def test_respects_language_argument(self, db_mocks, flow_store) -> None:
         db_mocks["is_comfort_intro_shown"].return_value = True
         reply = await flow.start(_SESSION, _UID, "es")
-        assert reply == get_string("comfort_prompt_brief", "es")
+        assert reply == get_string("comfort_brief_intro", "es")
 
     @pytest.mark.asyncio
     async def test_stores_flow_state_for_the_session(self, db_mocks, flow_store) -> None:
