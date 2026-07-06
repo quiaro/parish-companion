@@ -79,7 +79,7 @@ async def receive_update(
             reply = await contact_flow.start(session_id, forced_lang)
         elif command in _COMFORT_COMMAND_LANGUAGES:
             forced_lang = _COMFORT_COMMAND_LANGUAGES[command]
-            reply = await comfort_flow.start(sender.id if sender else chat_id, forced_lang)
+            reply = await comfort_flow.start(session_id, sender.id if sender else chat_id, forced_lang)
         elif command == "/cancel":
             flow_state = await contact_flow.get_state(session_id)
             if flow_state:
@@ -108,6 +108,12 @@ async def receive_update(
             reply, done = await contact_flow.advance(session_id, text)
             if done:
                 reply = await contact_flow.present_confirmation(session_id)
+        await send_message(chat_id, reply)
+        return JSONResponse({"status": "ok"})
+
+    comfort_state = await comfort_flow.get_state(session_id)
+    if comfort_state:
+        reply = await comfort_flow.handle_text(session_id, text)
         await send_message(chat_id, reply)
         return JSONResponse({"status": "ok"})
 

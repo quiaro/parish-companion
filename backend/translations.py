@@ -87,7 +87,15 @@ STRINGS: dict[str, dict[str, str]] = {
             "\n"
             "Ready when you are."
         ),
-        "comfort_prompt_brief": "Share what's on your heart.",
+        "comfort_prompt_brief": "Share what's on your heart (3 paragraphs or less).",
+        "comfort_input_too_long": (
+            "Thank you for sharing. Your message is a bit long for me to process. Would you "
+            "please shorten it to less than 2000 characters and send it again?"
+        ),
+        "comfort_ack_placeholder": (
+            "This feature is still being built, so I can't offer a passage "
+            "yet. Please check back soon."
+        ),
     },
     "es": {
         "telegram_text_only": (
@@ -173,6 +181,14 @@ STRINGS: dict[str, dict[str, str]] = {
             "Si gusta, podemos comenzar."
         ),
         "comfort_prompt_brief": "Comparta lo que lleva en el corazón.",
+        "comfort_input_too_long": (
+            "Gracias por compartir. Su mensaje es un poco extenso para que yo pueda procesarlo. "
+            "¿Podría reducirlo a menos de 2000 caracteres y enviarlo de nuevo?"
+        ),
+        "comfort_ack_placeholder": (
+            "Esta función todavía está en desarrollo, así que todavía no "
+            "puedo ofrecer un pasaje. Vuelva pronto, por favor."
+        ),
     },
 }
 
