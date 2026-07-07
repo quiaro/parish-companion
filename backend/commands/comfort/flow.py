@@ -4,6 +4,7 @@ import logging
 
 from redis.asyncio import Redis
 
+from commands.comfort.classifier import classify
 from config import settings
 from db.parishioners import ensure_parishioner, is_comfort_intro_shown, mark_comfort_intro_shown
 from translations import get_string
@@ -69,7 +70,14 @@ async def handle_text(session_id: str, text: str) -> str:
     if len(stripped) > _MAX_INPUT_LENGTH:
         return get_string("comfort_input_too_long", language)
 
-    # Classification (K-03) isn't wired in yet — clear the flow and acknowledge for now.
+    try:
+        await classify(stripped)
+    except Exception as exc:
+        # Retrieval/crisis-gating (Steps C-K) aren't wired in yet, so nothing currently
+        # acts on the classification result — don't let a classifier failure block the
+        # parishioner from getting a reply.
+        logger.error("classify failed session=%s: %s", session_id, exc)
+
     await _clear_state(session_id)
     return get_string("comfort_ack_placeholder", language)
 

@@ -105,3 +105,37 @@ class TestHandleText:
     async def test_no_active_flow_returns_unknown_command_fallback(self, flow_store) -> None:
         reply = await flow.handle_text(_SESSION, "hello")
         assert reply == get_string("telegram_cmd_unknown", "en")
+
+    @pytest.mark.asyncio
+    async def test_within_limit_calls_classify_with_stripped_text(
+        self, db_mocks, flow_store, classify_mock
+    ) -> None:
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "  I've been feeling anxious lately.  ")
+        classify_mock.assert_awaited_once_with("I've been feeling anxious lately.")
+
+    @pytest.mark.asyncio
+    async def test_too_long_submission_does_not_call_classify(
+        self, db_mocks, flow_store, classify_mock
+    ) -> None:
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "a" * 2001)
+        classify_mock.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_classify_failure_still_returns_placeholder_ack(
+        self, db_mocks, flow_store, classify_mock
+    ) -> None:
+        classify_mock.side_effect = RuntimeError("OpenRouter is down")
+        await flow.start(_SESSION, _UID, "en")
+        reply = await flow.handle_text(_SESSION, "I've been feeling anxious lately.")
+        assert reply == get_string("comfort_ack_placeholder", "en")
+
+    @pytest.mark.asyncio
+    async def test_classify_failure_still_clears_flow_state(
+        self, db_mocks, flow_store, classify_mock
+    ) -> None:
+        classify_mock.side_effect = RuntimeError("OpenRouter is down")
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I've been feeling anxious lately.")
+        assert _SESSION not in flow_store

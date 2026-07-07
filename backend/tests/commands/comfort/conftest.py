@@ -1,9 +1,17 @@
 import copy
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from commands.comfort import flow
+from commands.comfort.models import ClassificationResult
+
+
+@pytest.fixture(autouse=True)
+def classify_mock(monkeypatch):
+    mock = AsyncMock(return_value=ClassificationResult(is_crisis=False))
+    monkeypatch.setattr(flow, "classify", mock)
+    return mock
 
 
 @pytest.fixture
