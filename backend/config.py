@@ -56,6 +56,8 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = True
     smtp_from_address: str = ""
 
+    comfort_notification_dedup_window_hours: int = 24
+
 
 settings = Settings()  # type: ignore[call-arg]
 

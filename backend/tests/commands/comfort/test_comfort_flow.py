@@ -1,7 +1,10 @@
-"""Tests for the /comfort flow (K-01, K-02) — independent of the Telegram layer."""
+"""Tests for the /comfort flow (K-01, K-02, K-04) — independent of the Telegram layer."""
+
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
+import config
 from commands.comfort import flow
 from translations import get_string
 
@@ -139,3 +142,59 @@ class TestHandleText:
         await flow.start(_SESSION, _UID, "en")
         await flow.handle_text(_SESSION, "I've been feeling anxious lately.")
         assert _SESSION not in flow_store
+
+
+class _FrozenDateTime(datetime):
+    """Makes datetime.now() inside flow.py deterministic, so the test's notion of "now"
+    and the function's notion of "now" are guaranteed to be the same instant — otherwise
+    the two separate real now() calls (one in the test, one inside the function a moment
+    later) race, and an "exact boundary" case can flip to "just outside" the window."""
+
+    _frozen_now: datetime
+
+    @classmethod
+    def now(cls, tz=None):
+        return cls._frozen_now
+
+
+class TestNotificationDedupCheck:
+    """
+    K-04. Note: test 5 from the story ("neither the crisis notification function nor the
+    frequency-nudge notification function is called") is an integration test spanning
+    K-05/K-06, which don't exist yet — it belongs in their test suites once built, not here.
+    """
+
+    @pytest.fixture
+    def frozen_now(self, monkeypatch):
+        now = datetime.now(timezone.utc)
+        # Dynamically create a subclass of _FrozenDateTime named _Frozen and set its
+        # class attribute `_frozen_now` to the current `now`. This makes calls to
+        # _Frozen.now() return the deterministic `now` value for testing.
+        frozen = type("_Frozen", (_FrozenDateTime,), {"_frozen_now": now})
+        monkeypatch.setattr(flow, "datetime", frozen)
+        monkeypatch.setattr(config.settings, "comfort_notification_dedup_window_hours", 24)
+        return now
+
+    @pytest.mark.asyncio
+    async def test_passes_when_never_notified(self, db_mocks) -> None:
+        db_mocks["get_last_notification_sent_at"].return_value = None
+        assert await flow._notification_dedup_passed(_UID) is True
+
+    @pytest.mark.asyncio
+    async def test_fails_exactly_at_window_boundary(self, db_mocks, frozen_now) -> None:
+        db_mocks["get_last_notification_sent_at"].return_value = frozen_now - timedelta(hours=24)
+        assert await flow._notification_dedup_passed(_UID) is False
+
+    @pytest.mark.asyncio
+    async def test_fails_just_inside_window(self, db_mocks, frozen_now) -> None:
+        db_mocks["get_last_notification_sent_at"].return_value = (
+            frozen_now - timedelta(hours=24) + timedelta(seconds=1)
+        )
+        assert await flow._notification_dedup_passed(_UID) is False
+
+    @pytest.mark.asyncio
+    async def test_passes_just_outside_window(self, db_mocks, frozen_now) -> None:
+        db_mocks["get_last_notification_sent_at"].return_value = (
+            frozen_now - timedelta(hours=24) - timedelta(seconds=1)
+        )
+        assert await flow._notification_dedup_passed(_UID) is True

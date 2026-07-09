@@ -1,12 +1,18 @@
 import asyncio
 import json
 import logging
+from datetime import datetime, timedelta, timezone
 
 from redis.asyncio import Redis
 
 from commands.comfort.classifier import classify
 from config import settings
-from db.parishioners import ensure_parishioner, is_comfort_intro_shown, mark_comfort_intro_shown
+from db.parishioners import (
+    ensure_parishioner,
+    get_last_notification_sent_at,
+    is_comfort_intro_shown,
+    mark_comfort_intro_shown,
+)
 from translations import get_string
 
 logger = logging.getLogger(__name__)
@@ -43,6 +49,21 @@ async def _clear_state(session_id: str) -> None:
             await r.delete(_COMFORT_KEY.format(session_id))
     except Exception as exc:
         logger.error("comfort flow _clear_state failed session=%s: %s", session_id, exc)
+
+
+async def _notification_dedup_passed(telegram_user_id: int) -> bool:
+    """
+    K-04: gates Steps D (crisis) and E (frequency escalation) so a parishioner who
+    triggers both in quick succession within the dedup window doesn't get duplicate
+    outreach. Passes if no notification has ever been sent, or the last one is strictly
+    older than the window (exclusive boundary — a notification sent exactly at the
+    window edge still counts as "within" it and fails the check).
+    """
+    last_sent = await asyncio.to_thread(get_last_notification_sent_at, telegram_user_id)
+    if last_sent is None:
+        return True
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=settings.comfort_notification_dedup_window_hours)
+    return last_sent < cutoff
 
 
 async def start(session_id: str, telegram_user_id: int, language: str = "en") -> str:

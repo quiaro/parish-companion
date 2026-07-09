@@ -20,6 +20,7 @@ def db_mocks(monkeypatch):
         "ensure_parishioner": MagicMock(),
         "is_comfort_intro_shown": MagicMock(return_value=False),
         "mark_comfort_intro_shown": MagicMock(),
+        "get_last_notification_sent_at": MagicMock(return_value=None),
     }
     for name, mock in mocks.items():
         monkeypatch.setattr(flow, name, mock)
