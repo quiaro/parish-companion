@@ -180,6 +180,17 @@ class TestCrisisGate:
         db_mocks["record_notification_sent"].assert_called_once_with(_UID)
 
     @pytest.mark.asyncio
+    async def test_failed_notification_does_not_update_timestamp(
+        self, db_mocks, flow_store, classify_mock, crisis_notification_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=True)
+        crisis_notification_mock.return_value = False
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I don't want to be here anymore.")
+
+        db_mocks["record_notification_sent"].assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_crisis_message_returns_pastoral_message_with_buttons(
         self, db_mocks, flow_store, classify_mock, crisis_notification_mock
     ) -> None:
