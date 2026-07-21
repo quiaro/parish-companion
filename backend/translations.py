@@ -98,7 +98,8 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "comfort_crisis_message": (
             "Thank you for trusting me with your situation.\n"
-            "If you don't mind, a priest from our parish may reach out to offer support. You are not alone in this.\n"
+            "\n"
+            "A priest from our parish will reach out to offer support. Remember, you are not alone.\n"
             "\n"
         ),
         "comfort_button_continue": "Continue",
@@ -204,7 +205,8 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "comfort_crisis_message": (
             "Gracias por confiarme tu situación.\n"
-            "Si estás de acuerdo, un sacerdote de nuestra parroquia podría comunicarse con vos para ofrecerte apoyo. Recuerda que no estás solo(a) en esto.\n"
+            "\n"
+            "Un sacerdote de nuestra parroquia se estará comunicando con vos para ofrecerte apoyo. Recuerda que no estás solo(a).\n"
             "\n"
         ),
         "comfort_button_continue": "Continuar",
