@@ -88,20 +88,22 @@ If `is_crisis` is true:
 
 This gate is enforced in control flow, not by relying on empty classification fields — emotional and situational tags are populated regardless of `is_crisis`, for logging purposes (see Section 4), but the retrieval function is never invoked unless the parishioner explicitly continues.
 
-### Step E — Frequency-based pastoral nudges
+### Step E — Offer pastoral outreach
 
-If no crisis was detected, the bot checks, using the same classification output from Step B:
+Runs only if `is_crisis` is false and Step C passed (no notification sent within the dedup window). Otherwise this step is skipped entirely and the flow proceeds directly to Step F. Using the same classification output from Step B, the bot checks:
 
-- How many passages have been sent to this parishioner in the **past hour** (rolling window, not fixed to a clock boundary)
-- Whether the classified emotional tags are in a curated **high-risk emotional tag** subset (stored in a constants module)
+- How many passages have been sent to this parishioner in the past rolling **frequency window** (configurable, default 24 hours — a separate setting from Step C's dedup window)
+- Whether **any** of the classified emotional tags are in a curated **high-risk emotional tag** subset (stored in a constants module) — a single high-risk tag is sufficient, not all tags need to match
 
-Thresholds:
+**Escalation path** (passage count strictly greater than a configurable threshold, default 10, **and** at least one high-risk tag):
 
-- **>= 3 passages** in the window + high-risk tag(s) → bot adds a gentle reminder to contact the parish, alongside the verse reply
-- **>= 10 passages** in the window:
-  - The parishioner is told the situation warrants support from a priest, in pastoral, non-alarming language.
-  - An urgent notification is sent to the parish for follow-up.
-  - A single **Continue** button is presented to the parishioner. If tapped, the flow proceeds to Step F using the classification output already obtained in Step B. If not tapped, no retrieval or framing occurs.
+- The bot sends a message acknowledging the parishioner may be going through a difficult time and asks whether they'd like someone from the parish to reach out — this is an offer, not an unconditional escalation like Step D's crisis gate.
+- Two buttons are presented: **Yes** and **No**.
+- **Yes** → an urgent notification is sent to the parish (a similar, but distinct, notification from Step D's crisis alert) and `comfort_last_notification_sent_at` is updated to `now()`. The flow proceeds to Step F using the classification output already obtained in Step B.
+- **No** → no notification is sent and the timestamp is not updated (so Step C won't suppress the next notification opportunity for this parishioner). The flow proceeds to Step F using the same classification output.
+- In both cases, retrieval proceeds as soon as the button is tapped — this step never gates or delays Step F beyond waiting for that response.
+
+**No escalation** (threshold not met, or the count exceeds it but no high-risk tag is present) → the flow proceeds to Step F directly, with no message or notification.
 
 ### Step F — Retrieval
 
@@ -159,8 +161,8 @@ Passages are removed from a parishioner's sent-history after 2 weeks, which is w
 **Parishioner sent-history (per parishioner):**
 
 - List of `(passage_reference, timestamp)`, pruned after 2 weeks.
-- Used for both the 2-week repeat-passage check and the rolling 1-hour frequency check.
-- `last_notification_sent_at` — timestamp of the most recent parish notification sent for this parishioner (from either Step C or Step D), used to enforce the 24-hour notification deduplication window. Null if no notification has ever been sent.
+- Used for both the 2-week repeat-passage check and the rolling frequency-window check (Step E).
+- `last_notification_sent_at` — timestamp of the most recent parish notification sent for this parishioner (from either Step D or Step E), used to enforce the notification deduplication window (Step C). Null if no notification has ever been sent.
 
 ---
 
@@ -177,7 +179,7 @@ Two structurally separate logging paths, kept decoupled so identifiable data nev
 
 1. **Crisis gate is structural, not data-dependent.** (Step D) A test must assert that when `is_crisis` is true and the parishioner does not tap Continue, the retrieval function is never called — regardless of what `emotional_tags`/`situational_tags` contain.
 2. **Crisis classification produces usable data even when gating retrieval.** A separate test asserts that crisis-flagged messages still produce populated, sensible tags (for the aggregate log), distinct from the control-flow test above.
-3. **Notification deduplication is enforced before crisis and frequency checks.** (Step C) A test must assert that when `last_notification_sent_at` falls within the past 24 hours, no notification is sent by Step D (crisis gate) or Step E (frequency nudges) — regardless of `is_crisis` value or passage count.
+3. **Notification deduplication is enforced before crisis and frequency checks.** (Step C) A test must assert that when `last_notification_sent_at` falls within the dedup window, no notification is sent by Step D (crisis gate) or Step E (pastoral outreach offer) — regardless of `is_crisis` value or passage count.
 4. **Aggregate logging contains no identifiers.** The stats log schema should be tested/reviewed to confirm no parishioner ID, chat ID, or other joinable identifier is ever written to it.
 
 ---

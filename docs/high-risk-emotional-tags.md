@@ -2,13 +2,13 @@
 
 ## Purpose
 
-This is the curated subset of the negative emotional tag vocabulary that triggers **frequency-based pastoral nudges** (Step E of the runtime flow): when a parishioner's classified emotional tag falls within this set _and_ their passage-request frequency in the past rolling 1 hour crosses a threshold, the bot adds a gentle parish-contact reminder (>= 3 passages) or sends an urgent staff notification (>= 10 passages).
+This is the curated subset of the negative emotional tag vocabulary that triggers the **pastoral outreach offer** (Step E of the runtime flow): when a parishioner's classified emotional tag falls within this set _and_ their passage-request frequency in the past rolling 24 hours exceeds a threshold, the bot asks — via Yes/No buttons — whether they'd like someone from the parish to reach out. It's an offer the parishioner can decline, not an unconditional escalation.
 
 ## Scope — what this is, and what it is not
 
-**This subset is not a crisis-detection mechanism.** Crisis and real-threat detection (self-harm, suicidal ideation, sexual abuse, physical violence) is handled entirely by the dedicated classifier in Step C, which evaluates the actual content and context of each message and triggers an immediate hard-exit + urgent notification independent of any emotional tag. A single message tagged with any emotion in this subset — including just once — does **not** indicate crisis and should never be treated as one.
+**This subset is not a crisis-detection mechanism.** Crisis and real-threat detection (self-harm, suicidal ideation, sexual abuse, physical violence) is handled entirely by the dedicated classifier in Step B, which evaluates the actual content and context of each message and — independent of any emotional tag — triggers an immediate urgent notification. A single message tagged with any emotion in this subset — including just once — does **not** indicate crisis and should never be treated as one.
 
-This subset exists solely to answer a narrower question: _which emotional states, when expressed repeatedly within a short window, warrant a human check-in even though no individual message crossed the crisis threshold?_ Frequency of an emotional tag is a weak, indirect signal on its own. It should never be used as a substitute for, or a proxy for, the Step C crisis classifier, and should not be extended to serve that purpose in the future without a separate, deliberate design decision.
+This subset exists solely to answer a narrower question: _which emotional states, when expressed repeatedly within a short window, warrant offering a human check-in even though no individual message crossed the crisis threshold?_ Frequency of an emotional tag is a weak, indirect signal on its own. It should never be used as a substitute for, or a proxy for, the Step B crisis classifier, and should not be extended to serve that purpose in the future without a separate, deliberate design decision.
 
 ## The subset
 
