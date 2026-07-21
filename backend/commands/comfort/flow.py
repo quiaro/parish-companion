@@ -100,7 +100,7 @@ async def _enter_crisis_gate(
 ) -> FlowReply:
     """K-05: pastoral message + urgent parish notification, gated behind Continue
     rather than sending a verse straight away."""
-    if await send_crisis_notification(telegram_user_id):
+    if await send_crisis_notification(telegram_user_id, language):
         # Only recorded on success — a failed send must not close the K-04 dedup window,
         # or the next crisis message within it would silently skip retrying the parish alert.
         await asyncio.to_thread(record_notification_sent, telegram_user_id)

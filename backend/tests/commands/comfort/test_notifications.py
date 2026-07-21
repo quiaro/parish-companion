@@ -65,13 +65,13 @@ class TestSendResult:
 
 
 class TestEmailContent:
-    async def _capture(self, monkeypatch: pytest.MonkeyPatch, **overrides):
+    async def _capture(self, monkeypatch: pytest.MonkeyPatch, language: str = "en", **overrides):
         _configure(monkeypatch, **overrides)
         captured = []
         smtp = _smtp_mock()
         smtp.send_message.side_effect = captured.append
         with patch("smtplib.SMTP", return_value=smtp):
-            await send_crisis_notification(_UID)
+            await send_crisis_notification(_UID, language)
         assert len(captured) == 1
         return captured[0]
 
@@ -85,6 +85,25 @@ class TestEmailContent:
     async def test_body_contains_telegram_user_id(self, monkeypatch: pytest.MonkeyPatch) -> None:
         body = (await self._capture(monkeypatch)).get_content()
         assert str(_UID) in body
+
+    @pytest.mark.asyncio
+    async def test_subject_and_body_are_localized_to_spanish(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        msg = await self._capture(monkeypatch, language="es")
+        assert "Urgente" in msg["Subject"]
+        assert "/consolar" in msg["Subject"]
+        body = msg.get_content()
+        assert "feligrés" in body
+        assert str(_UID) in body
+
+    @pytest.mark.asyncio
+    async def test_defaults_to_english_when_language_not_passed(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        _configure(monkeypatch)
+        captured = []
+        smtp = _smtp_mock()
+        smtp.send_message.side_effect = captured.append
+        with patch("smtplib.SMTP", return_value=smtp):
+            await send_crisis_notification(_UID)
+        assert "Urgent" in captured[0]["Subject"]
 
     @pytest.mark.asyncio
     async def test_to_contains_all_recipients(self, monkeypatch: pytest.MonkeyPatch) -> None:

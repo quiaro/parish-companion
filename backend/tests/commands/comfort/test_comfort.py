@@ -134,7 +134,7 @@ def test_crisis_message_sends_pastoral_message_with_buttons_and_notifies_parish(
     )
     assert resp.status_code == 200
 
-    crisis_notification_mock.assert_awaited_once_with(_USER_ID)
+    crisis_notification_mock.assert_awaited_once_with(_USER_ID, "en")
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("comfort_crisis_message", "en")
     assert mock_send.await_args.kwargs["buttons"] == [

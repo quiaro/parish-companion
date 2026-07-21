@@ -5,21 +5,23 @@ import smtplib
 from email.message import EmailMessage
 
 from config import settings
+from translations import get_string
 
 logger = logging.getLogger(__name__)
 
 
-async def send_crisis_notification(telegram_user_id: int) -> bool:
+async def send_crisis_notification(telegram_user_id: int, language: str = "en") -> bool:
     """
     Urgent, staff-facing alert for a /comfort message flagged as a possible crisis
     (self-harm, suicidal ideation, sexual abuse, or physical violence). Reuses the same
     SMTP settings and recipient list as /contact, but isn't a ContactRequest — this is a
-    system-triggered alert, not a parishioner-submitted intake form.
+    system-triggered alert, not a parishioner-submitted intake form. Localized to the
+    parishioner's session language, matching /contact's email convention.
     """
-    return await asyncio.to_thread(_send_crisis_notification_sync, telegram_user_id)
+    return await asyncio.to_thread(_send_crisis_notification_sync, telegram_user_id, language)
 
 
-def _send_crisis_notification_sync(telegram_user_id: int) -> bool:
+def _send_crisis_notification_sync(telegram_user_id: int, language: str) -> bool:
     try:
         recipients = json.loads(settings.contact_email_recipients)
     except (json.JSONDecodeError, TypeError):
@@ -29,14 +31,11 @@ def _send_crisis_notification_sync(telegram_user_id: int) -> bool:
         return False
     try:
         msg = EmailMessage()
-        msg["Subject"] = "Parish Companion: Urgent — /comfort crisis flag"
+        msg["Subject"] = get_string("comfort_crisis_email_subject", language)
         msg["From"] = settings.smtp_from_address or settings.smtp_username
         msg["To"] = ", ".join(recipients)
         msg.set_content(
-            "A parishioner's message through /comfort was flagged as describing a possible "
-            "crisis (self-harm, suicidal ideation, sexual abuse, or physical violence).\n\n"
-            f"Telegram user ID: {telegram_user_id}\n\n"
-            "Please follow up with this parishioner as soon as possible."
+            get_string("comfort_crisis_email_body", language).format(telegram_user_id=telegram_user_id)
         )
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as smtp:
             if settings.smtp_use_tls:

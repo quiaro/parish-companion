@@ -176,7 +176,7 @@ class TestCrisisGate:
         await flow.start(_SESSION, _UID, "en")
         await flow.handle_text(_SESSION, "I don't want to be here anymore.")
 
-        crisis_notification_mock.assert_awaited_once_with(_UID)
+        crisis_notification_mock.assert_awaited_once_with(_UID, "en")
         db_mocks["record_notification_sent"].assert_called_once_with(_UID)
 
     @pytest.mark.asyncio

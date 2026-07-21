@@ -102,6 +102,13 @@ STRINGS: dict[str, dict[str, str]] = {
             "\n"
         ),
         "comfort_button_continue": "Continue",
+        "comfort_crisis_email_subject": "Parish Companion: Urgent — /comfort crisis flag",
+        "comfort_crisis_email_body": (
+            "A parishioner's message through /comfort was flagged as describing a possible "
+            "crisis (self-harm, suicidal ideation, sexual abuse, or physical violence).\n\n"
+            "Telegram user ID: {telegram_user_id}\n\n"
+            "Please follow up with this parishioner as soon as possible."
+        ),
     },
     "es": {
         "telegram_text_only": (
@@ -201,6 +208,13 @@ STRINGS: dict[str, dict[str, str]] = {
             "\n"
         ),
         "comfort_button_continue": "Continuar",
+        "comfort_crisis_email_subject": "Parish Companion: Urgente — alerta de crisis en /consolar",
+        "comfort_crisis_email_body": (
+            "El mensaje de un feligrés a través de /consolar fue marcado como una posible "
+            "crisis (autolesión, ideación suicida, abuso sexual o violencia física).\n\n"
+            "ID de usuario de Telegram: {telegram_user_id}\n\n"
+            "Por favor, comuníquese con este feligrés lo antes posible."
+        ),
     },
 }
 
