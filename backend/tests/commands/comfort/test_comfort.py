@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
+from commands.comfort.models import ClassificationResult
 from tests.conftest import TEST_SECRET
 from translations import get_string
 
@@ -104,3 +105,56 @@ def test_overlong_free_text_gets_gentle_reprompt_and_can_be_resubmitted(
     assert mock_send.await_args is not None
     final_reply = mock_send.await_args[0][1]
     assert final_reply == get_string("comfort_ack_placeholder", "en")
+
+
+def _callback_update(data: str, callback_id: str = "cb1") -> dict:
+    return {
+        "update_id": 3,
+        "callback_query": {
+            "id": callback_id,
+            "from": {"id": _USER_ID, "is_bot": False, "first_name": "Jane"},
+            "message": {
+                "message_id": 3,
+                "chat": {"id": _CHAT_ID, "type": "private"},
+                "date": 1_700_000_002,
+                "text": "placeholder",
+            },
+            "data": data,
+        },
+    }
+
+
+def test_crisis_message_sends_pastoral_message_with_buttons_and_notifies_parish(
+    client: TestClient, mock_send: AsyncMock, db_mocks, flow_store, classify_mock, crisis_notification_mock
+) -> None:
+    classify_mock.return_value = ClassificationResult(is_crisis=True)
+    client.post("/telegram/webhook", json=_command_update("/comfort"), headers=_headers)
+    resp = client.post(
+        "/telegram/webhook", json=_text_message("I don't want to be here anymore."), headers=_headers
+    )
+    assert resp.status_code == 200
+
+    crisis_notification_mock.assert_awaited_once_with(_USER_ID)
+    assert mock_send.await_args is not None
+    assert mock_send.await_args[0][1] == get_string("comfort_crisis_message", "en")
+    assert mock_send.await_args.kwargs["buttons"] == [
+        (get_string("comfort_button_continue", "en"), "comfort_crisis_continue"),
+    ]
+
+
+def test_callback_query_answers_and_dispatches_to_comfort_flow(
+    client: TestClient, mock_send: AsyncMock, db_mocks, flow_store, classify_mock, crisis_notification_mock
+) -> None:
+    classify_mock.return_value = ClassificationResult(is_crisis=True)
+    client.post("/telegram/webhook", json=_command_update("/comfort"), headers=_headers)
+    client.post("/telegram/webhook", json=_text_message("I don't want to be here anymore."), headers=_headers)
+
+    with patch("telegram.router.answer_callback_query", AsyncMock()) as answer_mock:
+        resp = client.post(
+            "/telegram/webhook", json=_callback_update("comfort_crisis_continue"), headers=_headers
+        )
+        assert resp.status_code == 200
+        answer_mock.assert_awaited_once_with("cb1")
+
+    assert mock_send.await_args is not None
+    assert mock_send.await_args[0][1] == get_string("comfort_ack_placeholder", "en")

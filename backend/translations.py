@@ -96,6 +96,12 @@ STRINGS: dict[str, dict[str, str]] = {
             "This feature is still being built, so I can't offer a passage "
             "yet. Please check back soon."
         ),
+        "comfort_crisis_message": (
+            "Thank you for trusting me with your situation.\n"
+            "If you don't mind, a priest from our parish may reach out to offer support. You are not alone in this.\n"
+            "\n"
+        ),
+        "comfort_button_continue": "Continue",
     },
     "es": {
         "telegram_text_only": (
@@ -189,6 +195,12 @@ STRINGS: dict[str, dict[str, str]] = {
             "Esta función todavía está en desarrollo, así que todavía no "
             "puedo ofrecer un pasaje. Vuelva pronto, por favor."
         ),
+        "comfort_crisis_message": (
+            "Gracias por confiarme tu situación.\n"
+            "Si estás de acuerdo, un sacerdote de nuestra parroquia podría comunicarse con vos para ofrecerte apoyo. Recuerda que no estás solo(a) en esto.\n"
+            "\n"
+        ),
+        "comfort_button_continue": "Continuar",
     },
 }
 

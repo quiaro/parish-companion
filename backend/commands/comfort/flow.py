@@ -6,12 +6,15 @@ from datetime import datetime, timedelta, timezone
 from redis.asyncio import Redis
 
 from commands.comfort.classifier import classify
+from commands.comfort.models import ClassificationResult, FlowReply
+from commands.comfort.notifications import send_crisis_notification
 from config import settings
 from db.parishioners import (
     ensure_parishioner,
     get_last_notification_sent_at,
     is_comfort_intro_shown,
     mark_comfort_intro_shown,
+    record_notification_sent,
 )
 from translations import get_string
 
@@ -19,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 _COMFORT_KEY = "session:{}:comfort"
 _MAX_INPUT_LENGTH = 2000
+
+_CALLBACK_CRISIS_CONTINUE = "comfort_crisis_continue"
 
 
 async def _get_state(session_id: str) -> dict | None:
@@ -66,6 +71,14 @@ async def _notification_dedup_passed(telegram_user_id: int) -> bool:
     return last_sent < cutoff
 
 
+def _serialize_classification(result: ClassificationResult) -> dict:
+    return {
+        "is_crisis": result.is_crisis,
+        "emotional_tags": [t.value for t in result.emotional_tags],
+        "situational_tags": [t.value for t in result.situational_tags],
+    }
+
+
 async def start(session_id: str, telegram_user_id: int, language: str = "en") -> str:
     await asyncio.to_thread(ensure_parishioner, telegram_user_id)
 
@@ -75,32 +88,95 @@ async def start(session_id: str, telegram_user_id: int, language: str = "en") ->
         await asyncio.to_thread(mark_comfort_intro_shown, telegram_user_id)
         reply = get_string("comfort_intro", language)
 
-    await _set_state(session_id, {"language": language, "telegram_user_id": telegram_user_id})
+    await _set_state(
+        session_id,
+        {"language": language, "telegram_user_id": telegram_user_id, "step": "awaiting_text"},
+    )
     return reply
 
 
-async def handle_text(session_id: str, text: str) -> str:
+async def _enter_crisis_gate(
+    session_id: str, telegram_user_id: int, language: str, result: ClassificationResult
+) -> FlowReply:
+    """K-05: pastoral message + urgent parish notification, gated behind Continue
+    rather than sending a verse straight away."""
+    await send_crisis_notification(telegram_user_id)
+    await asyncio.to_thread(record_notification_sent, telegram_user_id)
+    await _set_state(
+        session_id,
+        {
+            "language": language,
+            "telegram_user_id": telegram_user_id,
+            "step": "awaiting_crisis_response",
+            "classification": _serialize_classification(result),
+        },
+    )
+    return FlowReply(
+        text=get_string("comfort_crisis_message", language),
+        buttons=[(get_string("comfort_button_continue", language), _CALLBACK_CRISIS_CONTINUE)],
+    )
+
+
+async def handle_text(session_id: str, text: str) -> FlowReply | None:
     state = await _get_state(session_id)
     if state is None:
         logger.warning("handle_text called with no active flow session=%s", session_id)
-        return get_string("telegram_cmd_unknown", "en")
+        return FlowReply(text=get_string("telegram_cmd_unknown", "en"))
+
+    if state.get("step") != "awaiting_text":
+        # A button tap is pending (e.g. crisis Continue) — silently ignore stray text.
+        return None
 
     language = state["language"]
+    telegram_user_id = state["telegram_user_id"]
     stripped = text.strip()
 
     if len(stripped) > _MAX_INPUT_LENGTH:
-        return get_string("comfort_input_too_long", language)
+        return FlowReply(text=get_string("comfort_input_too_long", language))
 
     try:
-        await classify(stripped)
+        result = await classify(stripped)
     except Exception as exc:
-        # Retrieval/crisis-gating (Steps C-K) aren't wired in yet, so nothing currently
-        # acts on the classification result — don't let a classifier failure block the
-        # parishioner from getting a reply.
+        # Retrieval (Step F) isn't wired in yet, so nothing currently acts on the
+        # classification result — don't let a classifier failure block the parishioner
+        # from getting a reply.
         logger.error("classify failed session=%s: %s", session_id, exc)
+        await _clear_state(session_id)
+        return FlowReply(text=get_string("comfort_ack_placeholder", language))
 
+    if not await _notification_dedup_passed(telegram_user_id):
+        # K-04: Steps D and E skipped entirely; proceeds to Step F (not built yet).
+        await _clear_state(session_id)
+        return FlowReply(text=get_string("comfort_ack_placeholder", language))
+
+    if result.is_crisis:
+        return await _enter_crisis_gate(session_id, telegram_user_id, language, result)
+
+    # is_crisis False, dedup passed — proceeds to Step E (K-06, not built yet).
     await _clear_state(session_id)
-    return get_string("comfort_ack_placeholder", language)
+    return FlowReply(text=get_string("comfort_ack_placeholder", language))
+
+
+async def handle_callback(session_id: str, callback_data: str) -> FlowReply | None:
+    state = await _get_state(session_id)
+    if state is None or state.get("step") != "awaiting_crisis_response":
+        logger.warning(
+            "handle_callback called with no matching pending state session=%s data=%s",
+            session_id,
+            callback_data,
+        )
+        return None
+
+    language = state["language"]
+
+    if callback_data == _CALLBACK_CRISIS_CONTINUE:
+        # Step F (retrieval) isn't built yet — placeholder until K-07. Reuses the
+        # classification already stored in state rather than reclassifying.
+        await _clear_state(session_id)
+        return FlowReply(text=get_string("comfort_ack_placeholder", language))
+
+    logger.warning("Unrecognized comfort callback data=%s session=%s", callback_data, session_id)
+    return None
 
 
 async def get_state(session_id: str) -> dict | None:

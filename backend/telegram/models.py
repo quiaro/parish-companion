@@ -26,6 +26,16 @@ class Message(BaseModel):
     text: str | None = None
 
 
+class CallbackQuery(BaseModel):
+    model_config = {"populate_by_name": True}
+
+    id: str
+    from_: User = Field(alias="from")
+    message: Message | None = None
+    data: str | None = None
+
+
 class Update(BaseModel):
     update_id: int
     message: Message | None = None
+    callback_query: CallbackQuery | None = None

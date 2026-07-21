@@ -9,8 +9,8 @@ from config import settings
 from session import get_language
 from telegram import commands
 from telegram import schedule as telegram_schedule
-from telegram.client import send_message
-from telegram.models import Update
+from telegram.client import answer_callback_query, send_message
+from telegram.models import CallbackQuery, Update
 from translations import get_string
 
 logger = logging.getLogger(__name__)
@@ -45,6 +45,24 @@ _COMFORT_COMMAND_LANGUAGES: dict[str, str] = {
 }
 
 
+async def _handle_callback_query(callback_query: CallbackQuery) -> JSONResponse:
+    await answer_callback_query(callback_query.id)
+
+    if callback_query.message is None or callback_query.data is None:
+        return JSONResponse({"status": "ok"})
+
+    chat_id = callback_query.message.chat.id
+    session_id = str(chat_id)
+
+    comfort_state = await comfort_flow.get_state(session_id)
+    if comfort_state:
+        reply = await comfort_flow.handle_callback(session_id, callback_query.data)
+        if reply is not None:
+            await send_message(chat_id, reply.text, buttons=reply.buttons)
+
+    return JSONResponse({"status": "ok"})
+
+
 @router.post("/webhook")
 async def receive_update(
     request: Request,
@@ -52,6 +70,9 @@ async def receive_update(
     x_telegram_bot_api_secret_token: str | None = Header(default=None),
 ) -> JSONResponse:
     _verify_secret(x_telegram_bot_api_secret_token)
+
+    if update.callback_query is not None:
+        return await _handle_callback_query(update.callback_query)
 
     if update.message is None:
         return JSONResponse({"status": "ok"})
@@ -114,7 +135,8 @@ async def receive_update(
     comfort_state = await comfort_flow.get_state(session_id)
     if comfort_state:
         reply = await comfort_flow.handle_text(session_id, text)
-        await send_message(chat_id, reply)
+        if reply is not None:
+            await send_message(chat_id, reply.text, buttons=reply.buttons)
         return JSONResponse({"status": "ok"})
 
     return JSONResponse({"status": "ok"})

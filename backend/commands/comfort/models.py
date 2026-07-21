@@ -109,3 +109,9 @@ class ClassificationResult:
     is_crisis: bool
     emotional_tags: list[EmotionalTag] = field(default_factory=list)
     situational_tags: list[SituationalTag] = field(default_factory=list)
+
+
+@dataclass
+class FlowReply:
+    text: str
+    buttons: list[tuple[str, str]] | None = None

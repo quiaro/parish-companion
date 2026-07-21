@@ -21,10 +21,18 @@ def db_mocks(monkeypatch):
         "is_comfort_intro_shown": MagicMock(return_value=False),
         "mark_comfort_intro_shown": MagicMock(),
         "get_last_notification_sent_at": MagicMock(return_value=None),
+        "record_notification_sent": MagicMock(),
     }
     for name, mock in mocks.items():
         monkeypatch.setattr(flow, name, mock)
     return mocks
+
+
+@pytest.fixture
+def crisis_notification_mock(monkeypatch):
+    mock = AsyncMock(return_value=True)
+    monkeypatch.setattr(flow, "send_crisis_notification", mock)
+    return mock
 
 
 @pytest.fixture
