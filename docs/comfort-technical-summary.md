@@ -119,16 +119,20 @@ Runs only if `is_crisis` is false and Step C passed (no notification sent within
 
 ### Step G — Fallback
 
-If no new relevant passage is found after exhausting the retry budget (`k > 40`), the bot re-sends the **oldest** passage previously sent to this parishioner.
+If no new relevant passage is found after exhausting the retry budget (`k > 40`) — or the candidate at position `j` falls below the similarity threshold — the bot does not force a match or re-send a previously-sent passage. Instead, it presents a random verse tagged with one of `faith`, `hope`, or `love`, alongside a hardcoded encouraging message (not an LLM framing).
+
+This fallback verse is **not** filtered against the parishioner's 2-week sent-passage history — deliberately, to keep the fallback simple. Repeats are acceptable specifically on this path: reaching Step G already means no relevant match was found for what the parishioner expressed, so this is a signal of a gap in the verse bank's tag vocabulary/curation (see Open Items), not a normal retrieval outcome subject to the same repeat-avoidance guarantee as Step F.
+
+By contrast, a passage retrieved via Step F always respects the 2-week recently-sent exclusion — no repeated passage is ever sent through the normal retrieval path within that window.
 
 ### Step H — Framing
 
-An LLM writes a 1–2 sentence framing to accompany the selected passage.
+An LLM writes a 1–2 sentence framing to accompany the selected passage. **Skipped entirely on the Step G fallback path** — there's no real semantic match to frame, so the hardcoded encouraging message is used instead.
 
 ### Step I — Reply
 
-- If the passage is new (not sent to this parishioner in the last 2 weeks): reply with the passage and framing only.
-- If the passage has been sent within the last 2 weeks (i.e., the Step G fallback path): reply with the passage and framing, **and** a prompt encouraging the parishioner to contact the parish if they need support with their situation.
+- If the passage was retrieved via Step F (a genuine relevant match): reply with the passage and its LLM framing.
+- If the passage came from the Step G fallback (random `faith`/`hope`/`love` verse): reply with the passage and the hardcoded encouraging message — no LLM framing.
 
 ### Step J — "Another passage"
 
