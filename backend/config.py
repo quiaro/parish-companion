@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     comfort_frequency_window_hours: int = 24
     comfort_escalation_passage_threshold: int = 10
 
+    qdrant_url: str = "http://qdrant:6333"
+    qdrant_collection_name: str = "bible_verses"
+
 
 settings = Settings()  # type: ignore[call-arg]
 

@@ -35,14 +35,15 @@ docker compose up --build
 
 This starts:
 
-| Service    | Host port | Description                                   |
-| ---------- | --------- | ---------------------------------------------- |
-| `backend`  | 8000      | FastAPI app + Uvicorn                          |
-| `redis`    | —         | Session cache                                  |
+| Service    | Host port | Description                                        |
+| ---------- | --------- | -------------------------------------------------- |
+| `backend`  | 8000      | FastAPI app + Uvicorn                              |
+| `redis`    | —         | Session cache                                      |
 | `postgres` | —         | Per-parishioner persistent state (e.g. `/comfort`) |
-| `backup`   | —         | Daily `pg_dump` → S3 (production only, see below) |
+| `qdrant`   | —         | Bible verse-bank vector store                      |
+| `backup`   | —         | Daily `pg_dump` → S3 (production only, see below)  |
 
-`redis` and `postgres` are intentionally not exposed to the host in production — the backend reaches them over Docker's internal network. `docker-compose.dev.yml` remaps both to host ports (`6380` and `5433` respectively) so you can connect a local client while developing.
+`redis`, `postgres`, and `qdrant` are intentionally not exposed to the host in production — the backend reaches them over Docker's internal network. `docker-compose.dev.yml` remaps all three to host ports (`6380`, `5433`, and `6333` respectively) so a local client can be connected while developing.
 
 **`backup` doesn't start in local dev.** It's assigned a profile (`production-only`) in `docker-compose.dev.yml` that's never activated by the documented dev command, so it's excluded whenever you use the dev override — no AWS credentials are needed just to run the stack locally. Running `docker compose up --build` with the base file alone (i.e. without `-f docker-compose.dev.yml`) still starts it normally, which is what production deployments do.
 
@@ -195,6 +196,16 @@ psql "postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5433/$POSTGRES_DB
 ```
 
 This only works when the stack is up via the dev override (`docker compose -f docker-compose.yml -f docker-compose.dev.yml up ...`) — the base production compose file doesn't expose the port to the host at all.
+
+## Bible verse bank ingestion (`/comfort`)
+
+The `/comfort` command retrieves Bible verses from Qdrant, populated from `data/bible_OEB_verses.csv`. This is a manual, occasional operation — not something that runs on every backend startup — so re-run it whenever the CSV changes:
+
+```bash
+docker compose exec backend python -m scripts.ingest_verses
+```
+
+The script is idempotent: point IDs are derived deterministically from each verse's `reference`, so re-running after editing a few rows updates just those points rather than duplicating the whole collection. Pass a different path as an argument to ingest a different CSV file.
 
 ## Running tests
 
