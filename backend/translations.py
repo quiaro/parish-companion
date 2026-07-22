@@ -110,6 +110,19 @@ STRINGS: dict[str, dict[str, str]] = {
             "Telegram user ID: {telegram_user_id}\n\n"
             "Please follow up with this parishioner as soon as possible."
         ),
+        "comfort_escalation_message": (
+            "Bible passages are food for the soul and talking to someone can also provide comfort.\n" 
+            "Would you like someone from our parish to reach out to you?"
+        ),
+        "comfort_button_yes": "Yes",
+        "comfort_button_no": "No",
+        "comfort_escalation_email_subject": "Parish Companion: /comfort pastoral outreach requested",
+        "comfort_escalation_email_body": (
+            "A parishioner has been using /comfort frequently and shared that they'd like to "
+            "be contacted by someone from the parish.\n\n"
+            "Telegram user ID: {telegram_user_id}\n\n"
+            "Please follow up with this parishioner when convenient."
+        ),
     },
     "es": {
         "telegram_text_only": (
@@ -216,6 +229,19 @@ STRINGS: dict[str, dict[str, str]] = {
             "crisis (autolesión, ideación suicida, abuso sexual o violencia física).\n\n"
             "ID de usuario de Telegram: {telegram_user_id}\n\n"
             "Por favor, comuníquese con este feligrés lo antes posible."
+        ),
+        "comfort_escalation_message": (
+            "Los pasajes bíblicos son buenos para el alma y hablar con alguien también puede ayudar y dar consuelo.\n"
+            "¿Te gustaría que alguien de nuestra parroquia se ponga en contacto contigo?"
+        ),
+        "comfort_button_yes": "Sí",
+        "comfort_button_no": "No",
+        "comfort_escalation_email_subject": "Parish Companion: se solicitó acompañamiento pastoral en /consolar",
+        "comfort_escalation_email_body": (
+            "Un feligrés ha estado usando /consolar con frecuencia y compartió que le "
+            "gustaría que alguien de la parroquia se pusiera en contacto con él/ella.\n\n"
+            "ID de usuario de Telegram: {telegram_user_id}\n\n"
+            "Por favor, comuníquese con este feligrés cuando le sea conveniente."
         ),
     },
 }

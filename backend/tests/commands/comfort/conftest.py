@@ -22,6 +22,7 @@ def db_mocks(monkeypatch):
         "mark_comfort_intro_shown": MagicMock(),
         "get_last_notification_sent_at": MagicMock(return_value=None),
         "record_notification_sent": MagicMock(),
+        "count_recent_passages": MagicMock(return_value=0),
     }
     for name, mock in mocks.items():
         monkeypatch.setattr(flow, name, mock)
@@ -32,6 +33,13 @@ def db_mocks(monkeypatch):
 def crisis_notification_mock(monkeypatch):
     mock = AsyncMock(return_value=True)
     monkeypatch.setattr(flow, "send_crisis_notification", mock)
+    return mock
+
+
+@pytest.fixture
+def pastoral_outreach_notification_mock(monkeypatch):
+    mock = AsyncMock(return_value=True)
+    monkeypatch.setattr(flow, "send_pastoral_outreach_notification", mock)
     return mock
 
 

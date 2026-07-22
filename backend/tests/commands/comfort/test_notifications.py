@@ -1,11 +1,12 @@
-"""Tests for send_crisis_notification — independent of the Telegram layer."""
+"""Tests for send_crisis_notification and send_pastoral_outreach_notification — independent
+of the Telegram layer."""
 
 import smtplib
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from commands.comfort.notifications import send_crisis_notification
+from commands.comfort.notifications import send_crisis_notification, send_pastoral_outreach_notification
 
 _UID = 111222333
 
@@ -122,6 +123,70 @@ class TestEmailContent:
     async def test_from_falls_back_to_smtp_username(self, monkeypatch: pytest.MonkeyPatch) -> None:
         msg = await self._capture(monkeypatch, smtp_from_address="", smtp_username="bot@parish.org")
         assert msg["From"] == "bot@parish.org"
+
+
+class TestPastoralOutreachNotification:
+    """
+    K-06. The shared SMTP send path (recipients/host validation, STARTTLS, login, error
+    handling) is already covered by TestSendResult/TestSmtpBehavior via
+    send_crisis_notification — both functions go through the same _send_email_sync
+    helper, so this only covers what's actually different: the email content and the
+    distinct "similar to, but not the same as" notification this represents.
+    """
+
+    async def _capture(self, monkeypatch: pytest.MonkeyPatch, language: str = "en", **overrides):
+        _configure(monkeypatch, **overrides)
+        captured = []
+        smtp = _smtp_mock()
+        smtp.send_message.side_effect = captured.append
+        with patch("smtplib.SMTP", return_value=smtp):
+            await send_pastoral_outreach_notification(_UID, language)
+        assert len(captured) == 1
+        return captured[0]
+
+    @pytest.mark.asyncio
+    async def test_returns_true_on_success(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        _configure(monkeypatch)
+        with patch("smtplib.SMTP", return_value=_smtp_mock()):
+            assert await send_pastoral_outreach_notification(_UID) is True
+
+    @pytest.mark.asyncio
+    async def test_returns_false_when_not_configured(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        _configure(monkeypatch, smtp_host="")
+        assert await send_pastoral_outreach_notification(_UID) is False
+
+    @pytest.mark.asyncio
+    async def test_subject_identifies_pastoral_outreach(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        msg = await self._capture(monkeypatch)
+        assert "pastoral outreach" in msg["Subject"]
+        assert "/comfort" in msg["Subject"]
+
+    @pytest.mark.asyncio
+    async def test_body_contains_telegram_user_id(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        body = (await self._capture(monkeypatch)).get_content()
+        assert str(_UID) in body
+
+    @pytest.mark.asyncio
+    async def test_subject_and_body_are_localized_to_spanish(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        msg = await self._capture(monkeypatch, language="es")
+        assert "/consolar" in msg["Subject"]
+        body = msg.get_content()
+        assert "feligrés" in body
+        assert str(_UID) in body
+
+    @pytest.mark.asyncio
+    async def test_content_is_distinct_from_crisis_notification(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        outreach_msg = await self._capture(monkeypatch)
+        _configure(monkeypatch)
+        captured = []
+        smtp = _smtp_mock()
+        smtp.send_message.side_effect = captured.append
+        with patch("smtplib.SMTP", return_value=smtp):
+            await send_crisis_notification(_UID)
+        crisis_msg = captured[0]
+
+        assert outreach_msg["Subject"] != crisis_msg["Subject"]
+        assert outreach_msg.get_content() != crisis_msg.get_content()
 
 
 class TestSmtpBehavior:

@@ -57,6 +57,8 @@ class Settings(BaseSettings):
     smtp_from_address: str = ""
 
     comfort_notification_dedup_window_hours: int = 24
+    comfort_frequency_window_hours: int = 24
+    comfort_escalation_passage_threshold: int = 10
 
 
 settings = Settings()  # type: ignore[call-arg]

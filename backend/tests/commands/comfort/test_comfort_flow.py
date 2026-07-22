@@ -245,6 +245,97 @@ class TestCrisisGate:
         assert reply.text == get_string("comfort_ack_placeholder", "en")
 
 
+class TestEscalationGate:
+    @pytest.mark.asyncio
+    async def test_threshold_count_does_not_escalate(self, db_mocks, flow_store, classify_mock) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.DESPAIR])
+        db_mocks["count_recent_passages"].return_value = 10
+        await flow.start(_SESSION, _UID, "en")
+        reply = await flow.handle_text(_SESSION, "I keep asking for verses.")
+
+        assert reply is not None
+        assert reply.text == get_string("comfort_ack_placeholder", "en")
+
+    @pytest.mark.asyncio
+    async def test_above_threshold_with_high_risk_tag_escalates(
+        self, db_mocks, flow_store, classify_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(
+            is_crisis=False, emotional_tags=[EmotionalTag.HOPELESSNESS, EmotionalTag.EXHAUSTION]
+        )
+        db_mocks["count_recent_passages"].return_value = 11
+        await flow.start(_SESSION, _UID, "en")
+        reply = await flow.handle_text(_SESSION, "I keep asking for verses.")
+
+        assert reply is not None
+        assert reply.text == get_string("comfort_escalation_message", "en")
+        assert reply.buttons == [
+            (get_string("comfort_button_yes", "en"), "comfort_escalation_yes"),
+            (get_string("comfort_button_no", "en"), "comfort_escalation_no"),
+        ]
+
+    @pytest.mark.asyncio
+    async def test_above_threshold_without_high_risk_tag_does_not_escalate(
+        self, db_mocks, flow_store, classify_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.EXHAUSTION])
+        db_mocks["count_recent_passages"].return_value = 11
+        await flow.start(_SESSION, _UID, "en")
+        reply = await flow.handle_text(_SESSION, "I keep asking for verses.")
+
+        assert reply is not None
+        assert reply.text == get_string("comfort_ack_placeholder", "en")
+
+    @pytest.mark.asyncio
+    async def test_uses_configured_frequency_window(
+        self, db_mocks, flow_store, classify_mock, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(config.settings, "comfort_frequency_window_hours", 12)
+        classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.RAGE])
+        db_mocks["count_recent_passages"].return_value = 11
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I keep asking for verses.")
+
+        db_mocks["count_recent_passages"].assert_called_once_with(_UID, 12)
+
+    @pytest.mark.asyncio
+    async def test_escalation_stores_classification_and_awaits_response(
+        self, db_mocks, flow_store, classify_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.LONELINESS])
+        db_mocks["count_recent_passages"].return_value = 11
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I keep asking for verses.")
+
+        assert flow_store[_SESSION]["step"] == "awaiting_escalation_response"
+        assert flow_store[_SESSION]["classification"] == {
+            "is_crisis": False,
+            "emotional_tags": ["loneliness"],
+            "situational_tags": [],
+        }
+
+    @pytest.mark.asyncio
+    async def test_skipped_entirely_when_is_crisis_true(
+        self, db_mocks, flow_store, classify_mock, crisis_notification_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=True, emotional_tags=[EmotionalTag.DESPAIR])
+        db_mocks["count_recent_passages"].return_value = 11
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I don't want to be here anymore.")
+
+        db_mocks["count_recent_passages"].assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_skipped_entirely_when_dedup_check_fails(self, db_mocks, flow_store, classify_mock) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.DESPAIR])
+        db_mocks["get_last_notification_sent_at"].return_value = datetime.now(timezone.utc)
+        db_mocks["count_recent_passages"].return_value = 11
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I keep asking for verses.")
+
+        db_mocks["count_recent_passages"].assert_not_called()
+
+
 class TestHandleCallback:
     @pytest.mark.asyncio
     async def test_continue_returns_placeholder_ack_without_reclassifying(
@@ -274,6 +365,78 @@ class TestHandleCallback:
         assert _SESSION not in flow_store
 
     @pytest.mark.asyncio
+    async def test_escalation_yes_sends_notification_and_updates_timestamp(
+        self, db_mocks, flow_store, classify_mock, pastoral_outreach_notification_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.DESPAIR])
+        db_mocks["count_recent_passages"].return_value = 11
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I keep asking for verses.")
+
+        reply = await flow.handle_callback(_SESSION, "comfort_escalation_yes")
+
+        pastoral_outreach_notification_mock.assert_awaited_once_with(_UID, "en")
+        db_mocks["record_notification_sent"].assert_called_once_with(_UID)
+        assert reply is not None
+        assert reply.text == get_string("comfort_ack_placeholder", "en")
+
+    @pytest.mark.asyncio
+    async def test_escalation_yes_clears_flow_state(
+        self, db_mocks, flow_store, classify_mock, pastoral_outreach_notification_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.DESPAIR])
+        db_mocks["count_recent_passages"].return_value = 11
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I keep asking for verses.")
+
+        await flow.handle_callback(_SESSION, "comfort_escalation_yes")
+
+        assert _SESSION not in flow_store
+
+    @pytest.mark.asyncio
+    async def test_escalation_yes_failed_notification_does_not_update_timestamp(
+        self, db_mocks, flow_store, classify_mock, pastoral_outreach_notification_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.DESPAIR])
+        db_mocks["count_recent_passages"].return_value = 11
+        pastoral_outreach_notification_mock.return_value = False
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I keep asking for verses.")
+
+        await flow.handle_callback(_SESSION, "comfort_escalation_yes")
+
+        db_mocks["record_notification_sent"].assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_escalation_no_sends_no_notification(
+        self, db_mocks, flow_store, classify_mock, pastoral_outreach_notification_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.DESPAIR])
+        db_mocks["count_recent_passages"].return_value = 11
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I keep asking for verses.")
+
+        reply = await flow.handle_callback(_SESSION, "comfort_escalation_no")
+
+        pastoral_outreach_notification_mock.assert_not_called()
+        db_mocks["record_notification_sent"].assert_not_called()
+        assert reply is not None
+        assert reply.text == get_string("comfort_ack_placeholder", "en")
+
+    @pytest.mark.asyncio
+    async def test_escalation_no_clears_flow_state(
+        self, db_mocks, flow_store, classify_mock, pastoral_outreach_notification_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.DESPAIR])
+        db_mocks["count_recent_passages"].return_value = 11
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I keep asking for verses.")
+
+        await flow.handle_callback(_SESSION, "comfort_escalation_no")
+
+        assert _SESSION not in flow_store
+
+    @pytest.mark.asyncio
     async def test_no_pending_state_returns_none(self, flow_store) -> None:
         reply = await flow.handle_callback(_SESSION, "comfort_crisis_continue")
         assert reply is None
@@ -293,6 +456,29 @@ class TestHandleCallback:
         await flow.handle_text(_SESSION, "I don't want to be here anymore.")
 
         reply = await flow.handle_callback(_SESSION, "not_a_real_action")
+        assert reply is None
+
+    @pytest.mark.asyncio
+    async def test_escalation_data_ignored_while_in_crisis_step(
+        self, db_mocks, flow_store, classify_mock, crisis_notification_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=True)
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I don't want to be here anymore.")
+
+        reply = await flow.handle_callback(_SESSION, "comfort_escalation_yes")
+        assert reply is None
+
+    @pytest.mark.asyncio
+    async def test_crisis_data_ignored_while_in_escalation_step(
+        self, db_mocks, flow_store, classify_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.DESPAIR])
+        db_mocks["count_recent_passages"].return_value = 11
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I keep asking for verses.")
+
+        reply = await flow.handle_callback(_SESSION, "comfort_crisis_continue")
         assert reply is None
 
 

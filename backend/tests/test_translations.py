@@ -25,9 +25,16 @@ def test_get_string_returns_empty_string_and_logs_error_when_key_missing(
     assert any("nonexistent_key" in m for m in caplog.messages)
 
 
+# Keys where the correct Spanish word genuinely happens to be spelled the same as
+# English (a real linguistic coincidence, not a forgotten translation).
+_EXPECTED_IDENTICAL_KEYS = {"comfort_button_no"}
+
+
 def test_en_and_es_strings_are_different() -> None:
     """Sanity check: translations are not identical to the English source."""
     for key in _ALL_KEYS:
+        if key in _EXPECTED_IDENTICAL_KEYS:
+            continue
         assert STRINGS["en"][key] != STRINGS["es"][key], (
             f"English and Spanish strings are identical for key '{key}'"
         )
