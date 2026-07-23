@@ -29,8 +29,8 @@ def test_get_string_returns_empty_string_and_logs_error_when_key_missing(
 # English (a real linguistic coincidence, not a forgotten translation).
 _EXPECTED_IDENTICAL_KEYS = {
     "comfort_button_no",
-    # em-dash separator with no language-specific words.
     "comfort_verse_reply",
+    "comfort_verse_reply_no_framing",
 }
 
 

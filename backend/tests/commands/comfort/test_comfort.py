@@ -90,7 +90,7 @@ def test_free_text_after_comfort_command_returns_verse_reply(
     assert mock_send.await_args is not None
     sent_text = mock_send.await_args[0][1]
     assert sent_text == get_string("comfort_verse_reply", "en").format(
-        reference="Psalm 23:4", verse_text="Test verse text."
+        framing="Test framing text.", reference="Psalm 23:4", verse_text="Test verse text."
     )
 
 
@@ -107,7 +107,7 @@ def test_overlong_free_text_gets_gentle_reprompt_and_can_be_resubmitted(
     assert mock_send.await_args is not None
     final_reply = mock_send.await_args[0][1]
     assert final_reply == get_string("comfort_verse_reply", "en").format(
-        reference="Psalm 23:4", verse_text="Test verse text."
+        framing="Test framing text.", reference="Psalm 23:4", verse_text="Test verse text."
     )
 
 
@@ -162,5 +162,5 @@ def test_callback_query_answers_and_dispatches_to_comfort_flow(
 
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("comfort_verse_reply", "en").format(
-        reference="Psalm 23:4", verse_text="Test verse text."
+        framing="Test framing text.", reference="Psalm 23:4", verse_text="Test verse text."
     )

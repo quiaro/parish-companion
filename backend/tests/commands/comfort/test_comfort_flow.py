@@ -7,6 +7,7 @@ import pytest
 import config
 from commands.comfort import flow
 from commands.comfort.models import ClassificationResult, EmotionalTag
+from commands.comfort.retrieval import RetrievedPassage
 from translations import get_string
 
 _SESSION = "session_abc"
@@ -14,9 +15,11 @@ _UID = 555666777
 
 
 def _expected_verse_reply(language: str = "en") -> str:
-    """Matches the fixed RetrievedPassage returned by the autouse retrieve_passage_mock
-    fixture in conftest.py."""
-    return get_string("comfort_verse_reply", language).format(reference="Psalm 23:4", verse_text="Test verse text.")
+    """Matches the fixed RetrievedPassage/framing text returned by the autouse
+    retrieve_passage_mock/frame_passage_mock fixtures in conftest.py."""
+    return get_string("comfort_verse_reply", language).format(
+        framing="Test framing text.", reference="Psalm 23:4", verse_text="Test verse text."
+    )
 
 
 class TestStart:
@@ -559,3 +562,48 @@ class TestNotificationDedupCheck:
             frozen_now - timedelta(hours=24) - timedelta(seconds=1)
         )
         assert await flow._notification_dedup_passed(_UID) is True
+
+
+class TestFraming:
+    """K-08: framing is skipped entirely on the Step G fallback path, and a framing
+    failure gracefully degrades to the bare verse rather than blocking the reply."""
+
+    @pytest.mark.asyncio
+    async def test_real_match_includes_framing(
+        self, db_mocks, flow_store, retrieve_passage_mock, frame_passage_mock
+    ) -> None:
+        await flow.start(_SESSION, _UID, "en")
+        reply = await flow.handle_text(_SESSION, "I've been feeling anxious lately.")
+
+        frame_passage_mock.assert_awaited_once()
+        assert reply is not None
+        assert reply.text == _expected_verse_reply()
+
+    @pytest.mark.asyncio
+    async def test_fallback_passage_skips_framing(
+        self, db_mocks, flow_store, retrieve_passage_mock, frame_passage_mock
+    ) -> None:
+        retrieve_passage_mock.return_value = RetrievedPassage(
+            reference="Joel 2:25", verse_text="Fallback verse text.", is_fallback=True
+        )
+        await flow.start(_SESSION, _UID, "en")
+        reply = await flow.handle_text(_SESSION, "gibberish unrelated to anything")
+
+        frame_passage_mock.assert_not_called()
+        assert reply is not None
+        assert reply.text == get_string("comfort_fallback_message", "en").format(
+            reference="Joel 2:25", verse_text="Fallback verse text."
+        )
+
+    @pytest.mark.asyncio
+    async def test_framing_failure_falls_back_to_bare_verse(
+        self, db_mocks, flow_store, retrieve_passage_mock, frame_passage_mock
+    ) -> None:
+        frame_passage_mock.side_effect = RuntimeError("LLM provider is down")
+        await flow.start(_SESSION, _UID, "en")
+        reply = await flow.handle_text(_SESSION, "I've been feeling anxious lately.")
+
+        assert reply is not None
+        assert reply.text == get_string("comfort_verse_reply_no_framing", "en").format(
+            reference="Psalm 23:4", verse_text="Test verse text."
+        )

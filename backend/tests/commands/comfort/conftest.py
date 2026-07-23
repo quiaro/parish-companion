@@ -24,6 +24,13 @@ def retrieve_passage_mock(monkeypatch):
     return mock
 
 
+@pytest.fixture(autouse=True)
+def frame_passage_mock(monkeypatch):
+    mock = AsyncMock(return_value="Test framing text.")
+    monkeypatch.setattr(flow, "frame_passage", mock)
+    return mock
+
+
 @pytest.fixture
 def db_mocks(monkeypatch):
     mocks = {

@@ -7,6 +7,7 @@ from redis.asyncio import Redis
 
 from commands.comfort.classifier import classify
 from commands.comfort.constants import HIGH_RISK_EMOTIONAL_TAGS
+from commands.comfort.framing import frame_passage
 from commands.comfort.models import ClassificationResult, EmotionalTag, FlowReply, SituationalTag
 from commands.comfort.notifications import send_crisis_notification, send_pastoral_outreach_notification
 from commands.comfort.retrieval import retrieve_passage
@@ -108,12 +109,32 @@ def _deserialize_classification(data: dict) -> ClassificationResult:
 async def _complete_with_retrieval(
     session_id: str, telegram_user_id: int, language: str, raw_text: str, result: ClassificationResult
 ) -> FlowReply:
-    """Step F/G: retrieves a passage (or the Step G fallback) and clears the flow state —
-    this is the terminal step of every path once notification gating is resolved."""
+    """Step F/G/H: retrieves a passage (or the Step G fallback), frames it (skipped
+    entirely on the Step G fallback path), and clears the flow state — this is the 
+    terminal step of every path once notification gating is resolved."""
     passage = await retrieve_passage(telegram_user_id, raw_text, result)
     await _clear_state(session_id)
-    key = "comfort_fallback_message" if passage.is_fallback else "comfort_verse_reply"
-    text = get_string(key, language).format(reference=passage.reference, verse_text=passage.verse_text)
+
+    if passage.is_fallback:
+        text = get_string("comfort_fallback_message", language).format(
+            reference=passage.reference, verse_text=passage.verse_text
+        )
+        return FlowReply(text=text)
+
+    try:
+        framing = await frame_passage(raw_text, passage, language)
+    except Exception as exc:
+        # A framing failure shouldn't block the parishioner from getting the verse
+        # itself — same "don't let an LLM hiccup block the reply" principle as classify().
+        logger.error("frame_passage failed session=%s: %s", session_id, exc)
+        text = get_string("comfort_verse_reply_no_framing", language).format(
+            reference=passage.reference, verse_text=passage.verse_text
+        )
+        return FlowReply(text=text)
+
+    text = get_string("comfort_verse_reply", language).format(
+        framing=framing, reference=passage.reference, verse_text=passage.verse_text
+    )
     return FlowReply(text=text)
 
 
