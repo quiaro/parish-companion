@@ -11,8 +11,8 @@
 1. **Sourcing.** Parish staff gathers inspiring verses/promises into a CSV with columns `verse` (text) and `reference` (book, chapter, verse). This file is version-controlled and checked into the repo — not stored in Google Sheets — so that changes to theologically load-bearing content go through PR review rather than live external edits.
 
 2. **Tagging.** An LLM extends the CSV with metadata per verse:
-   - **Emotional tags** — from a fixed, curated vocabulary (_pending — see Open Items_)
-   - **Situational tags** — from a fixed, curated vocabulary (_pending — see Open Items_)
+   - **Emotional tags** — from a fixed, curated vocabulary
+   - **Situational tags** — from a fixed, curated vocabulary
    - **Example user phrasings** — sample free-text expressions a parishioner might use that this verse would match
 
 3. **Embedding and storage.** For each verse, one Qdrant point is created:
@@ -108,18 +108,18 @@ Runs only if `is_crisis` is false and Step C passed (no notification sent within
 ### Step F — Retrieval
 
 1. The parishioner's raw text is embedded directly (no synthesis step needed on the query side).
-2. Qdrant performs a **filtered vector search**: results are ranked by embedding similarity against the verse vectors; the classified emotional/situational tags are applied as an **advisory (optional) filter** — they influence ranking but do not exclude non-matching verses outright. Top-`k` results are returned, `k` initially 10, sorted by descending similarity (an assumption to be confirmed against Qdrant's actual ordering guarantees, and worth a regression test asserting non-increasing similarity order).
-3. An index `j` (0-based) tracks the next unchecked result. The passage at position `j` is checked against a similarity threshold (_value pending_). Because results are similarity-sorted, checking only position `j` is sufficient — everything after it has equal or lower similarity, so if `j` fails the threshold, nothing later in the batch could pass either.
+2. Qdrant performs a **filtered vector search**: results are ranked by embedding similarity against the verse vectors; the classified emotional/situational tags influence ranking but do not exclude non-matching verses outright. The top 40 results are fetched in a single query, sorted by descending similarity. Fetching all 40 up front in one call — rather than an initially smaller batch retried with a growing limit — avoids redundant round-trips: Qdrant's query is stateless, so re-querying with a larger limit would just redo the same search and re-return the same leading results instead of resuming from where a smaller query left off.
+3. An index `j` (0-based) tracks the next unchecked result. The passage at position `j` is checked against a similarity threshold (`COMFORT_SIMILARITY_THRESHOLD`, default `0.2` — calibrated empirically, see Open Items). Because results are similarity-sorted, checking only position `j` is sufficient — everything after it has equal or lower similarity, so if `j` fails the threshold, nothing later in the batch could pass either.
    - If the passage at `j` is **below** the threshold → no relevant new passage exists in this batch; go to Step G (fallback).
    - If **at or above** the threshold → check it against the parishioner's passage history (passages sent in the last 2 weeks).
      - If **not** recently sent → this is the selected passage; proceed to Step H.
-     - If recently sent → increment `j` by 1 (move to the next candidate) and re-check against the threshold, repeating within the current batch.
-4. If the entire current batch is exhausted without finding a valid new passage, retrieve again with `k` increased by 10, resuming the threshold/recency check from the next unchecked position. Repeat until a passage is selected or `k > 40`.
-5. If a verse is retrieved via the advisory filter that shares **no** emotional or situational tags with the parishioner's classified input, this is logged as a warning (intended as a feedback signal for vocabulary/curation gaps — consumer of this log TBD, see Open Items).
+     - If recently sent → increment `j` by 1 (move to the next candidate) and re-check against the threshold, repeating within the batch.
+4. If all 40 results are exhausted without finding a valid new passage, go to Step G (fallback).
+5. If a verse is retrieved that shares **no** emotional or situational tags with the parishioner's classified input but is above the threshold, this is logged as a warning (intended as a feedback signal for vocabulary/curation gaps to be addressed by the development team).
 
 ### Step G — Fallback
 
-If no new relevant passage is found after exhausting the retry budget (`k > 40`) — or the candidate at position `j` falls below the similarity threshold — the bot does not force a match or re-send a previously-sent passage. Instead, it presents a random verse tagged with one of `faith`, `hope`, or `love`, alongside a hardcoded encouraging message (not an LLM framing).
+If no new relevant passage is found among the top 40 results — either every one of them was recently sent, or the candidate at position `j` fell below the similarity threshold — the bot does not force a match or re-send a previously-sent passage. Instead, it presents a random verse tagged with one of `faith`, `hope`, or `love`, alongside a hardcoded encouraging message (not an LLM framing).
 
 This fallback verse is **not** filtered against the parishioner's 2-week sent-passage history — deliberately, to keep the fallback simple. Repeats are acceptable specifically on this path: reaching Step G already means no relevant match was found for what the parishioner expressed, so this is a signal of a gap in the verse bank's tag vocabulary/curation (see Open Items), not a normal retrieval outcome subject to the same repeat-avoidance guarantee as Step F.
 
@@ -188,8 +188,9 @@ Two structurally separate logging paths, kept decoupled so identifiable data nev
 
 ---
 
-## 6. Open items (TBD)
+## 6. Open Items (TBD)
 
-1. **Similarity threshold value** (Step F.3) — the cutoff for "relevant enough" is a tunable parameter with no value chosen yet; likely needs empirical tuning once the vocabulary and verse bank exist.
-2. **Consumer of the tag-mismatch warning log** (Step F.5) — logging is specified, but who reviews these warnings and how they feed back into vocabulary/curation maintenance is not yet decided.
-3. **Qdrant result-ordering assumption** — the `j`-pointer optimization (checking only one passage per position rather than the whole batch) assumes top-`k` results are returned in non-increasing similarity order. This should be explicitly verified against Qdrant's API behavior and covered by a regression test, rather than relied on as an implicit assumption.
+1. **Similarity threshold value** (Step F.3) — set to `0.2` (`COMFORT_SIMILARITY_THRESHOLD`), chosen empirically: real queries against the curated verse bank score genuine matches around 0.28–0.36 and a clearly unrelated query around 0.06, so `0.2` sits safely between them. Still configurable and worth revisiting once there's real usage data.
+2. **Tag/Vocabulary Maintenance** (Step F.5)
+3. **Tag/Vocabulary Extension** (Step G)
+4. **Qdrant result-ordering assumption** — the `j`-pointer optimization (checking only one passage per position rather than the whole batch) assumes results are returned in non-increasing similarity order. Manually verified live against the real Qdrant instance (scores came back strictly descending across several sample queries), but not yet covered by an automated regression test in the suite.
