@@ -27,7 +27,11 @@ def test_get_string_returns_empty_string_and_logs_error_when_key_missing(
 
 # Keys where the correct Spanish word genuinely happens to be spelled the same as
 # English (a real linguistic coincidence, not a forgotten translation).
-_EXPECTED_IDENTICAL_KEYS = {"comfort_button_no"}
+_EXPECTED_IDENTICAL_KEYS = {
+    "comfort_button_no",
+    # em-dash separator with no language-specific words.
+    "comfort_verse_reply",
+}
 
 
 def test_en_and_es_strings_are_different() -> None:

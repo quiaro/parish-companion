@@ -79,7 +79,7 @@ def _text_message(text: str) -> dict:
     }
 
 
-def test_free_text_after_comfort_command_returns_placeholder_ack(
+def test_free_text_after_comfort_command_returns_verse_reply(
     client: TestClient, mock_send: AsyncMock, db_mocks, flow_store
 ) -> None:
     client.post("/telegram/webhook", json=_command_update("/comfort"), headers=_headers)
@@ -89,7 +89,9 @@ def test_free_text_after_comfort_command_returns_placeholder_ack(
     assert mock_send.await_count == 2
     assert mock_send.await_args is not None
     sent_text = mock_send.await_args[0][1]
-    assert sent_text == get_string("comfort_ack_placeholder", "en")
+    assert sent_text == get_string("comfort_verse_reply", "en").format(
+        reference="Psalm 23:4", verse_text="Test verse text."
+    )
 
 
 def test_overlong_free_text_gets_gentle_reprompt_and_can_be_resubmitted(
@@ -104,7 +106,9 @@ def test_overlong_free_text_gets_gentle_reprompt_and_can_be_resubmitted(
     client.post("/telegram/webhook", json=_text_message("a shorter message"), headers=_headers)
     assert mock_send.await_args is not None
     final_reply = mock_send.await_args[0][1]
-    assert final_reply == get_string("comfort_ack_placeholder", "en")
+    assert final_reply == get_string("comfort_verse_reply", "en").format(
+        reference="Psalm 23:4", verse_text="Test verse text."
+    )
 
 
 def _callback_update(data: str, callback_id: str = "cb1") -> dict:
@@ -157,4 +161,6 @@ def test_callback_query_answers_and_dispatches_to_comfort_flow(
         answer_mock.assert_awaited_once_with("cb1")
 
     assert mock_send.await_args is not None
-    assert mock_send.await_args[0][1] == get_string("comfort_ack_placeholder", "en")
+    assert mock_send.await_args[0][1] == get_string("comfort_verse_reply", "en").format(
+        reference="Psalm 23:4", verse_text="Test verse text."
+    )

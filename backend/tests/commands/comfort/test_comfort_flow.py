@@ -13,6 +13,12 @@ _SESSION = "session_abc"
 _UID = 555666777
 
 
+def _expected_verse_reply(language: str = "en") -> str:
+    """Matches the fixed RetrievedPassage returned by the autouse retrieve_passage_mock
+    fixture in conftest.py."""
+    return get_string("comfort_verse_reply", language).format(reference="Psalm 23:4", verse_text="Test verse text.")
+
+
 class TestStart:
     @pytest.mark.asyncio
     async def test_first_use_sends_full_intro(self, db_mocks, flow_store) -> None:
@@ -61,11 +67,11 @@ class TestStart:
 
 class TestHandleText:
     @pytest.mark.asyncio
-    async def test_within_limit_returns_placeholder_ack(self, db_mocks, flow_store) -> None:
+    async def test_within_limit_returns_verse_reply(self, db_mocks, flow_store) -> None:
         await flow.start(_SESSION, _UID, "en")
         reply = await flow.handle_text(_SESSION, "I've been feeling anxious lately.")
         assert reply is not None
-        assert reply.text == get_string("comfort_ack_placeholder", "en")
+        assert reply.text == _expected_verse_reply()
 
     @pytest.mark.asyncio
     async def test_within_limit_clears_flow_state(self, db_mocks, flow_store) -> None:
@@ -78,7 +84,7 @@ class TestHandleText:
         await flow.start(_SESSION, _UID, "en")
         reply = await flow.handle_text(_SESSION, "a" * 2000)
         assert reply is not None
-        assert reply.text == get_string("comfort_ack_placeholder", "en")
+        assert reply.text == _expected_verse_reply()
 
     @pytest.mark.asyncio
     async def test_2001_characters_is_rejected_with_gentle_reprompt(self, db_mocks, flow_store) -> None:
@@ -99,14 +105,14 @@ class TestHandleText:
         await flow.handle_text(_SESSION, "a" * 2001)
         reply = await flow.handle_text(_SESSION, "a shorter message")
         assert reply is not None
-        assert reply.text == get_string("comfort_ack_placeholder", "en")
+        assert reply.text == _expected_verse_reply()
 
     @pytest.mark.asyncio
     async def test_length_check_uses_stripped_text(self, db_mocks, flow_store) -> None:
         await flow.start(_SESSION, _UID, "en")
         reply = await flow.handle_text(_SESSION, "  " + "a" * 2000 + "  ")
         assert reply is not None
-        assert reply.text == get_string("comfort_ack_placeholder", "en")
+        assert reply.text == _expected_verse_reply()
 
     @pytest.mark.asyncio
     async def test_respects_stored_session_language(self, db_mocks, flow_store) -> None:
@@ -128,6 +134,17 @@ class TestHandleText:
         await flow.start(_SESSION, _UID, "en")
         await flow.handle_text(_SESSION, "  I've been feeling anxious lately.  ")
         classify_mock.assert_awaited_once_with("I've been feeling anxious lately.")
+
+    @pytest.mark.asyncio
+    async def test_calls_retrieve_passage_with_stripped_text_and_classification(
+        self, db_mocks, flow_store, classify_mock, retrieve_passage_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.HOPE])
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "  I've been feeling anxious lately.  ")
+        retrieve_passage_mock.assert_awaited_once_with(
+            _UID, "I've been feeling anxious lately.", classify_mock.return_value
+        )
 
     @pytest.mark.asyncio
     async def test_too_long_submission_does_not_call_classify(
@@ -211,6 +228,7 @@ class TestCrisisGate:
         await flow.handle_text(_SESSION, "I don't want to be here anymore.")
 
         assert flow_store[_SESSION]["step"] == "awaiting_crisis_response"
+        assert flow_store[_SESSION]["raw_text"] == "I don't want to be here anymore."
         assert flow_store[_SESSION]["classification"] == {
             "is_crisis": True,
             "emotional_tags": ["despair"],
@@ -228,7 +246,7 @@ class TestCrisisGate:
         crisis_notification_mock.assert_not_called()
         db_mocks["record_notification_sent"].assert_not_called()
         assert reply is not None
-        assert reply.text == get_string("comfort_ack_placeholder", "en")
+        assert reply.text == _expected_verse_reply()
 
     @pytest.mark.asyncio
     async def test_crisis_gate_skipped_when_dedup_check_fails(
@@ -242,7 +260,7 @@ class TestCrisisGate:
         crisis_notification_mock.assert_not_called()
         db_mocks["record_notification_sent"].assert_not_called()
         assert reply is not None
-        assert reply.text == get_string("comfort_ack_placeholder", "en")
+        assert reply.text == _expected_verse_reply()
 
 
 class TestEscalationGate:
@@ -254,7 +272,7 @@ class TestEscalationGate:
         reply = await flow.handle_text(_SESSION, "I keep asking for verses.")
 
         assert reply is not None
-        assert reply.text == get_string("comfort_ack_placeholder", "en")
+        assert reply.text == _expected_verse_reply()
 
     @pytest.mark.asyncio
     async def test_above_threshold_with_high_risk_tag_escalates(
@@ -284,7 +302,7 @@ class TestEscalationGate:
         reply = await flow.handle_text(_SESSION, "I keep asking for verses.")
 
         assert reply is not None
-        assert reply.text == get_string("comfort_ack_placeholder", "en")
+        assert reply.text == _expected_verse_reply()
 
     @pytest.mark.asyncio
     async def test_uses_configured_frequency_window(
@@ -308,6 +326,7 @@ class TestEscalationGate:
         await flow.handle_text(_SESSION, "I keep asking for verses.")
 
         assert flow_store[_SESSION]["step"] == "awaiting_escalation_response"
+        assert flow_store[_SESSION]["raw_text"] == "I keep asking for verses."
         assert flow_store[_SESSION]["classification"] == {
             "is_crisis": False,
             "emotional_tags": ["loneliness"],
@@ -338,8 +357,8 @@ class TestEscalationGate:
 
 class TestHandleCallback:
     @pytest.mark.asyncio
-    async def test_continue_returns_placeholder_ack_without_reclassifying(
-        self, db_mocks, flow_store, classify_mock, crisis_notification_mock
+    async def test_continue_returns_verse_reply_without_reclassifying(
+        self, db_mocks, flow_store, classify_mock, crisis_notification_mock, retrieve_passage_mock
     ) -> None:
         classify_mock.return_value = ClassificationResult(is_crisis=True)
         await flow.start(_SESSION, _UID, "en")
@@ -349,8 +368,11 @@ class TestHandleCallback:
         reply = await flow.handle_callback(_SESSION, "comfort_crisis_continue")
 
         assert reply is not None
-        assert reply.text == get_string("comfort_ack_placeholder", "en")
+        assert reply.text == _expected_verse_reply()
         classify_mock.assert_not_called()
+        retrieve_passage_mock.assert_awaited_once_with(
+            _UID, "I don't want to be here anymore.", ClassificationResult(is_crisis=True)
+        )
 
     @pytest.mark.asyncio
     async def test_continue_clears_flow_state(
@@ -378,7 +400,7 @@ class TestHandleCallback:
         pastoral_outreach_notification_mock.assert_awaited_once_with(_UID, "en")
         db_mocks["record_notification_sent"].assert_called_once_with(_UID)
         assert reply is not None
-        assert reply.text == get_string("comfort_ack_placeholder", "en")
+        assert reply.text == _expected_verse_reply()
 
     @pytest.mark.asyncio
     async def test_escalation_yes_clears_flow_state(
@@ -421,7 +443,7 @@ class TestHandleCallback:
         pastoral_outreach_notification_mock.assert_not_called()
         db_mocks["record_notification_sent"].assert_not_called()
         assert reply is not None
-        assert reply.text == get_string("comfort_ack_placeholder", "en")
+        assert reply.text == _expected_verse_reply()
 
     @pytest.mark.asyncio
     async def test_escalation_no_clears_flow_state(

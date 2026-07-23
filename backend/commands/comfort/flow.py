@@ -7,8 +7,9 @@ from redis.asyncio import Redis
 
 from commands.comfort.classifier import classify
 from commands.comfort.constants import HIGH_RISK_EMOTIONAL_TAGS
-from commands.comfort.models import ClassificationResult, FlowReply
+from commands.comfort.models import ClassificationResult, EmotionalTag, FlowReply, SituationalTag
 from commands.comfort.notifications import send_crisis_notification, send_pastoral_outreach_notification
+from commands.comfort.retrieval import retrieve_passage
 from config import settings
 from db.parishioners import (
     count_recent_passages,
@@ -96,6 +97,26 @@ def _serialize_classification(result: ClassificationResult) -> dict:
     }
 
 
+def _deserialize_classification(data: dict) -> ClassificationResult:
+    return ClassificationResult(
+        is_crisis=data["is_crisis"],
+        emotional_tags=[EmotionalTag(t) for t in data["emotional_tags"]],
+        situational_tags=[SituationalTag(t) for t in data["situational_tags"]],
+    )
+
+
+async def _complete_with_retrieval(
+    session_id: str, telegram_user_id: int, language: str, raw_text: str, result: ClassificationResult
+) -> FlowReply:
+    """Step F/G: retrieves a passage (or the Step G fallback) and clears the flow state —
+    this is the terminal step of every path once notification gating is resolved."""
+    passage = await retrieve_passage(telegram_user_id, raw_text, result)
+    await _clear_state(session_id)
+    key = "comfort_fallback_message" if passage.is_fallback else "comfort_verse_reply"
+    text = get_string(key, language).format(reference=passage.reference, verse_text=passage.verse_text)
+    return FlowReply(text=text)
+
+
 async def start(session_id: str, telegram_user_id: int, language: str = "en") -> str:
     await asyncio.to_thread(ensure_parishioner, telegram_user_id)
 
@@ -113,7 +134,7 @@ async def start(session_id: str, telegram_user_id: int, language: str = "en") ->
 
 
 async def _enter_crisis_gate(
-    session_id: str, telegram_user_id: int, language: str, result: ClassificationResult
+    session_id: str, telegram_user_id: int, language: str, raw_text: str, result: ClassificationResult
 ) -> FlowReply:
     """K-05: pastoral message + urgent parish notification, gated behind Continue
     rather than sending a verse straight away."""
@@ -127,6 +148,7 @@ async def _enter_crisis_gate(
             "language": language,
             "telegram_user_id": telegram_user_id,
             "step": "awaiting_crisis_response",
+            "raw_text": raw_text,
             "classification": _serialize_classification(result),
         },
     )
@@ -137,7 +159,7 @@ async def _enter_crisis_gate(
 
 
 async def _enter_escalation_gate(
-    session_id: str, telegram_user_id: int, language: str, result: ClassificationResult
+    session_id: str, telegram_user_id: int, language: str, raw_text: str, result: ClassificationResult
 ) -> FlowReply:
     """K-06: unlike the crisis gate, no notification is sent yet here — only if the
     parishioner taps Yes. Asking first, rather than notifying unconditionally, is the
@@ -148,6 +170,7 @@ async def _enter_escalation_gate(
             "language": language,
             "telegram_user_id": telegram_user_id,
             "step": "awaiting_escalation_response",
+            "raw_text": raw_text,
             "classification": _serialize_classification(result),
         },
     )
@@ -181,27 +204,24 @@ async def handle_text(session_id: str, text: str) -> FlowReply | None:
     try:
         result = await classify(stripped)
     except Exception as exc:
-        # Retrieval (Step F) isn't wired in yet, so nothing currently acts on the
-        # classification result — don't let a classifier failure block the parishioner
-        # from getting a reply.
+        # No classification available at all, so retrieval can't run intelligently —
+        # don't let a classifier failure block the parishioner from getting a reply.
         logger.error("classify failed session=%s: %s", session_id, exc)
         await _clear_state(session_id)
         return FlowReply(text=get_string("comfort_ack_placeholder", language))
 
     if not await _notification_dedup_passed(telegram_user_id):
-        # K-04: Steps D and E skipped entirely; proceeds to Step F (not built yet).
-        await _clear_state(session_id)
-        return FlowReply(text=get_string("comfort_ack_placeholder", language))
+        # K-04: Steps D and E skipped entirely; proceeds directly to Step F.
+        return await _complete_with_retrieval(session_id, telegram_user_id, language, stripped, result)
 
     if result.is_crisis:
-        return await _enter_crisis_gate(session_id, telegram_user_id, language, result)
+        return await _enter_crisis_gate(session_id, telegram_user_id, language, stripped, result)
 
     if await _should_escalate(telegram_user_id, result):
-        return await _enter_escalation_gate(session_id, telegram_user_id, language, result)
+        return await _enter_escalation_gate(session_id, telegram_user_id, language, stripped, result)
 
-    # is_crisis False, no escalation — proceeds to Step F (K-07, not built yet).
-    await _clear_state(session_id)
-    return FlowReply(text=get_string("comfort_ack_placeholder", language))
+    # is_crisis False, no escalation — proceeds to Step F.
+    return await _complete_with_retrieval(session_id, telegram_user_id, language, stripped, result)
 
 
 async def handle_callback(session_id: str, callback_data: str) -> FlowReply | None:
@@ -214,23 +234,24 @@ async def handle_callback(session_id: str, callback_data: str) -> FlowReply | No
     language = state["language"]
 
     if step == "awaiting_crisis_response" and callback_data == _CALLBACK_CRISIS_CONTINUE:
-        # Step F (retrieval) isn't built yet — placeholder until K-07. Reuses the
-        # classification already stored in state rather than reclassifying.
-        await _clear_state(session_id)
-        return FlowReply(text=get_string("comfort_ack_placeholder", language))
+        # Reuses the classification and raw text already stored in state rather than
+        # reclassifying.
+        telegram_user_id = state["telegram_user_id"]
+        result = _deserialize_classification(state["classification"])
+        return await _complete_with_retrieval(session_id, telegram_user_id, language, state["raw_text"], result)
 
     if step == "awaiting_escalation_response" and callback_data in (
         _CALLBACK_ESCALATION_YES,
         _CALLBACK_ESCALATION_NO,
     ):
+        telegram_user_id = state["telegram_user_id"]
         if callback_data == _CALLBACK_ESCALATION_YES:
-            telegram_user_id = state["telegram_user_id"]
             if await send_pastoral_outreach_notification(telegram_user_id, language):
                 await asyncio.to_thread(record_notification_sent, telegram_user_id)
-        # Either way (Yes or No), Step F (retrieval) isn't built yet — placeholder
-        # until K-07, reusing the classification already stored in state.
-        await _clear_state(session_id)
-        return FlowReply(text=get_string("comfort_ack_placeholder", language))
+        # Either way (Yes or No), retrieval proceeds using the classification and raw
+        # text already stored in state rather than reclassifying.
+        result = _deserialize_classification(state["classification"])
+        return await _complete_with_retrieval(session_id, telegram_user_id, language, state["raw_text"], result)
 
     logger.warning(
         "handle_callback called with mismatched step=%s data=%s session=%s", step, callback_data, session_id

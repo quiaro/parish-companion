@@ -5,12 +5,22 @@ import pytest
 
 from commands.comfort import flow
 from commands.comfort.models import ClassificationResult
+from commands.comfort.retrieval import RetrievedPassage
 
 
 @pytest.fixture(autouse=True)
 def classify_mock(monkeypatch):
     mock = AsyncMock(return_value=ClassificationResult(is_crisis=False))
     monkeypatch.setattr(flow, "classify", mock)
+    return mock
+
+
+@pytest.fixture(autouse=True)
+def retrieve_passage_mock(monkeypatch):
+    mock = AsyncMock(
+        return_value=RetrievedPassage(reference="Psalm 23:4", verse_text="Test verse text.", is_fallback=False)
+    )
+    monkeypatch.setattr(flow, "retrieve_passage", mock)
     return mock
 
 

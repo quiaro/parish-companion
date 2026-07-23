@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     comfort_notification_dedup_window_hours: int = 24
     comfort_frequency_window_hours: int = 24
     comfort_escalation_passage_threshold: int = 10
+    comfort_similarity_threshold: float = 0.2
 
     qdrant_url: str = "http://qdrant:6333"
     qdrant_collection_name: str = "bible_verses"

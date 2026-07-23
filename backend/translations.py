@@ -123,6 +123,12 @@ STRINGS: dict[str, dict[str, str]] = {
             "Telegram user ID: {telegram_user_id}\n\n"
             "Please follow up with this parishioner when convenient."
         ),
+        "comfort_verse_reply": "{verse_text}\n\n— {reference}",
+        "comfort_fallback_message": (
+            "I don't yet have a suitable passage for what you shared. I hope to have one soon.\n"
+            "In the meantime, I'd like to leave you with a word of encouragement:\n\n"
+            "{verse_text}\n\n— {reference}"
+        ),
     },
     "es": {
         "telegram_text_only": (
@@ -242,6 +248,13 @@ STRINGS: dict[str, dict[str, str]] = {
             "gustaría que alguien de la parroquia se pusiera en contacto con él/ella.\n\n"
             "ID de usuario de Telegram: {telegram_user_id}\n\n"
             "Por favor, comuníquese con este feligrés cuando le sea conveniente."
+        ),
+        "comfort_verse_reply": "{verse_text}\n\n— {reference}",
+        "comfort_fallback_message": (
+            "No tengo todavía un pasaje apropiado para lo que compartiste. Espero tenerlo pronto.\n"
+            "\n"
+            "Mientras tanto, me gustaría dejarte con una palabra de aliento:\n\n"
+            "{verse_text}\n\n— {reference}"
         ),
     },
 }
