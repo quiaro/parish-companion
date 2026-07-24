@@ -31,6 +31,7 @@ _MAX_INPUT_LENGTH = 2000
 _CALLBACK_CRISIS_CONTINUE = "comfort_crisis_continue"
 _CALLBACK_ESCALATION_YES = "comfort_escalation_yes"
 _CALLBACK_ESCALATION_NO = "comfort_escalation_no"
+_CALLBACK_VIEW_ANOTHER = "comfort_view_another"
 _CALLBACK_EXIT = "comfort_exit"
 
 
@@ -111,11 +112,11 @@ def _deserialize_classification(data: dict) -> ClassificationResult:
 async def _complete_with_retrieval(
     session_id: str, telegram_user_id: int, language: str, raw_text: str, result: ClassificationResult
 ) -> FlowReply:
-    """Step F/G/H: retrieves a passage and frames it (skipped entirely on the Step G 
-    fallback path). This is the terminal step of every path once notification gating 
-    is resolved. Flow state is kept alive (not cleared) so the passage is recorded
-    once the send is confirmed, and to know an Exit tap is pending. Flow state is only
-    cleared when Exit is tapped."""
+    """Step F/G/H: retrieves a passage and frames it (skipped entirely on the Step G
+    fallback path). This is the terminal step of every path once notification gating
+    is resolved. Flow state is kept alive (not cleared) so passage is recorded once 
+    the send is confirmed. "View another passage" restarts retrieval without reclassifying, 
+    "Exit" finally clears the flow state."""
     passage = await retrieve_passage(telegram_user_id, raw_text, result)
 
     if passage.is_fallback:
@@ -142,13 +143,18 @@ async def _complete_with_retrieval(
         {
             "language": language,
             "telegram_user_id": telegram_user_id,
-            "step": "awaiting_exit",
+            "step": "awaiting_navigation",
+            "raw_text": raw_text,
+            "classification": _serialize_classification(result),
             "passage_reference": passage.reference,
         },
     )
     return FlowReply(
         text=text,
-        buttons=[(get_string("comfort_button_exit", language), _CALLBACK_EXIT)],
+        buttons=[
+            (get_string("comfort_button_view_another", language), _CALLBACK_VIEW_ANOTHER),
+            (get_string("comfort_button_exit", language), _CALLBACK_EXIT),
+        ],
         record_passage_on_success=True,
     )
 
@@ -302,7 +308,16 @@ async def handle_callback(session_id: str, callback_data: str) -> FlowReply | No
         result = _deserialize_classification(state["classification"])
         return await _complete_with_retrieval(session_id, telegram_user_id, language, state["raw_text"], result)
 
-    if step == "awaiting_exit" and callback_data == _CALLBACK_EXIT:
+    if step == "awaiting_navigation" and callback_data == _CALLBACK_VIEW_ANOTHER:
+        # Skips Step C/D/E entirely (dedup, crisis gate, escalation offer). The
+        # parishioner already passed through gating once for this message, so asking
+        # for another verse shouldn't re-surface the crisis gate or a parish
+        # notification. Straight to Step F/G/H, reusing the stored raw_text/classification.
+        telegram_user_id = state["telegram_user_id"]
+        result = _deserialize_classification(state["classification"])
+        return await _complete_with_retrieval(session_id, telegram_user_id, language, state["raw_text"], result)
+
+    if step == "awaiting_navigation" and callback_data == _CALLBACK_EXIT:
         await _clear_state(session_id)
         return FlowReply(text=get_string("telegram_cmd_help", "en"))
 

@@ -130,6 +130,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "In the meantime, I'd like to leave you with a word of encouragement:\n\n"
             "{verse_text}\n\n— {reference}"
         ),
+        "comfort_button_view_another": "View another passage",
         "comfort_button_exit": "Exit",
     },
     "es": {
@@ -259,6 +260,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "Mientras tanto, me gustaría dejarte con una palabra de aliento:\n\n"
             "{verse_text}\n\n— {reference}"
         ),
+        "comfort_button_view_another": "Ver otro pasaje",
         "comfort_button_exit": "Salir",
     },
 }

@@ -1,4 +1,4 @@
-"""Tests for the /comfort flow (K-01, K-02, K-04, K-05) — independent of the Telegram layer."""
+"""Tests for the /comfort flow — independent of the Telegram layer."""
 
 from datetime import datetime, timedelta, timezone
 
@@ -22,8 +22,11 @@ def _expected_verse_reply(language: str = "en") -> str:
     )
 
 
-def _exit_buttons(language: str = "en") -> list[tuple[str, str]]:
-    return [(get_string("comfort_button_exit", language), "comfort_exit")]
+def _navigation_buttons(language: str = "en") -> list[tuple[str, str]]:
+    return [
+        (get_string("comfort_button_view_another", language), "comfort_view_another"),
+        (get_string("comfort_button_exit", language), "comfort_exit"),
+    ]
 
 
 class TestStart:
@@ -81,11 +84,11 @@ class TestHandleText:
         assert reply.text == _expected_verse_reply()
 
     @pytest.mark.asyncio
-    async def test_within_limit_returns_exit_button(self, db_mocks, flow_store) -> None:
+    async def test_within_limit_returns_navigation_buttons(self, db_mocks, flow_store) -> None:
         await flow.start(_SESSION, _UID, "en")
         reply = await flow.handle_text(_SESSION, "I've been feeling anxious lately.")
         assert reply is not None
-        assert reply.buttons == _exit_buttons()
+        assert reply.buttons == _navigation_buttons()
 
     @pytest.mark.asyncio
     async def test_within_limit_flags_record_passage_on_success(self, db_mocks, flow_store) -> None:
@@ -95,12 +98,19 @@ class TestHandleText:
         assert reply.record_passage_on_success is True
 
     @pytest.mark.asyncio
-    async def test_within_limit_sets_awaiting_exit_state(self, db_mocks, flow_store) -> None:
-        # State is kept alive to record the passage post-send and to know an Exit tap is pending.
+    async def test_within_limit_sets_awaiting_navigation_state(self, db_mocks, flow_store) -> None:
+        # State is kept alive to record the passage post-send, and to support both
+        # View another passage and Exit.
         await flow.start(_SESSION, _UID, "en")
         await flow.handle_text(_SESSION, "A single word is enough.")
-        assert flow_store[_SESSION]["step"] == "awaiting_exit"
+        assert flow_store[_SESSION]["step"] == "awaiting_navigation"
         assert flow_store[_SESSION]["passage_reference"] == "Psalm 23:4"
+        assert flow_store[_SESSION]["raw_text"] == "A single word is enough."
+        assert flow_store[_SESSION]["classification"] == {
+            "is_crisis": False,
+            "emotional_tags": [],
+            "situational_tags": [],
+        }
 
     @pytest.mark.asyncio
     async def test_exactly_2000_characters_is_accepted(self, db_mocks, flow_store) -> None:
@@ -398,7 +408,7 @@ class TestHandleCallback:
         )
 
     @pytest.mark.asyncio
-    async def test_continue_sets_awaiting_exit_state(
+    async def test_continue_sets_awaiting_navigation_state(
         self, db_mocks, flow_store, classify_mock, crisis_notification_mock
     ) -> None:
         classify_mock.return_value = ClassificationResult(is_crisis=True)
@@ -407,7 +417,7 @@ class TestHandleCallback:
 
         await flow.handle_callback(_SESSION, "comfort_crisis_continue")
 
-        assert flow_store[_SESSION]["step"] == "awaiting_exit"
+        assert flow_store[_SESSION]["step"] == "awaiting_navigation"
 
     @pytest.mark.asyncio
     async def test_escalation_yes_sends_notification_and_updates_timestamp(
@@ -426,7 +436,7 @@ class TestHandleCallback:
         assert reply.text == _expected_verse_reply()
 
     @pytest.mark.asyncio
-    async def test_escalation_yes_sets_awaiting_exit_state(
+    async def test_escalation_yes_sets_awaiting_navigation_state(
         self, db_mocks, flow_store, classify_mock, pastoral_outreach_notification_mock
     ) -> None:
         classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.DESPAIR])
@@ -436,7 +446,7 @@ class TestHandleCallback:
 
         await flow.handle_callback(_SESSION, "comfort_escalation_yes")
 
-        assert flow_store[_SESSION]["step"] == "awaiting_exit"
+        assert flow_store[_SESSION]["step"] == "awaiting_navigation"
 
     @pytest.mark.asyncio
     async def test_escalation_yes_failed_notification_does_not_update_timestamp(
@@ -469,7 +479,7 @@ class TestHandleCallback:
         assert reply.text == _expected_verse_reply()
 
     @pytest.mark.asyncio
-    async def test_escalation_no_sets_awaiting_exit_state(
+    async def test_escalation_no_sets_awaiting_navigation_state(
         self, db_mocks, flow_store, classify_mock, pastoral_outreach_notification_mock
     ) -> None:
         classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.DESPAIR])
@@ -479,7 +489,7 @@ class TestHandleCallback:
 
         await flow.handle_callback(_SESSION, "comfort_escalation_no")
 
-        assert flow_store[_SESSION]["step"] == "awaiting_exit"
+        assert flow_store[_SESSION]["step"] == "awaiting_navigation"
 
     @pytest.mark.asyncio
     async def test_no_pending_state_returns_none(self, flow_store) -> None:
@@ -654,7 +664,7 @@ class TestExit:
         assert _SESSION not in flow_store
 
     @pytest.mark.asyncio
-    async def test_stray_text_ignored_while_awaiting_exit(
+    async def test_stray_text_ignored_while_awaiting_navigation(
         self, db_mocks, flow_store, retrieve_passage_mock, frame_passage_mock
     ) -> None:
         await flow.start(_SESSION, _UID, "en")
@@ -663,9 +673,104 @@ class TestExit:
         reply = await flow.handle_text(_SESSION, "some stray message")
 
         assert reply is None
-        assert flow_store[_SESSION]["step"] == "awaiting_exit"
+        assert flow_store[_SESSION]["step"] == "awaiting_navigation"
         retrieve_passage_mock.assert_awaited_once()
         frame_passage_mock.assert_awaited_once()
+
+
+class TestViewAnotherPassage:
+    """K-09 (View another passage button): restarts straight at Step F/G/H, reusing the
+    stored raw_text/classification — no reclassification, and no re-entry into Step
+    C/D/E since the parishioner already passed through gating once for this message."""
+
+    @pytest.mark.asyncio
+    async def test_calls_retrieve_passage_with_stored_raw_text_and_classification(
+        self, db_mocks, flow_store, classify_mock, retrieve_passage_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.HOPE])
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I've been feeling anxious lately.")
+        retrieve_passage_mock.reset_mock()
+        classify_mock.reset_mock()
+
+        reply = await flow.handle_callback(_SESSION, "comfort_view_another")
+
+        assert reply is not None
+        classify_mock.assert_not_called()
+        retrieve_passage_mock.assert_awaited_once_with(
+            _UID, "I've been feeling anxious lately.", ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.HOPE])
+        )
+
+    @pytest.mark.asyncio
+    async def test_skips_notification_dedup_check(self, db_mocks, flow_store) -> None:
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I've been feeling anxious lately.")
+        db_mocks["get_last_notification_sent_at"].reset_mock()
+
+        await flow.handle_callback(_SESSION, "comfort_view_another")
+
+        db_mocks["get_last_notification_sent_at"].assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_skips_crisis_gate_even_when_original_message_was_crisis_flagged(
+        self, db_mocks, flow_store, classify_mock, crisis_notification_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=True)
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I don't want to be here anymore.")
+        await flow.handle_callback(_SESSION, "comfort_crisis_continue")
+        crisis_notification_mock.reset_mock()
+
+        reply = await flow.handle_callback(_SESSION, "comfort_view_another")
+
+        crisis_notification_mock.assert_not_called()
+        assert reply is not None
+        assert reply.text == _expected_verse_reply()
+
+    @pytest.mark.asyncio
+    async def test_skips_escalation_offer_even_when_conditions_still_met(
+        self, db_mocks, flow_store, classify_mock, pastoral_outreach_notification_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.DESPAIR])
+        db_mocks["count_recent_passages"].return_value = 11
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I keep asking for verses.")
+        await flow.handle_callback(_SESSION, "comfort_escalation_yes")
+        pastoral_outreach_notification_mock.assert_awaited_once()
+        pastoral_outreach_notification_mock.reset_mock()
+
+        reply = await flow.handle_callback(_SESSION, "comfort_view_another")
+
+        pastoral_outreach_notification_mock.assert_not_called()
+        assert reply is not None
+        assert reply.text == _expected_verse_reply()
+
+    @pytest.mark.asyncio
+    async def test_new_reply_has_navigation_buttons_and_records_passage_flag(
+        self, db_mocks, flow_store
+    ) -> None:
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I've been feeling anxious lately.")
+
+        reply = await flow.handle_callback(_SESSION, "comfort_view_another")
+
+        assert reply is not None
+        assert reply.buttons == _navigation_buttons()
+        assert reply.record_passage_on_success is True
+
+    @pytest.mark.asyncio
+    async def test_new_passage_recorded_only_after_confirm(self, db_mocks, flow_store, retrieve_passage_mock) -> None:
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I've been feeling anxious lately.")
+
+        retrieve_passage_mock.return_value = RetrievedPassage(
+            reference="Romans 8:28", verse_text="Another verse.", is_fallback=False
+        )
+        await flow.handle_callback(_SESSION, "comfort_view_another")
+        db_mocks["record_sent_passage"].assert_not_called()
+
+        await flow.confirm_passage_sent(_SESSION)
+        db_mocks["record_sent_passage"].assert_called_once_with(_UID, "Romans 8:28")
 
 
 class TestConfirmPassageSent:

@@ -187,14 +187,39 @@ def test_verse_reply_does_not_record_passage_when_send_fails(
     db_mocks["record_sent_passage"].assert_not_called()
 
 
-def test_verse_reply_includes_exit_button(
+def test_verse_reply_includes_navigation_buttons(
     client: TestClient, mock_send: AsyncMock, db_mocks, flow_store
 ) -> None:
     client.post("/telegram/webhook", json=_command_update("/comfort"), headers=_headers)
     client.post("/telegram/webhook", json=_text_message("I've been feeling anxious lately."), headers=_headers)
 
     assert mock_send.await_args is not None
-    assert mock_send.await_args.kwargs["buttons"] == [(get_string("comfort_button_exit", "en"), "comfort_exit")]
+    assert mock_send.await_args.kwargs["buttons"] == [
+        (get_string("comfort_button_view_another", "en"), "comfort_view_another"),
+        (get_string("comfort_button_exit", "en"), "comfort_exit"),
+    ]
+
+
+def test_tapping_view_another_passage_sends_a_new_verse_reply(
+    client: TestClient, mock_send: AsyncMock, db_mocks, flow_store
+) -> None:
+    client.post("/telegram/webhook", json=_command_update("/comfort"), headers=_headers)
+    client.post("/telegram/webhook", json=_text_message("I've been feeling anxious lately."), headers=_headers)
+    db_mocks["record_sent_passage"].reset_mock()
+
+    with patch("telegram.router.answer_callback_query", AsyncMock()):
+        resp = client.post("/telegram/webhook", json=_callback_update("comfort_view_another"), headers=_headers)
+        assert resp.status_code == 200
+
+    assert mock_send.await_args is not None
+    assert mock_send.await_args[0][1] == get_string("comfort_verse_reply", "en").format(
+        framing="Test framing text.", reference="Psalm 23:4", verse_text="Test verse text."
+    )
+    assert mock_send.await_args.kwargs["buttons"] == [
+        (get_string("comfort_button_view_another", "en"), "comfort_view_another"),
+        (get_string("comfort_button_exit", "en"), "comfort_exit"),
+    ]
+    db_mocks["record_sent_passage"].assert_called_once_with(_USER_ID, "Psalm 23:4")
 
 
 def test_tapping_exit_replies_like_help_and_does_not_record_again(
