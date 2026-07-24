@@ -38,13 +38,14 @@ async def delete_webhook() -> None:
     logger.info("Webhook deleted")
 
 
-async def send_message(chat_id: int, text: str, buttons: list[tuple[str, str]] | None = None) -> None:
+async def send_message(chat_id: int, text: str, buttons: list[tuple[str, str]] | None = None) -> bool:
     """buttons is a list of (label, callback_data) pairs, rendered as one row of inline
     buttons attached to the final message part (if the text is long enough to be split)."""
     if not settings.telegram_bot_token:
         logger.warning("TELEGRAM_BOT_TOKEN not configured, skipping outbound message to chat_id=%d", chat_id)
-        return
+        return False
     parts = split_message(text)
+    success = True
     async with httpx2.AsyncClient() as http:
         for i, part in enumerate(parts):
             payload = {"chat_id": chat_id, "text": part, "parse_mode": "Markdown"}
@@ -59,6 +60,8 @@ async def send_message(chat_id: int, text: str, buttons: list[tuple[str, str]] |
             )
             if not resp.is_success:
                 logger.error("sendMessage failed: status=%d body=%s", resp.status_code, resp.text)
+                success = False
+    return success
 
 
 async def answer_callback_query(callback_query_id: str) -> None:

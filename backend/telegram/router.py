@@ -58,7 +58,9 @@ async def _handle_callback_query(callback_query: CallbackQuery) -> JSONResponse:
     if comfort_state:
         reply = await comfort_flow.handle_callback(session_id, callback_query.data)
         if reply is not None:
-            await send_message(chat_id, reply.text, buttons=reply.buttons)
+            sent = await send_message(chat_id, reply.text, buttons=reply.buttons)
+            if sent and reply.record_passage_on_success:
+                await comfort_flow.confirm_passage_sent(session_id)
 
     return JSONResponse({"status": "ok"})
 
@@ -136,7 +138,9 @@ async def receive_update(
     if comfort_state:
         reply = await comfort_flow.handle_text(session_id, text)
         if reply is not None:
-            await send_message(chat_id, reply.text, buttons=reply.buttons)
+            sent = await send_message(chat_id, reply.text, buttons=reply.buttons)
+            if sent and reply.record_passage_on_success:
+                await comfort_flow.confirm_passage_sent(session_id)
         return JSONResponse({"status": "ok"})
 
     return JSONResponse({"status": "ok"})

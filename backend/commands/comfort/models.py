@@ -115,3 +115,7 @@ class ClassificationResult:
 class FlowReply:
     text: str
     buttons: list[tuple[str, str]] | None = None
+    # K-09: set only after passage retrieval has completed and the reply is ready to be sent:
+    # tells the router to call confirm_passage_sent() once the send is confirmed successful,
+    # so a passage is recorded in history only after it's actually delivered.
+    record_passage_on_success: bool = False

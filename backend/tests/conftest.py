@@ -45,6 +45,6 @@ def client() -> TestClient:
 
 @pytest.fixture()
 def mock_send(monkeypatch: pytest.MonkeyPatch) -> AsyncMock:
-    mock = AsyncMock()
+    mock = AsyncMock(return_value=True)
     monkeypatch.setattr("telegram.router.send_message", mock)
     return mock

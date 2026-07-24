@@ -19,6 +19,7 @@ from db.parishioners import (
     is_comfort_intro_shown,
     mark_comfort_intro_shown,
     record_notification_sent,
+    record_sent_passage,
 )
 from translations import get_string
 
@@ -30,6 +31,7 @@ _MAX_INPUT_LENGTH = 2000
 _CALLBACK_CRISIS_CONTINUE = "comfort_crisis_continue"
 _CALLBACK_ESCALATION_YES = "comfort_escalation_yes"
 _CALLBACK_ESCALATION_NO = "comfort_escalation_no"
+_CALLBACK_EXIT = "comfort_exit"
 
 
 async def _get_state(session_id: str) -> dict | None:
@@ -109,33 +111,59 @@ def _deserialize_classification(data: dict) -> ClassificationResult:
 async def _complete_with_retrieval(
     session_id: str, telegram_user_id: int, language: str, raw_text: str, result: ClassificationResult
 ) -> FlowReply:
-    """Step F/G/H: retrieves a passage (or the Step G fallback), frames it (skipped
-    entirely on the Step G fallback path), and clears the flow state — this is the 
-    terminal step of every path once notification gating is resolved."""
+    """Step F/G/H: retrieves a passage and frames it (skipped entirely on the Step G 
+    fallback path). This is the terminal step of every path once notification gating 
+    is resolved. Flow state is kept alive (not cleared) so the passage is recorded
+    once the send is confirmed, and to know an Exit tap is pending. Flow state is only
+    cleared when Exit is tapped."""
     passage = await retrieve_passage(telegram_user_id, raw_text, result)
-    await _clear_state(session_id)
 
     if passage.is_fallback:
         text = get_string("comfort_fallback_message", language).format(
             reference=passage.reference, verse_text=passage.verse_text
         )
-        return FlowReply(text=text)
+    else:
+        try:
+            framing = await frame_passage(raw_text, passage, language)
+        except Exception as exc:
+            # A framing failure shouldn't block the parishioner from getting the verse
+            # itself — same "don't let an LLM hiccup block the reply" principle as classify().
+            logger.error("frame_passage failed session=%s: %s", session_id, exc)
+            text = get_string("comfort_verse_reply_no_framing", language).format(
+                reference=passage.reference, verse_text=passage.verse_text
+            )
+        else:
+            text = get_string("comfort_verse_reply", language).format(
+                framing=framing, reference=passage.reference, verse_text=passage.verse_text
+            )
 
-    try:
-        framing = await frame_passage(raw_text, passage, language)
-    except Exception as exc:
-        # A framing failure shouldn't block the parishioner from getting the verse
-        # itself — same "don't let an LLM hiccup block the reply" principle as classify().
-        logger.error("frame_passage failed session=%s: %s", session_id, exc)
-        text = get_string("comfort_verse_reply_no_framing", language).format(
-            reference=passage.reference, verse_text=passage.verse_text
-        )
-        return FlowReply(text=text)
-
-    text = get_string("comfort_verse_reply", language).format(
-        framing=framing, reference=passage.reference, verse_text=passage.verse_text
+    await _set_state(
+        session_id,
+        {
+            "language": language,
+            "telegram_user_id": telegram_user_id,
+            "step": "awaiting_exit",
+            "passage_reference": passage.reference,
+        },
     )
-    return FlowReply(text=text)
+    return FlowReply(
+        text=text,
+        buttons=[(get_string("comfort_button_exit", language), _CALLBACK_EXIT)],
+        record_passage_on_success=True,
+    )
+
+
+async def confirm_passage_sent(session_id: str) -> None:
+    """K-09: called by the router only after send_message confirms the verse reply was
+    actually delivered using the reference held in flow state."""
+    state = await _get_state(session_id)
+    if state is None:
+        logger.warning("confirm_passage_sent called with no active flow session=%s", session_id)
+        return
+    if "passage_reference" not in state:
+        logger.warning("confirm_passage_sent called with no passage in session=%s", session_id)
+        return
+    await asyncio.to_thread(record_sent_passage, state["telegram_user_id"], state["passage_reference"])
 
 
 async def start(session_id: str, telegram_user_id: int, language: str = "en") -> str:
@@ -273,6 +301,10 @@ async def handle_callback(session_id: str, callback_data: str) -> FlowReply | No
         # text already stored in state rather than reclassifying.
         result = _deserialize_classification(state["classification"])
         return await _complete_with_retrieval(session_id, telegram_user_id, language, state["raw_text"], result)
+
+    if step == "awaiting_exit" and callback_data == _CALLBACK_EXIT:
+        await _clear_state(session_id)
+        return FlowReply(text=get_string("telegram_cmd_help", "en"))
 
     logger.warning(
         "handle_callback called with mismatched step=%s data=%s session=%s", step, callback_data, session_id
