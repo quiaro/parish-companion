@@ -6,7 +6,7 @@ import pytest
 
 import config
 from commands.comfort import flow
-from commands.comfort.models import ClassificationResult, EmotionalTag
+from commands.comfort.models import ClassificationResult, EmotionalTag, SituationalTag
 from commands.comfort.retrieval import RetrievedPassage
 from translations import get_string
 
@@ -253,6 +253,18 @@ class TestCrisisGate:
         assert reply.buttons == [(get_string("comfort_button_continue", "en"), "comfort_crisis_continue")]
 
     @pytest.mark.asyncio
+    async def test_retrieval_never_called_before_continue_is_tapped(
+        self, db_mocks, flow_store, classify_mock, crisis_notification_mock, retrieve_passage_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(
+            is_crisis=True, emotional_tags=[EmotionalTag.JOY], situational_tags=[SituationalTag.NEW_JOB]
+        )
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I don't want to be here anymore.")
+
+        retrieve_passage_mock.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_crisis_message_stores_classification_and_awaits_response(
         self, db_mocks, flow_store, classify_mock, crisis_notification_mock
     ) -> None:
@@ -378,7 +390,9 @@ class TestEscalationGate:
         db_mocks["count_recent_passages"].assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_skipped_entirely_when_dedup_check_fails(self, db_mocks, flow_store, classify_mock) -> None:
+    async def test_skipped_entirely_when_dedup_check_fails(
+        self, db_mocks, flow_store, classify_mock, pastoral_outreach_notification_mock
+    ) -> None:
         classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.DESPAIR])
         db_mocks["get_last_notification_sent_at"].return_value = datetime.now(timezone.utc)
         db_mocks["count_recent_passages"].return_value = 11
@@ -386,6 +400,7 @@ class TestEscalationGate:
         await flow.handle_text(_SESSION, "I keep asking for verses.")
 
         db_mocks["count_recent_passages"].assert_not_called()
+        pastoral_outreach_notification_mock.assert_not_called()
 
 
 class TestHandleCallback:
@@ -551,12 +566,6 @@ class _FrozenDateTime(datetime):
 
 
 class TestNotificationDedupCheck:
-    """
-    K-04. Note: test 5 from the story ("neither the crisis notification function nor the
-    frequency-nudge notification function is called") is covered by
-    TestCrisisGate.test_crisis_gate_skipped_when_dedup_check_fails now that K-05 exists
-    (the frequency-nudge half will follow once K-06 lands).
-    """
 
     @pytest.fixture
     def frozen_now(self, monkeypatch):

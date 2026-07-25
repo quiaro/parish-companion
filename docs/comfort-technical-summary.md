@@ -168,10 +168,8 @@ Two structurally separate logging paths, kept decoupled so identifiable data nev
 
 ## 5. Key safety properties (for test coverage)
 
-1. **Crisis gate is structural, not data-dependent.** (Step D) A test must assert that when `is_crisis` is true and the parishioner does not tap Continue, the retrieval function is never called — regardless of what `emotional_tags`/`situational_tags` contain.
-2. **Crisis classification produces usable data even when gating retrieval.** A separate test asserts that crisis-flagged messages still produce populated, sensible tags (for the aggregate log), distinct from the control-flow test above.
-3. **Notification deduplication is enforced before crisis and frequency checks.** (Step C) A test must assert that when `last_notification_sent_at` falls within the dedup window, no notification is sent by Step D (crisis gate) or Step E (pastoral outreach offer) — regardless of `is_crisis` value or passage count.
-4. **Aggregate logging contains no identifiers.** The stats log schema should be tested/reviewed to confirm no parishioner ID, chat ID, or other joinable identifier is ever written to it.
+1. **Crisis classification produces usable data even when gating retrieval.** A separate test asserts that crisis-flagged messages still produce populated, sensible tags (for the aggregate log), distinct from the control-flow test above.
+2. **Aggregate logging contains no identifiers.** The stats log schema should be tested/reviewed to confirm no parishioner ID, chat ID, or other joinable identifier is ever written to it.
 
 ---
 
