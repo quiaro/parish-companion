@@ -12,6 +12,7 @@ from scripts.ingest_verses import VerseRow, _point_id, _synthesize_embedding_tex
 _ROW = VerseRow(
     reference="Psalm 23:4",
     verse_text="And when my way lies through a valley of gloom...",
+    verse_text_es="Aunque pase por el valle de sombra de muerte...",
     emotional_tags=["fear", "grief"],
     situational_tags=["bereavement", "terminal_illness"],
     example_user_phrasings=["I'm scared.", "I feel alone."],
@@ -41,6 +42,7 @@ class TestSynthesizeEmbeddingText:
         row = VerseRow(
             reference="Romans 5:3-5",
             verse_text="...",
+            verse_text_es="...",
             emotional_tags=["hope"],
             situational_tags=[],
             example_user_phrasings=["I want to believe this will make me stronger."],
@@ -73,6 +75,7 @@ class TestLoadVerses:
         rows = load_verses("data/bible_OEB_verses.csv")
         first = next(r for r in rows if r.reference == "Psalm 23:4")
         assert "valley of gloom" in first.verse_text
+        assert "sombra de muerte" in first.verse_text_es
         assert "fear" in first.emotional_tags
         assert "bereavement" in first.situational_tags
         assert len(first.example_user_phrasings) == 3
@@ -81,8 +84,10 @@ class TestLoadVerses:
         csv_path = tmp_path / "bad.csv"
         with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(["verse", "reference", "emotional_tags", "situational_tags", "example_user_phrasings"])
-            writer.writerow(["Test verse", "Test 1:1", json.dumps(["not_a_real_tag"]), "[]", "[]"])
+            writer.writerow(
+                ["verse", "reference", "emotional_tags", "situational_tags", "example_user_phrasings", "verse_es"]
+            )
+            writer.writerow(["Test verse", "Test 1:1", json.dumps(["not_a_real_tag"]), "[]", "[]", "Verso de prueba"])
 
         with pytest.raises(ValueError, match="not_a_real_tag"):
             load_verses(str(csv_path))
@@ -91,8 +96,10 @@ class TestLoadVerses:
         csv_path = tmp_path / "bad.csv"
         with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(["verse", "reference", "emotional_tags", "situational_tags", "example_user_phrasings"])
-            writer.writerow(["Test verse", "Test 1:1", "[]", json.dumps(["not_a_real_situation"]), "[]"])
+            writer.writerow(
+                ["verse", "reference", "emotional_tags", "situational_tags", "example_user_phrasings", "verse_es"]
+            )
+            writer.writerow(["Test verse", "Test 1:1", "[]", json.dumps(["not_a_real_situation"]), "[]", "Verso de prueba"])
 
         with pytest.raises(ValueError, match="not_a_real_situation"):
             load_verses(str(csv_path))
@@ -101,9 +108,11 @@ class TestLoadVerses:
         csv_path = tmp_path / "bad.csv"
         with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(["verse", "reference", "emotional_tags", "situational_tags", "example_user_phrasings"])
-            writer.writerow(["Verse one", "Test 1:1", json.dumps(["bad_one"]), "[]", "[]"])
-            writer.writerow(["Verse two", "Test 1:2", json.dumps(["bad_two"]), "[]", "[]"])
+            writer.writerow(
+                ["verse", "reference", "emotional_tags", "situational_tags", "example_user_phrasings", "verse_es"]
+            )
+            writer.writerow(["Verse one", "Test 1:1", json.dumps(["bad_one"]), "[]", "[]", "Verso uno"])
+            writer.writerow(["Verse two", "Test 1:2", json.dumps(["bad_two"]), "[]", "[]", "Verso dos"])
 
         with pytest.raises(ValueError) as exc_info:
             load_verses(str(csv_path))

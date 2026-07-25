@@ -9,6 +9,11 @@ verse into Qdrant. Run manually after any change to the verse CSV:
 
 Idempotent: point IDs are derived deterministically from each verse's `reference`, so
 re-running the script updates existing points rather than duplicating them.
+
+Each point's payload carries both `verse_text` (English) and `verse_text_es` (Spanish) so a
+reply can be localized to the parishioner's session language. The embedding itself stays
+English-only — it's synthesized from tags/phrasings, not the verse text, so there's
+nothing to translate on the ingestion side.
 """
 
 import asyncio
@@ -39,6 +44,7 @@ _POINT_ID_NAMESPACE = uuid.UUID("f47ac10b-58cc-4372-a567-0e02b2c3d479")
 class VerseRow:
     reference: str
     verse_text: str
+    verse_text_es: str
     emotional_tags: list[str]
     situational_tags: list[str]
     example_user_phrasings: list[str]
@@ -85,6 +91,7 @@ def load_verses(csv_path: str) -> list[VerseRow]:
                 VerseRow(
                     reference=raw["reference"],
                     verse_text=raw["verse"],
+                    verse_text_es=raw["verse_es"],
                     emotional_tags=emotional_tags,
                     situational_tags=situational_tags,
                     example_user_phrasings=json.loads(raw["example_user_phrasings"]),
@@ -114,6 +121,7 @@ def _build_point(row: VerseRow, vector: list[float]) -> PointStruct:
         payload={
             "reference": row.reference,
             "verse_text": row.verse_text,
+            "verse_text_es": row.verse_text_es,
             "emotional_tags": row.emotional_tags,
             "situational_tags": row.situational_tags,
         },
