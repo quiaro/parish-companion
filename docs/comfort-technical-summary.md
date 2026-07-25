@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`/comfort` (Spanish: `/consolar`) lets a parishioner describe how they're feeling or what they're going through, and returns a Bible verse from a vetted, parish-curated list that speaks to that emotional or situational context — along with a brief framing written by an LLM. The feature is explicitly designed as a _bridge to human pastoral care_, not a substitute for it: built-in crisis detection and usage-frequency monitoring exist to route parishioners to a priest or spiritual counselor when the situation calls for human support rather than (or in addition to) a Scripture passage.
+`/comfort` (Spanish: `/consolar`) lets a parishioner describe how they're feeling or what they're going through, and returns a Bible verse from a vetted, parish-curated list that speaks to that emotional or situational context along with a brief framing written by an LLM. The feature is explicitly designed as a _bridge to human pastoral care_, not a substitute for it: built-in crisis detection and usage-frequency monitoring exist to route parishioners to a priest or spiritual counselor when the situation calls for human support rather than (or in addition to) a Scripture passage.
 
 ---
 
@@ -38,21 +38,9 @@
 
 ### Step 0 — First-use introduction
 
-On the parishioner's first use of `/comfort`, the bot sends a one-time introductory message before waiting for input:
+On the parishioner's first use of `/comfort`, the bot sends a one-time introductory message before waiting for input (`comfort_intro`).
 
-> Welcome to /comfort.
->
-> Share what's on your heart and the bot will find a Bible verse from our parish's curated list, along with a brief reflection. You can ask for another verse anytime.
->
-> We care about your privacy — we don't store any personal or identifiable information, only a history of passages shared to avoid repeating them.
->
-> If you are going through something difficult or seek frequent guidance, a priest or staff member may reach out to talk.
->
-> Ready when you are.
-
-Whether the introduction has been shown is tracked per parishioner. On subsequent invocations, the bot sends a brief prompt instead:
-
-> Share what's on your heart.
+Whether the introduction has been shown is tracked per parishioner. On subsequent invocations, the bot sends a brief prompt instead (`comfort_brief_intro`):
 
 Then proceeds to Step A.
 
@@ -68,11 +56,11 @@ One LLM call classifies the submitted text and returns:
 - One or more emotional tags (inferred from the text)
 - Zero or more situational tags
 
-This is deliberately **one call, not two**. Crisis detection and emotional/situational classification are coupled in a single structured response so that no separate "classify the emotion" pathway can run independently of the safety check — there is one verdict, and the schema is designed so the safety determination gates everything else.
+This is deliberately **one call, not two**. Crisis detection and emotional/situational classification are coupled in a single structured response so that no separate "classify the emotion" pathway can run independently of the safety check.
 
 ### Step C — Notification deduplication check
 
-Before any notification-triggering logic runs, the bot checks whether a parish notification has already been sent for this parishioner within the past 24 hours (rolling window):
+Before any notification-triggering logic runs, the bot checks whether a parish notification has already been sent for this parishioner within the past `COMFORT_NOTIFICATION_DEDUP_WINDOW_HOURS` hours (rolling window):
 
 - **No recent notification** → proceed to Step D.
 - **Notification already sent within 24 hours** → skip Steps D and E and proceed directly to Step F. No additional notification will be sent for this request.
@@ -86,20 +74,20 @@ If `is_crisis` is true:
 - An urgent notification is sent to the parish for follow-up.
 - A single **Continue** button is presented to the parishioner. If tapped, the flow proceeds to Step F using the classification output already obtained in Step B. If not tapped, no retrieval or framing occurs.
 
-This gate is enforced in control flow, not by relying on empty classification fields — emotional and situational tags are populated regardless of `is_crisis`, for logging purposes (see Section 4), but the retrieval function is never invoked unless the parishioner explicitly continues.
+Emotional and situational tags are populated regardless of `is_crisis`, for logging purposes (see Section 4), but the retrieval function is never invoked unless the parishioner explicitly continues.
 
 ### Step E — Offer pastoral outreach
 
-Runs only if `is_crisis` is false and Step C passed (no notification sent within the dedup window). Otherwise this step is skipped entirely and the flow proceeds directly to Step F. Using the same classification output from Step B, the bot checks:
+Runs only if `is_crisis` is false and Step C passed (no notification sent within the dedup window). Using the same classification output from Step B, the bot checks:
 
-- How many passages have been sent to this parishioner in the past rolling **frequency window** (configurable, default 24 hours — a separate setting from Step C's dedup window)
-- Whether **any** of the classified emotional tags are in a curated **high-risk emotional tag** subset (stored in a constants module) — a single high-risk tag is sufficient, not all tags need to match
+- How many passages have been sent to this parishioner in the past rolling **frequency window** (`COMFORT_FREQUENCY_WINDOW_HOURS`)
+- Whether **any** of the classified emotional tags are in a curated **high-risk emotional tag** subset (`HIGH_RISK_EMOTIONAL_TAGS`) — a single high-risk tag is sufficient, not all tags need to match
 
-**Escalation path** (passage count strictly greater than a configurable threshold, default 10, **and** at least one high-risk tag):
+**Escalation path** (passage count strictly greater than `COMFORT_ESCALATION_PASSAGE_THRESHOLD`, **and** at least one high-risk tag):
 
-- The bot sends a message acknowledging the parishioner may be going through a difficult time and asks whether they'd like someone from the parish to reach out — this is an offer, not an unconditional escalation like Step D's crisis gate.
+- The bot sends a message asking the user whether they'd like someone from the parish to reach out (`comfort_escalation_message`) — this is an offer, not an unconditional escalation like Step D's crisis gate.
 - Two buttons are presented: **Yes** and **No**.
-- **Yes** → an urgent notification is sent to the parish (a similar, but distinct, notification from Step D's crisis alert) and `comfort_last_notification_sent_at` is updated to `now()`. The flow proceeds to Step F using the classification output already obtained in Step B.
+- **Yes** → a notification is sent to the parish (a similar, but distinct, notification from Step D's crisis alert) and `comfort_last_notification_sent_at` is updated to `now()`. The flow proceeds to Step F using the classification output already obtained in Step B.
 - **No** → no notification is sent and the timestamp is not updated (so Step C won't suppress the next notification opportunity for this parishioner). The flow proceeds to Step F using the same classification output.
 - In both cases, retrieval proceeds as soon as the button is tapped — this step never gates or delays Step F beyond waiting for that response.
 
@@ -108,35 +96,34 @@ Runs only if `is_crisis` is false and Step C passed (no notification sent within
 ### Step F — Retrieval
 
 1. The parishioner's raw text is embedded directly (no synthesis step needed on the query side).
-2. Qdrant performs a **filtered vector search**: results are ranked by embedding similarity against the verse vectors; the classified emotional/situational tags influence ranking but do not exclude non-matching verses outright. The top 40 results are fetched in a single query, sorted by descending similarity (covered by an automated regression test against an embedded, in-memory Qdrant instance — see `tests/commands/comfort/test_qdrant_ordering.py`). Fetching all 40 up front in one call — rather than an initially smaller batch retried with a growing limit — avoids redundant round-trips: Qdrant's query is stateless, so re-querying with a larger limit would just redo the same search and re-return the same leading results instead of resuming from where a smaller query left off.
-3. An index `j` (0-based) tracks the next unchecked result. The passage at position `j` is checked against a similarity threshold (`COMFORT_SIMILARITY_THRESHOLD`, default `0.2` — calibrated empirically, see Open Items). Because results are similarity-sorted, checking only position `j` is sufficient — everything after it has equal or lower similarity, so if `j` fails the threshold, nothing later in the batch could pass either.
+2. Qdrant performs a **filtered vector search**: results are ranked by embedding similarity against the verse vectors; the classified emotional/situational tags influence ranking but do not exclude non-matching verses outright. The top \_MAX_K results are fetched in a single query, sorted by descending similarity (covered by an automated regression test against an embedded, in-memory Qdrant instance — see `tests/commands/comfort/test_qdrant_ordering.py`).
+3. An index `j` (0-based) tracks the next unchecked result. The passage at position `j` is checked against a similarity threshold (`COMFORT_SIMILARITY_THRESHOLD` — calibrated empirically, see Open Items). Because results are similarity-sorted, checking only position `j` is sufficient — everything after it has equal or lower similarity, so if `j` fails the threshold, nothing later in the batch could pass either.
    - If the passage at `j` is **below** the threshold → no relevant new passage exists in this batch; go to Step G (fallback).
    - If **at or above** the threshold → check it against the parishioner's passage history (passages sent in the last 2 weeks).
      - If **not** recently sent → this is the selected passage; proceed to Step H.
      - If recently sent → increment `j` by 1 (move to the next candidate) and re-check against the threshold, repeating within the batch.
-4. If all 40 results are exhausted without finding a valid new passage, go to Step G (fallback).
+4. If all \_MAX_K results are exhausted without finding a valid new passage, go to Step G (fallback).
 5. If a verse is retrieved that shares **no** emotional or situational tags with the parishioner's classified input but is above the threshold, this is logged as a warning (intended as a feedback signal for vocabulary/curation gaps to be addressed by the development team).
 
 ### Step G — Fallback
 
-If no new relevant passage is found among the top 40 results — either every one of them was recently sent, or the candidate at position `j` fell below the similarity threshold — the bot does not force a match or re-send a previously-sent passage. Instead, it presents a random verse tagged with one of `faith`, `hope`, or `love`, alongside a hardcoded encouraging message (not an LLM framing).
+If no new relevant passage is found among the top \_MAX_K results — either every one of them was recently sent, or the candidate at position `j` fell below the similarity threshold — the bot does not force a match or re-send a previously-sent passage. Instead, it presents a random verse tagged with one of `faith`, `hope`, or `love`, alongside a hardcoded encouraging message `comfort_fallback_message` (not an LLM framing).
 
-This fallback verse is **not** filtered against the parishioner's 2-week sent-passage history — deliberately, to keep the fallback simple. Repeats are acceptable specifically on this path: reaching Step G already means no relevant match was found for what the parishioner expressed, so this is a signal of a gap in the verse bank's tag vocabulary/curation (see Open Items), not a normal retrieval outcome subject to the same repeat-avoidance guarantee as Step F.
-
-By contrast, a passage retrieved via Step F always respects the 2-week recently-sent exclusion — no repeated passage is ever sent through the normal retrieval path within that window.
+This fallback verse is **not** filtered against the parishioner's 2-week sent-passage history — deliberately, to keep the fallback simple. Repeats are acceptable specifically on this path: reaching Step G already means no relevant match was found for what the parishioner expressed, so this is a signal of a gap in the verse bank's tag vocabulary/curation, not a normal retrieval outcome subject to the same repeat-avoidance guarantee as Step F.
 
 ### Step H — Framing
 
-An LLM writes a 1–2 sentence framing to accompany the selected passage. **Skipped entirely on the Step G fallback path** — there's no real semantic match to frame, so the hardcoded encouraging message is used instead.
+An LLM writes a reflection of no more than 3 sentences to accompany the selected passage — a constraint given explicitly in the LLM prompt, not left to the model's default behavior. This framing is **skipped entirely on the Step G fallback path**. There's no real semantic match to frame so the hardcoded message `comfort_fallback_message` is used instead.
 
 ### Step I — Reply
 
 - If the passage was retrieved via Step F (a genuine relevant match): reply with the passage and its LLM framing.
-- If the passage came from the Step G fallback (random `faith`/`hope`/`love` verse): reply with the passage and the hardcoded encouraging message — no LLM framing.
+- If the passage came from the Step G fallback (random `faith`/`hope`/`love` verse): reply with the passage and the hardcoded encouraging message.
+- The reply carries two buttons: **View another passage** (Step J) and **Exit**, which ends the flow the same way typing `/help` would. The selected passage is recorded in the parishioner's sent-history only once the reply is confirmed delivered, so a failed send never pollutes the sent history.
 
 ### Step J — "Another passage"
 
-If the parishioner asks for another passage, the flow restarts at **Step C** (notification deduplication check), not Step A — there is no new text to classify or crisis-check; the original classified input is reused for retrieval.
+If the parishioner taps **View another passage**, retrieval restarts directly at Step F: there is no new text to classify, and Steps C/D/E (notification dedup, crisis gate, escalation offer) are skipped entirely rather than re-evaluated. The parishioner already passed through gating once for their original input message. The original classified input and raw text (already held in flow state) are reused for retrieval.
 
 ### Step K — History expiry
 
@@ -174,8 +161,8 @@ Passages are removed from a parishioner's sent-history after 2 weeks, which is w
 
 Two structurally separate logging paths, kept decoupled so identifiable data never leaks into aggregate stats:
 
-- **Crisis escalation (identifiable):** the parish notification on crisis detection necessarily includes the parishioner's identity, so a priest can follow up. This is a distinct code path from stats logging below — not a shared "log everything about this event" function.
-- **Aggregate stats (anonymized):** every classified message — crisis or not — logs `(is_crisis, emotional_tags, situational_tags, timestamp_rounded_to_time_of_day)`, with `timestamp_rounded_to_time_of_day` bucketed as one of `dawn`, `morning`, `afternoon`, `evening`, `night`. No parishioner identifier is included. Tags are populated regardless of `is_crisis`, since the data has value for understanding what emotional language tends to co-occur with crisis flags — this is safe specifically because the crisis (Step D) is enforced in control flow, not by leaving tags empty.
+- **Crisis escalation (identifiable):** the parish notification on crisis detection necessarily includes the parishioner's identity, so a priest can follow up. This is a distinct code path from stats logging below.
+- **Aggregate stats (anonymized):** every classified message — crisis or not — logs `(is_crisis, emotional_tags, situational_tags, timestamp_rounded_to_time_of_day)`, with `timestamp_rounded_to_time_of_day` bucketed as one of `dawn`, `morning`, `afternoon`, `evening`, `night`. No parishioner identifier is included. Tags are populated regardless of `is_crisis`, since the data has value for understanding what emotional language tends to co-occur with crisis flags.
 
 ---
 
