@@ -19,8 +19,11 @@ _SITUATIONAL_TAG_VALUES = [t.value for t in SituationalTag]
 
 _SYSTEM_PROMPT = (
     "You are a classifier for a parish pastoral-care bot. A parishioner has submitted a "
-    "free-text message describing how they feel or what they're going through. Classify it "
-    "and respond with ONLY a JSON object with exactly these fields:\n"
+    "free-text message describing how they feel or what they're going through. The message "
+    "may be in any language (e.g. English or Spanish) — classify it regardless of the "
+    "language it's written in, always using the exact English tag values given below, "
+    "never translated or transliterated equivalents. Classify it and respond with ONLY a "
+    "JSON object with exactly these fields:\n"
     "\n"
     '- "is_crisis": boolean — true if the message describes self-harm, suicidal ideation, '
     "sexual abuse, or physical violence; false otherwise.\n"

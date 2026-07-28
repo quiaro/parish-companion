@@ -98,3 +98,28 @@ class TestClassify:
         # field, not defaulted, so tags can never be returned without it being determined.
         with pytest.raises(TypeError):
             ClassificationResult()  # type: ignore[call-arg]
+
+    @pytest.mark.asyncio
+    async def test_spanish_message_classifies_correctly(self, monkeypatch) -> None:
+        # Same canned-response approach as the other tests here. This exercises our
+        # parsing, not a real model's actual judgment on Spanish input.
+        _mock_llm_response(
+            monkeypatch,
+            {"is_crisis": False, "emotional_tags": ["grief", "sadness"], "situational_tags": ["bereavement"]},
+        )
+        result = await classifier.classify("Perdí a mi mamá y no sé cómo seguir adelante.")
+
+        assert result.is_crisis is False
+        assert result.emotional_tags == [EmotionalTag.GRIEF, EmotionalTag.SADNESS]
+        assert result.situational_tags == [SituationalTag.BEREAVEMENT]
+
+    @pytest.mark.asyncio
+    async def test_system_prompt_instructs_multilingual_classification(self, monkeypatch) -> None:
+        mock = AsyncMock(return_value=_FakeCompletion(json.dumps({"is_crisis": False})))
+        monkeypatch.setattr(classifier.client.chat.completions, "create", mock)
+        await classifier.classify("Some text.")
+
+        _, kwargs = mock.call_args
+        system_message = next(m["content"] for m in kwargs["messages"] if m["role"] == "system")
+        assert "any language" in system_message
+        assert "Spanish" in system_message
