@@ -1,9 +1,8 @@
-"""K-08: writes a brief pastoral reflection to accompany the verse 
+"""K-08: writes a brief pastoral reflection to accompany the verse
 already selected by K-07's retrieve_passage."""
 
 from openai import AsyncOpenAI
 
-from commands.comfort.retrieval import RetrievedPassage
 from config import settings
 
 client = AsyncOpenAI(base_url=settings.openrouter_base_url, api_key=settings.openrouter_api_key)
@@ -21,16 +20,18 @@ _SYSTEM_PROMPT = (
 )
 
 
-async def frame_passage(raw_text: str, passage: RetrievedPassage, language: str = "en") -> str:
+async def frame_passage(raw_text: str, reference: str, verse_text: str, language: str = "en") -> str:
     """
     One LLM call, no re-classification: receives the parishioner's message and the verse
     already chosen by retrieval, and returns a short reflection. Never called on the Step
     G fallback path (see flow.py) — there's no real match to frame there.
+
+    `reference`/`verse_text` are passed in already localized to `language` by the caller.
     """
     language_name = _LANGUAGE_NAMES.get(language, language)
     user_message = (
         f"Parishioner's message: {raw_text}\n\n"
-        f"Selected verse ({passage.reference}): {passage.verse_text}\n\n"
+        f"Selected verse ({reference}): {verse_text}\n\n"
         f"Write the reflection in {language_name}."
     )
     completion = await client.chat.completions.create(

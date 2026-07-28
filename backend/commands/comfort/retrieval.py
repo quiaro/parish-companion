@@ -29,6 +29,7 @@ qdrant = AsyncQdrantClient(url=settings.qdrant_url)
 class RetrievedPassage:
     reference: str
     verse_text: str
+    verse_text_es: str
     is_fallback: bool  # Step G: no framing
 
 
@@ -86,7 +87,12 @@ async def _random_fallback_passage() -> RetrievedPassage:
         )
     chosen = random.choice(points)
     payload = _require_payload(chosen)
-    return RetrievedPassage(reference=payload["reference"], verse_text=payload["verse_text"], is_fallback=True)
+    return RetrievedPassage(
+        reference=payload["reference"],
+        verse_text=payload["verse_text"],
+        verse_text_es=payload["verse_text_es"],
+        is_fallback=True,
+    )
 
 
 async def retrieve_passage(telegram_user_id: int, text: str, classification: ClassificationResult) -> RetrievedPassage:
@@ -110,6 +116,11 @@ async def retrieve_passage(telegram_user_id: int, text: str, classification: Cla
         reference = payload["reference"]
         if reference not in recently_sent_references:
             _log_if_tag_mismatch(reference, payload, classification)
-            return RetrievedPassage(reference=reference, verse_text=payload["verse_text"], is_fallback=False)
+            return RetrievedPassage(
+                reference=reference,
+                verse_text=payload["verse_text"],
+                verse_text_es=payload["verse_text_es"],
+                is_fallback=False,
+            )
 
     return await _random_fallback_passage()

@@ -623,7 +623,7 @@ class TestFraming:
         self, db_mocks, flow_store, retrieve_passage_mock, frame_passage_mock
     ) -> None:
         retrieve_passage_mock.return_value = RetrievedPassage(
-            reference="Joel 2:25", verse_text="Fallback verse text.", is_fallback=True
+            reference="Joel 2:25", verse_text="Fallback verse text.", verse_text_es="Texto de respaldo.", is_fallback=True
         )
         await flow.start(_SESSION, _UID, "en")
         reply = await flow.handle_text(_SESSION, "gibberish unrelated to anything")
@@ -773,7 +773,7 @@ class TestViewAnotherPassage:
         await flow.handle_text(_SESSION, "I've been feeling anxious lately.")
 
         retrieve_passage_mock.return_value = RetrievedPassage(
-            reference="Romans 8:28", verse_text="Another verse.", is_fallback=False
+            reference="Romans 8:28", verse_text="Another verse.", verse_text_es="Otro verso.", is_fallback=False
         )
         await flow.handle_callback(_SESSION, "comfort_view_another")
         db_mocks["record_sent_passage"].assert_not_called()

@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from commands.comfort.classifier import classify
 from commands.comfort.constants import HIGH_RISK_EMOTIONAL_TAGS
 from commands.comfort.framing import frame_passage
+from commands.comfort.localization import localize_reference
 from commands.comfort.models import ClassificationResult, EmotionalTag, FlowReply, SituationalTag
 from commands.comfort.notifications import send_crisis_notification, send_pastoral_outreach_notification
 from commands.comfort.retrieval import retrieve_passage
@@ -118,24 +119,29 @@ async def _complete_with_retrieval(
     the send is confirmed. "View another passage" restarts retrieval without reclassifying, 
     "Exit" finally clears the flow state."""
     passage = await retrieve_passage(telegram_user_id, raw_text, result)
+    # Localized once — passage.reference itself stays English throughout (it's
+    # the canonical key used for DB history and Qdrant point IDs). Only what's
+    # shown to the parishioner is localized.
+    localized_reference = localize_reference(passage.reference, language)
+    localized_verse_text = passage.verse_text_es if language == "es" else passage.verse_text
 
     if passage.is_fallback:
         text = get_string("comfort_fallback_message", language).format(
-            reference=passage.reference, verse_text=passage.verse_text
+            reference=localized_reference, verse_text=localized_verse_text
         )
     else:
         try:
-            framing = await frame_passage(raw_text, passage, language)
+            framing = await frame_passage(raw_text, localized_reference, localized_verse_text, language)
         except Exception as exc:
             # A framing failure shouldn't block the parishioner from getting the verse
             # itself — same "don't let an LLM hiccup block the reply" principle as classify().
             logger.error("frame_passage failed session=%s: %s", session_id, exc)
             text = get_string("comfort_verse_reply_no_framing", language).format(
-                reference=passage.reference, verse_text=passage.verse_text
+                reference=localized_reference, verse_text=localized_verse_text
             )
         else:
             text = get_string("comfort_verse_reply", language).format(
-                framing=framing, reference=passage.reference, verse_text=passage.verse_text
+                framing=framing, reference=localized_reference, verse_text=localized_verse_text
             )
 
     await _set_state(

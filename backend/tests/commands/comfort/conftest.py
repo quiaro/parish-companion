@@ -18,7 +18,12 @@ def classify_mock(monkeypatch):
 @pytest.fixture(autouse=True)
 def retrieve_passage_mock(monkeypatch):
     mock = AsyncMock(
-        return_value=RetrievedPassage(reference="Psalm 23:4", verse_text="Test verse text.", is_fallback=False)
+        return_value=RetrievedPassage(
+            reference="Psalm 23:4",
+            verse_text="Test verse text.",
+            verse_text_es="Texto de prueba del verso.",
+            is_fallback=False,
+        )
     )
     monkeypatch.setattr(flow, "retrieve_passage", mock)
     return mock

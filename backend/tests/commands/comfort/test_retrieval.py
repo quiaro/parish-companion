@@ -14,12 +14,20 @@ from db.parishioners import SentPassage
 _UID = 12345
 
 
-def _point(reference: str, score: float, emotional_tags=None, situational_tags=None, verse_text="verse text"):
+def _point(
+    reference: str,
+    score: float,
+    emotional_tags=None,
+    situational_tags=None,
+    verse_text="verse text",
+    verse_text_es="texto del verso",
+):
     return SimpleNamespace(
         score=score,
         payload={
             "reference": reference,
             "verse_text": verse_text,
+            "verse_text_es": verse_text_es,
             "emotional_tags": emotional_tags or [],
             "situational_tags": situational_tags or [],
         },
