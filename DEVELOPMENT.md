@@ -197,15 +197,17 @@ psql "postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5433/$POSTGRES_DB
 
 This only works when the stack is up via the dev override (`docker compose -f docker-compose.yml -f docker-compose.dev.yml up ...`) — the base production compose file doesn't expose the port to the host at all.
 
-## Bible verse bank ingestion (`/comfort`)
+## Bible verse bank ingestion (`/comfort` and `/consolar`)
 
-The `/comfort` command retrieves Bible verses from Qdrant, populated from `data/bible_OEB_verses.csv`. This is a manual, occasional operation — not something that runs on every backend startup — so re-run it whenever the CSV changes:
+The `/comfort` (English) and `/consolar` (Spanish) commands retrieve Bible verses from Qdrant, populated from `data/bible_OEB_verses.csv`. This is a manual, occasional operation — not something that runs on every backend startup — so re-run it whenever the CSV changes:
 
 ```bash
 docker compose exec backend python -m scripts.ingest_verses
 ```
 
 The script is idempotent: point IDs are derived deterministically from each verse's `reference`, so re-running after editing a few rows updates just those points rather than duplicating the whole collection. Pass a different path as an argument to ingest a different CSV file.
+
+The CSV has a `verse_es` column alongside the English `verse` column. It is a curated Spanish translation of the same verse, not a machine translation. Both are stored in each Qdrant point's payload (`verse_text`/`verse_text_es`); the embedding itself stays English-only.
 
 ## Running tests
 

@@ -25,6 +25,7 @@
    {
      "reference": "Philippians 4:4",
      "verse_text": "Rejoice in the Lord always...",
+     "verse_text_es": "Alégrense siempre en el Señor...",
      "emotional_tags": ["joy", "sadness"],
      "situational_tags": ["unemployment"]
    }
@@ -50,7 +51,7 @@ The parishioner sends free-text describing how they feel or what they're experie
 
 ### Step B — Combined classification (single LLM call)
 
-One LLM call classifies the submitted text and returns:
+The parishioner's message may be in any language (`/comfort` → English, `/consolar` → Spanish, per the router's language-forcing convention). One LLM call classifies the submitted text and returns:
 
 - `is_crisis` (boolean) if self-harm, suicidal ideation, sexual abuse or physical violence are described by the user
 - One or more emotional tags (inferred from the text)
@@ -95,7 +96,7 @@ Runs only if `is_crisis` is false and Step C passed (no notification sent within
 
 ### Step F — Retrieval
 
-1. The parishioner's raw text is embedded directly (no synthesis step needed on the query side).
+1. The parishioner's raw text is embedded directly (no synthesis step needed on the query side), except when the session language isn't English, in which case the raw text is first translated to English via one LLM call. The verse bank's synthesized descriptions are English-only, so retrieval stays in a single embedding space this way.
 2. Qdrant performs a **filtered vector search**: results are ranked by embedding similarity against the verse vectors; the classified emotional/situational tags influence ranking but do not exclude non-matching verses outright. The top \_MAX_K results are fetched in a single query, sorted by descending similarity (covered by an automated regression test against an embedded, in-memory Qdrant instance — see `tests/commands/comfort/test_qdrant_ordering.py`).
 3. An index `j` (0-based) tracks the next unchecked result. The passage at position `j` is checked against a similarity threshold (`COMFORT_SIMILARITY_THRESHOLD` — calibrated empirically, see Open Items). Because results are similarity-sorted, checking only position `j` is sufficient — everything after it has equal or lower similarity, so if `j` fails the threshold, nothing later in the batch could pass either.
    - If the passage at `j` is **below** the threshold → no relevant new passage exists in this batch; go to Step G (fallback).
@@ -120,6 +121,7 @@ An LLM writes a reflection of no more than 3 sentences to accompany the selected
 - If the passage was retrieved via Step F (a genuine relevant match): reply with the passage and its LLM framing.
 - If the passage came from the Step G fallback (random `faith`/`hope`/`love` verse): reply with the passage and the hardcoded encouraging message.
 - The reply carries two buttons: **View another passage** (Step J) and **Exit**, which ends the flow the same way typing `/help` would. The selected passage is recorded in the parishioner's sent-history only once the reply is confirmed delivered, so a failed send never pollutes the sent history.
+- For Spanish sessions, both the verse text (`verse_text_es`) and the reference's book name are localized before being shown or passed to the framing call — e.g. `"1 Thessalonians 4:13-14"` displays as `"1 Tesalonicenses 4:13-14"`. Only the book name is substituted (`commands/comfort/localization.py`) so there's no need to curate a full localized reference per verse.
 
 ### Step J — "Another passage"
 
@@ -137,8 +139,9 @@ Passages are removed from a parishioner's sent-history after 2 weeks, which is w
 | Field | Type | Embedded or Payload |
 |---|---|---|
 | Vector | embedding | Vector (synthesized from emotional tags, situational tags, and example user phrasings — not stored as payload) |
-| `reference` | string | Payload |
-| `verse_text` | string | Payload |
+| `reference` | string | Payload (English; canonical key used for Qdrant point IDs and sent-history lookups) |
+| `verse_text` | string | Payload (English) |
+| `verse_text_es` | string | Payload (Spanish, curated) |
 | `emotional_tags` | list of tag strings | Payload |
 | `situational_tags` | list of tag strings | Payload |
 
