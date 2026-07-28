@@ -33,6 +33,34 @@ class RetrievedPassage:
     is_fallback: bool  # Step G: no framing
 
 
+_TRANSLATION_SYSTEM_PROMPT = (
+    "Translate the following message to English. Preserve the emotional tone and meaning "
+    "as closely as possible. Respond with the translation only, no other text."
+)
+
+
+async def _translate_to_english(text: str) -> str:
+    """
+    Retrieval's synthesized verse descriptions (see scripts/ingest_verses.py) are embedded
+    in English, so a non-English query is translated before embedding to keep retrieval in
+    a single embedding space rather than maintaining a parallel per-language index or
+    relying on a multilingual embedding model's cross-lingual alignment. Classification
+    works directly on the original text so (Step B) is unaffected by this.
+    """
+    completion = await client.chat.completions.create(
+        model=settings.openrouter_chat_model,
+        messages=[
+            {"role": "system", "content": _TRANSLATION_SYSTEM_PROMPT},
+            {"role": "user", "content": text},
+        ],
+        timeout=30.0,
+    )
+    content = completion.choices[0].message.content
+    if content is None:
+        raise ValueError("Translation call returned no content")
+    return content.strip()
+
+
 async def _embed(text: str) -> list[float]:
     response = await client.embeddings.create(
         model=settings.openrouter_embedding_model,
@@ -95,17 +123,21 @@ async def _random_fallback_passage() -> RetrievedPassage:
     )
 
 
-async def retrieve_passage(telegram_user_id: int, text: str, classification: ClassificationResult) -> RetrievedPassage:
+async def retrieve_passage(
+    telegram_user_id: int, text: str, classification: ClassificationResult, language: str = "en"
+) -> RetrievedPassage:
     """
-    Step F: embeds the parishioner's raw text directly, then walks Qdrant's similarity-sorted
-    top-`_MAX_K` results with a `j`-pointer. A below-threshold hit means nothing later in the
-    batch could score higher either, so it goes straight to the Step G fallback. A
-    recently-sent hit just advances `j`.
+    Step F: embeds the parishioner's raw text (translated to English first if `language`
+    isn't English), then walks Qdrant's similarity-sorted top-`_MAX_K` results with a 
+    `j`-pointer. A below-threshold hit means nothing later in the batch could score 
+    higher either, so it goes straight to the Step G fallback. A recently-sent hit 
+    just advances `j`.
     """
     recent_sent = await asyncio.to_thread(get_recent_sent_passages, telegram_user_id)
     recently_sent_references = {p.passage_reference for p in recent_sent}
 
-    vector = await _embed(text)
+    text_to_embed = await _translate_to_english(text) if language != "en" else text
+    vector = await _embed(text_to_embed)
     response = await qdrant.query_points(
         collection_name=settings.qdrant_collection_name, query=vector, limit=_MAX_K, with_payload=True
     )

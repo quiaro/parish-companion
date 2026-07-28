@@ -46,6 +46,13 @@ def embed_mock(monkeypatch):
     return mock
 
 
+@pytest.fixture(autouse=True)
+def translate_mock(monkeypatch):
+    mock = AsyncMock(return_value="translated text")
+    monkeypatch.setattr(retrieval, "_translate_to_english", mock)
+    return mock
+
+
 @pytest.fixture
 def recent_passages_mock(monkeypatch):
     mock = MagicMock(return_value=[])
@@ -258,3 +265,38 @@ class TestFallbackPassage:
 
         with pytest.raises(RuntimeError, match="fallback pool must never be empty"):
             await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT)
+
+
+class TestQueryTranslation:
+    """Non-English queries are translated to English before embedding, since the verse 
+    bank's synthesized descriptions are English-only."""
+
+    @pytest.mark.asyncio
+    async def test_english_query_is_embedded_directly_without_translating(
+        self, recent_passages_mock, query_points_mock, embed_mock, translate_mock
+    ) -> None:
+        query_points_mock.return_value = SimpleNamespace(points=[_point("Psalm 23:4", 0.9)])
+        await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT, "en")
+
+        translate_mock.assert_not_called()
+        embed_mock.assert_awaited_once_with("I'm scared")
+
+    @pytest.mark.asyncio
+    async def test_spanish_query_is_translated_before_embedding(
+        self, recent_passages_mock, query_points_mock, embed_mock, translate_mock
+    ) -> None:
+        query_points_mock.return_value = SimpleNamespace(points=[_point("Psalm 23:4", 0.9)])
+        await retrieval.retrieve_passage(_UID, "Tengo miedo", _NO_TAGS_RESULT, "es")
+
+        translate_mock.assert_awaited_once_with("Tengo miedo")
+        embed_mock.assert_awaited_once_with("translated text")
+
+    @pytest.mark.asyncio
+    async def test_defaults_to_english_when_language_not_given(
+        self, recent_passages_mock, query_points_mock, embed_mock, translate_mock
+    ) -> None:
+        query_points_mock.return_value = SimpleNamespace(points=[_point("Psalm 23:4", 0.9)])
+        await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT)
+
+        translate_mock.assert_not_called()
+        embed_mock.assert_awaited_once_with("I'm scared")

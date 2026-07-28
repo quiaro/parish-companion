@@ -118,7 +118,7 @@ async def _complete_with_retrieval(
     is resolved. Flow state is kept alive (not cleared) so passage is recorded once 
     the send is confirmed. "View another passage" restarts retrieval without reclassifying, 
     "Exit" finally clears the flow state."""
-    passage = await retrieve_passage(telegram_user_id, raw_text, result)
+    passage = await retrieve_passage(telegram_user_id, raw_text, result, language)
     # Localized once — passage.reference itself stays English throughout (it's
     # the canonical key used for DB history and Qdrant point IDs). Only what's
     # shown to the parishioner is localized.

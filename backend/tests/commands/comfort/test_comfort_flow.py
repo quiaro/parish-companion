@@ -176,7 +176,7 @@ class TestHandleText:
         await flow.start(_SESSION, _UID, "en")
         await flow.handle_text(_SESSION, "  I've been feeling anxious lately.  ")
         retrieve_passage_mock.assert_awaited_once_with(
-            _UID, "I've been feeling anxious lately.", classify_mock.return_value
+            _UID, "I've been feeling anxious lately.", classify_mock.return_value, "en"
         )
 
     @pytest.mark.asyncio
@@ -419,7 +419,7 @@ class TestHandleCallback:
         assert reply.text == _expected_verse_reply()
         classify_mock.assert_not_called()
         retrieve_passage_mock.assert_awaited_once_with(
-            _UID, "I don't want to be here anymore.", ClassificationResult(is_crisis=True)
+            _UID, "I don't want to be here anymore.", ClassificationResult(is_crisis=True), "en"
         )
 
     @pytest.mark.asyncio
@@ -707,7 +707,7 @@ class TestViewAnotherPassage:
         assert reply is not None
         classify_mock.assert_not_called()
         retrieve_passage_mock.assert_awaited_once_with(
-            _UID, "I've been feeling anxious lately.", ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.HOPE])
+            _UID, "I've been feeling anxious lately.", ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.HOPE]), "en"
         )
 
     @pytest.mark.asyncio
