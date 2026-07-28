@@ -144,6 +144,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "telegram_cmd_help": (
             "Esto es lo que puedo hacer:\n"
             "/ayuda: Lista de comandos\n"
+            "/consolar: Comparta lo que lleva en el corazón y reciba un pasaje bíblico de aliento\n"
             "/contacto: Contactar personal de la parroquia\n"
             "/horarios: Horarios de Misa y Confesiones\n"
             "/inicio: Mensaje de bienvenida"

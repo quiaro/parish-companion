@@ -66,6 +66,33 @@ def test_comfort_command_always_replies_in_english_even_when_session_language_is
     assert sent_text == get_string("comfort_brief_intro", "en")
 
 
+def test_consolar_command_sends_full_intro_on_first_use(
+    client: TestClient, mock_send: AsyncMock, db_mocks, flow_store
+) -> None:
+    resp = client.post("/telegram/webhook", json=_command_update("/consolar"), headers=_headers)
+    assert resp.status_code == 200
+    db_mocks["mark_comfort_intro_shown"].assert_called_once_with(_USER_ID)
+
+    mock_send.assert_awaited_once()
+    assert mock_send.await_args is not None
+    sent_text = mock_send.await_args[0][1]
+    assert sent_text == get_string("comfort_intro", "es")
+
+
+def test_consolar_command_always_replies_in_spanish_even_when_session_language_is_english(
+    client: TestClient, mock_send: AsyncMock, db_mocks, flow_store
+) -> None:
+    db_mocks["is_comfort_intro_shown"].return_value = True
+    with patch("telegram.router.get_language", AsyncMock(return_value="en")):
+        resp = client.post("/telegram/webhook", json=_command_update("/consolar"), headers=_headers)
+        assert resp.status_code == 200
+
+    mock_send.assert_awaited_once()
+    assert mock_send.await_args is not None
+    sent_text = mock_send.await_args[0][1]
+    assert sent_text == get_string("comfort_brief_intro", "es")
+
+
 def _text_message(text: str) -> dict:
     return {
         "update_id": 2,
@@ -92,6 +119,28 @@ def test_free_text_after_comfort_command_returns_verse_reply(
     assert sent_text == get_string("comfort_verse_reply", "en").format(
         framing="Test framing text.", reference="Psalm 23:4", verse_text="Test verse text."
     )
+
+
+def test_free_text_after_consolar_command_returns_localized_verse_reply(
+    client: TestClient, mock_send: AsyncMock, db_mocks, flow_store
+) -> None:
+    client.post("/telegram/webhook", json=_command_update("/consolar"), headers=_headers)
+    resp = client.post(
+        "/telegram/webhook", json=_text_message("Perdí a mi mamá y no sé cómo seguir adelante."), headers=_headers
+    )
+    assert resp.status_code == 200
+
+    assert mock_send.await_args is not None
+    sent_text = mock_send.await_args[0][1]
+    # Reference is localized ("Salmo" not "Psalm"), and the Spanish verse_text_es is used —
+    # confirms the full en->es wiring through router -> flow -> retrieval -> localization.
+    assert sent_text == get_string("comfort_verse_reply", "es").format(
+        framing="Test framing text.", reference="Salmo 23:4", verse_text="Texto de prueba del verso."
+    )
+    assert mock_send.await_args.kwargs["buttons"] == [
+        (get_string("comfort_button_view_another", "es"), "comfort_view_another"),
+        (get_string("comfort_button_exit", "es"), "comfort_exit"),
+    ]
 
 
 def test_overlong_free_text_gets_gentle_reprompt_and_can_be_resubmitted(

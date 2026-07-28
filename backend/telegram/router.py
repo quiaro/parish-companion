@@ -39,9 +39,9 @@ _CONTACT_COMMAND_LANGUAGES: dict[str, str] = {
     "/contacto": "es",
 }
 
-# /consolar and Spanish copy are covered by a separate localization story — English only for now.
 _COMFORT_COMMAND_LANGUAGES: dict[str, str] = {
     "/comfort": "en",
+    "/consolar": "es",
 }
 
 
