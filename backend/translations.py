@@ -144,7 +144,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "telegram_cmd_help": (
             "Esto es lo que puedo hacer:\n"
             "/ayuda: Lista de comandos\n"
-            "/consolar: Comparta lo que lleva en el corazón y reciba un pasaje bíblico de aliento\n"
+            "/consolar: Comparte lo que llevas en el corazón y recibe un pasaje bíblico de aliento\n"
             "/contacto: Contactar personal de la parroquia\n"
             "/horarios: Horarios de Misa y Confesiones\n"
             "/inicio: Mensaje de bienvenida"
@@ -171,65 +171,65 @@ STRINGS: dict[str, dict[str, str]] = {
         "contact_email_label_telegram": "Contacto de Telegram:",
         "contact_email_label_message": "Mensaje:",
         "contact_email_label_preferred_time": "Mejor horario para comunicarse:",
-        "contact_ask_name": "¿Cuál es su nombre?",
-        "contact_ask_request_type": "¿Qué tipo de ayuda está buscando?",
-        "contact_ask_message": "Por favor, describa brevemente en qué necesita ayuda.",
+        "contact_ask_name": "¿Cuál es tu nombre?",
+        "contact_ask_request_type": "¿Qué tipo de ayuda estás buscando?",
+        "contact_ask_message": "Por favor, describe brevemente en qué necesitas ayuda.",
         "contact_ask_preferred_time": (
-            "¿Cuál es el mejor horario para comunicarnos con usted? "
+            "¿Cuál es el mejor horario para comunicarnos contigo? "
             "(e.g. mañanas entre semana, por las tardes)"
         ),
         "contact_cancelled": (
-            "Su solicitud ha sido cancelada. No dude en contactarnos cuando lo necesite."
+            "Tu solicitud ha sido cancelada. No dudes en contactarnos cuando lo necesites."
         ),
-        "contact_invalid_choice": "Por favor, ingrese un número de la lista anterior.",
-        "contact_intake_complete": "Gracias! Su información ha sido recibida.",
-        "contact_confirm_summary_header": "Aquí está un resumen de su solicitud:",
+        "contact_invalid_choice": "Por favor, ingresa un número de la lista anterior.",
+        "contact_intake_complete": "Gracias! Tu información ha sido recibida.",
+        "contact_confirm_summary_header": "Aquí está un resumen de tu solicitud:",
         "contact_confirm_prompt": (
-            "¿Es correcto? Responda Sí para enviar, o No para cancelar."
+            "¿Es correcto? Responde Sí para enviar, o No para cancelar."
         ),
         "contact_confirm_re_ask": (
-            "Por favor, responda Sí para enviar su solicitud, o No para cancelar."
+            "Por favor, responde Sí para enviar tu solicitud, o No para cancelar."
         ),
         "contact_confirm_success": (
-            "Su solicitud ha sido enviada."
-            "Un miembro del personal de la parroquia se pondrá en contacto con usted pronto."
+            "Tu solicitud ha sido enviada."
+            "Un miembro del personal de la parroquia se pondrá en contacto contigo pronto."
         ),
         "contact_confirm_send_error": (
-            "Algo salió mal al enviar su solicitud. "
-            "Intente respondiendo Sí nuevamente, o escriba /cancel para empezar de nuevo."
+            "Algo salió mal al enviar tu solicitud. "
+            "Intenta respondiendo Sí nuevamente, o escribe /cancel para empezar de nuevo."
         ),
         "contact_confirm_send_error_with_phone": (
-            "Algo salió mal enviando su solicitud. Por favor, intente respondiendo Sí nuevamente."
-            "Si el problema persiste, llame a la parroquia directamente al {phone} o escriba /cancel para empezar de nuevo."
+            "Algo salió mal enviando tu solicitud. Por favor, intenta respondiendo Sí nuevamente."
+            "Si el problema persiste, llama a la parroquia directamente al {phone} o escribe /cancel para empezar de nuevo."
         ),
         "comfort_intro": (
             "Bienvenido a /comfort.\n"
             "\n"
-            "Comparta lo que lleva en el corazón y yo trataré de ayudarle con un versículo bíblico de la lista "
-            "seleccionada por nuestra parroquia, junto con una breve reflexión. Puede pedir otro "
+            "Comparte lo que llevas en el corazón y yo trataré de ayudarte con un versículo bíblico de la lista "
+            "seleccionada por nuestra parroquia, junto con una breve reflexión. Puedes pedir otro "
             "versículo en cualquier momento.\n"
             "\n"
-            "Nos importa su privacidad, por eso no guardamos ninguna información personal o identificable, "
+            "Nos importa tu privacidad, por eso no guardamos ninguna información personal o identificable, "
             "solo un historial de los pasajes compartidos para evitar repetirlos.\n"
             "\n"
-            "Si está atravesando algo difícil o busca orientación con frecuencia, un sacerdote o "
-            "miembro del personal podría comunicarse con usted.\n"
+            "Si estás atravesando algo difícil o buscas orientación con frecuencia, un sacerdote o "
+            "miembro del personal podría comunicarse contigo.\n"
             "\n"
-            "Si gusta, podemos comenzar."
+            "Si gustas, podemos comenzar."
         ),
-        "comfort_brief_intro": "Comparta lo que lleva en el corazón.",
+        "comfort_brief_intro": "Comparte lo que llevas en el corazón.",
         "comfort_input_too_long": (
-            "Gracias por compartir. Su mensaje es un poco extenso para que yo pueda procesarlo. "
-            "¿Podría reducirlo a menos de 2000 caracteres y enviarlo de nuevo?"
+            "Gracias por compartir. Tu mensaje es un poco extenso para que yo pueda procesarlo. "
+            "¿Podrías reducirlo a menos de 2000 caracteres y enviarlo de nuevo?"
         ),
         "comfort_ack_placeholder": (
             "Esta función todavía está en desarrollo, así que todavía no "
-            "puedo ofrecer un pasaje. Vuelva pronto, por favor."
+            "puedo ofrecer un pasaje. Vuelve pronto, por favor."
         ),
         "comfort_crisis_message": (
             "Gracias por confiarme tu situación.\n"
             "\n"
-            "Un sacerdote de nuestra parroquia se estará comunicando con vos para ofrecerte apoyo. Recuerda que no estás solo(a).\n"
+            "Un sacerdote de nuestra parroquia se estará comunicando contigo para ofrecerte apoyo. Recuerda que no estás solo(a).\n"
             "\n"
         ),
         "comfort_button_continue": "Continuar",
@@ -238,7 +238,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "El mensaje de un feligrés a través de /consolar fue marcado como una posible "
             "crisis (autolesión, ideación suicida, abuso sexual o violencia física).\n\n"
             "ID de usuario de Telegram: {telegram_user_id}\n\n"
-            "Por favor, comuníquese con este feligrés lo antes posible."
+            "Por favor, comunícate con este feligrés lo antes posible."
         ),
         "comfort_escalation_message": (
             "Los pasajes bíblicos son buenos para el alma y hablar con alguien también puede ayudar y dar consuelo.\n"
@@ -251,7 +251,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "Un feligrés ha estado usando /consolar con frecuencia y compartió que le "
             "gustaría que alguien de la parroquia se pusiera en contacto con él/ella.\n\n"
             "ID de usuario de Telegram: {telegram_user_id}\n\n"
-            "Por favor, comuníquese con este feligrés cuando le sea conveniente."
+            "Por favor, comunícate con este feligrés cuando te sea conveniente."
         ),
         "comfort_verse_reply": "{framing}\n\n{verse_text}\n\n— {reference}",
         "comfort_verse_reply_no_framing": "{verse_text}\n\n— {reference}",
