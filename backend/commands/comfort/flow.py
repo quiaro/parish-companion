@@ -13,6 +13,7 @@ from commands.comfort.models import ClassificationResult, EmotionalTag, FlowRepl
 from commands.comfort.notifications import send_crisis_notification, send_pastoral_outreach_notification
 from commands.comfort.retrieval import retrieve_passage
 from config import settings
+from db.aggregate_stats import record_comfort_aggregate_stat
 from db.parishioners import (
     count_recent_passages,
     ensure_parishioner,
@@ -270,6 +271,17 @@ async def handle_text(session_id: str, text: str) -> FlowReply | None:
         logger.error("classify failed session=%s: %s", session_id, exc)
         await _clear_state(session_id)
         return FlowReply(text=get_string("comfort_ack_placeholder", language))
+
+    try:
+        await asyncio.to_thread(
+            record_comfort_aggregate_stat,
+            result.is_crisis,
+            [t.value for t in result.emotional_tags],
+            [t.value for t in result.situational_tags],
+        )
+    except Exception as exc:
+        # Stat recording failure must not block the flow.
+        logger.error("record_comfort_aggregate_stat failed session=%s: %s", session_id, exc)
 
     if not await _notification_dedup_passed(telegram_user_id):
         # K-04: Steps D and E skipped entirely; proceeds directly to Step F.

@@ -6,6 +6,7 @@ import os
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("DATABASE_URL", "postgresql+psycopg://postgres:postgres@postgres:5432/parish_companion")
 os.environ.setdefault("TELEGRAM_WEBHOOK_SECRET", "test-secret")
+os.environ.setdefault("LOCAL_TIMEZONE", "America/Costa_Rica")
 
 from typing import Generator
 from unittest.mock import AsyncMock, patch

@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Index, Text, func
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -30,3 +31,17 @@ class ComfortSentPassage(Base):
     )
     passage_reference: Mapped[str] = mapped_column(Text, nullable=False)
     sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class ComfortAggregateStat(Base):
+    """Anonymized /comfort usage stats. No parishioner identifier and no precise timestamp 
+    column (only a coarse local time-of-day bucket), so a row can never be tied back to a 
+    specific parishioner or request."""
+
+    __tablename__ = "comfort_aggregate_stats"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    is_crisis: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    emotional_tags: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False)
+    situational_tags: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False)
+    time_bucket: Mapped[str] = mapped_column(Text, nullable=False)

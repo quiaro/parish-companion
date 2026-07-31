@@ -217,6 +217,67 @@ class TestHandleText:
         assert reply is None
 
 
+class TestAggregateStatRecording:
+    """Anonymized /comfort usage stats recorded once per successful classification."""
+
+    @pytest.mark.asyncio
+    async def test_recorded_after_successful_classification(
+        self, db_mocks, flow_store, classify_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(
+            is_crisis=False, emotional_tags=[EmotionalTag.JOY], situational_tags=[SituationalTag.NEW_JOB]
+        )
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "Today was a good day.")
+
+        db_mocks["record_comfort_aggregate_stat"].assert_called_once_with(False, ["joy"], ["new_job"])
+
+    @pytest.mark.asyncio
+    async def test_recorded_even_when_crisis_flagged(
+        self, db_mocks, flow_store, classify_mock, crisis_notification_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=True, emotional_tags=[EmotionalTag.DESPAIR])
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I don't want to be here anymore.")
+
+        db_mocks["record_comfort_aggregate_stat"].assert_called_once_with(True, ["despair"], [])
+
+    @pytest.mark.asyncio
+    async def test_not_recorded_when_classify_fails(
+        self, db_mocks, flow_store, classify_mock
+    ) -> None:
+        classify_mock.side_effect = RuntimeError("Classification LLM is down")
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I've been feeling anxious lately.")
+
+        db_mocks["record_comfort_aggregate_stat"].assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_not_recorded_again_on_view_another_passage(
+        self, db_mocks, flow_store, classify_mock
+    ) -> None:
+        # "View another passage" reuses the stored classification rather than
+        # reclassifying, so no new classification event exists to record.
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I've been feeling anxious lately.")
+        db_mocks["record_comfort_aggregate_stat"].reset_mock()
+
+        await flow.handle_callback(_SESSION, "comfort_view_another")
+
+        db_mocks["record_comfort_aggregate_stat"].assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_recording_failure_does_not_block_the_reply(
+        self, db_mocks, flow_store, classify_mock
+    ) -> None:
+        db_mocks["record_comfort_aggregate_stat"].side_effect = RuntimeError("Postgres is down")
+        await flow.start(_SESSION, _UID, "en")
+        reply = await flow.handle_text(_SESSION, "I've been feeling anxious lately.")
+
+        assert reply is not None
+        assert reply.text == _expected_verse_reply()
+
+
 class TestCrisisGate:
     @pytest.mark.asyncio
     async def test_crisis_message_triggers_notification_and_updates_timestamp(

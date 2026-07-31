@@ -46,6 +46,7 @@ def db_mocks(monkeypatch):
         "record_notification_sent": MagicMock(),
         "count_recent_passages": MagicMock(return_value=0),
         "record_sent_passage": MagicMock(),
+        "record_comfort_aggregate_stat": MagicMock(),
     }
     for name, mock in mocks.items():
         monkeypatch.setattr(flow, name, mock)

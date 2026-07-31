@@ -165,14 +165,14 @@ Passages are removed from a parishioner's sent-history after 2 weeks, which is w
 Two structurally separate logging paths, kept decoupled so identifiable data never leaks into aggregate stats:
 
 - **Crisis escalation (identifiable):** the parish notification on crisis detection necessarily includes the parishioner's identity, so a priest can follow up. This is a distinct code path from stats logging below.
-- **Aggregate stats (anonymized):** every classified message — crisis or not — logs `(is_crisis, emotional_tags, situational_tags, timestamp_rounded_to_time_of_day)`, with `timestamp_rounded_to_time_of_day` bucketed as one of `dawn`, `morning`, `afternoon`, `evening`, `night`. No parishioner identifier is included. Tags are populated regardless of `is_crisis`, since the data has value for understanding what emotional language tends to co-occur with crisis flags.
+- **Aggregate stats (anonymized):** every classified message (crisis or not) is recorded to the `comfort_aggregate_stats` table as `(is_crisis, emotional_tags, situational_tags, time_bucket)`, with `time_bucket` one of `dawn`, `morning`, `afternoon`, `evening`, `night` (per the parish's local time, `LOCAL_TIMEZONE`). No parishioner identifier or precise timestamp are included: only the coarse bucket is stored, so a row can never be correlated back to a specific request via server/webhook access logs. Recording is best-effort and happens once per successful `classify()` call, not repeated on "View another passage". The use of this data is: 1- understanding what emotional language tends to co-occur with crisis flags, 2- identifying emotional and situational vocabulary gaps and 3- recognizing usage patterns for parish staffing purposes. No dedicated reporting tool exists yet (TODO); see `DEVELOPMENT.md`'s for an example `psql` query.
 
 ---
 
 ## 5. Key safety properties (for test coverage)
 
 1. **Crisis classification produces usable data even when gating retrieval.** A separate test asserts that crisis-flagged messages still produce populated, sensible tags (for the aggregate log), distinct from the control-flow test above.
-2. **Aggregate logging contains no identifiers.** The stats log schema should be tested/reviewed to confirm no parishioner ID, chat ID, or other joinable identifier is ever written to it.
+2. **Aggregate logging contains no identifiers.** Enforced structurally, not just by convention. Tests assert on the actual table schema (exactly `id`, `is_crisis`, `emotional_tags`, `situational_tags`, `time_bucket` — no timestamp, no identifier), so a future column addition can't silently introduce a timestamp or identifier without the test catching it.
 
 ---
 

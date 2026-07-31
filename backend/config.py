@@ -26,6 +26,8 @@ class Settings(BaseSettings):
 
     database_url: str
 
+    local_timezone: str
+
     session_ttl_seconds: int = 86_400
 
     default_language: str = "en"

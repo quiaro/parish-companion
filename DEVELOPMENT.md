@@ -209,6 +209,19 @@ The script is idempotent: point IDs are derived deterministically from each vers
 
 The CSV has a `verse_es` column alongside the English `verse` column. It is a curated Spanish translation of the same verse, not a machine translation. Both are stored in each Qdrant point's payload (`verse_text`/`verse_text_es`); the embedding itself stays English-only.
 
+## Anonymized `/comfort` usage stats
+
+Every successfully classified `/comfort` message is recorded to the `comfort_aggregate_stats` table. There's no parishioner identifier and no precise timestamp in this table by design (see `docs/comfort-technical-summary.md`). No dedicated reporting tool exists yet; query it directly via `psql`. For example:
+
+**Message volume by time of day:**
+
+```sql
+SELECT time_bucket, count(*)
+FROM comfort_aggregate_stats
+GROUP BY time_bucket
+ORDER BY count(*) DESC;
+```
+
 ## Running tests
 
 ### Backend

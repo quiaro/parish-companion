@@ -81,6 +81,12 @@ The bot exists to help people access and engage with these realities more easily
 
 Users should never be required to disclose sensitive personal information in order to benefit from the bot.
 
+`/comfort` and `/consolar` record anonymized aggregate stats for each message shared by a parishioner: whether it was flagged as a crisis, what emotional and situational themes it touched on, and a coarse time-of-day bucket. No parishioner identifier or precise timestamp are ever included, so a record can never be traced back to a specific person or request. This data helps parish staff:
+
+1. Understand what emotional language tends to accompany a crisis flag
+2. Spot gaps in the emotional or situational vocabularies
+3. Recognize broader usage patterns that may be useful for staffing and pastoral planning
+
 Parishes deploying Parish Companion should establish clear policies regarding:
 
 - Data retention
