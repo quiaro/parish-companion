@@ -120,7 +120,7 @@ An LLM writes a reflection of no more than 3 sentences to accompany the selected
 
 - If the passage was retrieved via Step F (a genuine relevant match): reply with the passage and its LLM framing.
 - If the passage came from the Step G fallback (random `faith`/`hope`/`love` verse): reply with the passage and the hardcoded encouraging message.
-- The reply carries two buttons: **View another passage** (Step J) and **Exit**, which ends the flow the same way typing `/help` would. The selected passage is recorded in the parishioner's sent-history only once the reply is confirmed delivered, so a failed send never pollutes the sent history.
+- The reply carries two buttons: **View another passage** (Step J) and **Exit**, which ends the flow the same way typing the session's help command would (`/help` or `/ayuda`, matching the session's language). The selected passage is recorded in the parishioner's sent-history only once the reply is confirmed delivered, so a failed send never pollutes the sent history.
 - For Spanish sessions, both the verse text (`verse_text_es`) and the reference's book name are localized before being shown or passed to the framing call — e.g. `"1 Thessalonians 4:13-14"` displays as `"1 Tesalonicenses 4:13-14"`. Only the book name is substituted (`commands/comfort/localization.py`) so there's no need to curate a full localized reference per verse.
 
 ### Step J — "Another passage"

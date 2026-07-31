@@ -725,6 +725,17 @@ class TestExit:
         assert reply.buttons is None
 
     @pytest.mark.asyncio
+    async def test_tapping_exit_returns_help_reply_in_spanish_session(self, db_mocks, flow_store) -> None:
+        # Exit must respect the session's language, not hardcode English.
+        await flow.start(_SESSION, _UID, "es")
+        await flow.handle_text(_SESSION, "Me he sentido ansioso últimamente.")
+
+        reply = await flow.handle_callback(_SESSION, "comfort_exit")
+
+        assert reply is not None
+        assert reply.text == get_string("telegram_cmd_help", "es")
+
+    @pytest.mark.asyncio
     async def test_tapping_exit_clears_flow_state(self, db_mocks, flow_store) -> None:
         await flow.start(_SESSION, _UID, "en")
         await flow.handle_text(_SESSION, "I've been feeling anxious lately.")

@@ -337,7 +337,7 @@ async def handle_callback(session_id: str, callback_data: str) -> FlowReply | No
 
     if step == "awaiting_navigation" and callback_data == _CALLBACK_EXIT:
         await _clear_state(session_id)
-        return FlowReply(text=get_string("telegram_cmd_help", "en"))
+        return FlowReply(text=get_string("telegram_cmd_help", language))
 
     logger.warning(
         "handle_callback called with mismatched step=%s data=%s session=%s", step, callback_data, session_id
