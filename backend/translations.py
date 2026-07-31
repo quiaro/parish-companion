@@ -17,9 +17,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "Here is what I can do:\n"
             "/comfort: Share what's on your heart and receive an encouraging Bible passage\n"
             "/contact: Reach a parish staff member\n"
-            "/help: List available commands\n"
             "/schedules: View Mass and Confession times\n"
-            "/start: Welcome message"
         ),
         "telegram_cmd_unknown": (
             "Sorry, I don't recognize that command. Type /help to see what I can do."
@@ -143,11 +141,9 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "telegram_cmd_help": (
             "Esto es lo que puedo hacer:\n"
-            "/ayuda: Lista de comandos\n"
             "/consolar: Comparte lo que llevas en el corazón y recibe un pasaje bíblico de aliento\n"
             "/contacto: Contactar personal de la parroquia\n"
             "/horarios: Horarios de Misa y Confesiones\n"
-            "/inicio: Mensaje de bienvenida"
         ),
         "telegram_cmd_unknown": (
             "Lo siento, no reconozco ese comando. Escribe /help para ver lo que puedo hacer."
@@ -203,11 +199,10 @@ STRINGS: dict[str, dict[str, str]] = {
             "Si el problema persiste, llama a la parroquia directamente al {phone} o escribe /cancel para empezar de nuevo."
         ),
         "comfort_intro": (
-            "Bienvenido a /comfort.\n"
+            "Bienvenido a /consolar.\n"
             "\n"
-            "Comparte lo que llevas en el corazón y yo trataré de ayudarte con un versículo bíblico de la lista "
-            "seleccionada por nuestra parroquia, junto con una breve reflexión. Puedes pedir otro "
-            "versículo en cualquier momento.\n"
+            "Comparte lo que lleves en el corazón y yo trataré de ayudarte con un versículo bíblico de la lista "
+            "seleccionada por nuestra parroquia, junto con una breve reflexión.\n"
             "\n"
             "Nos importa tu privacidad, por eso no guardamos ninguna información personal o identificable, "
             "solo un historial de los pasajes compartidos para evitar repetirlos.\n"
@@ -215,7 +210,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "Si estás atravesando algo difícil o buscas orientación con frecuencia, un sacerdote o "
             "miembro del personal podría comunicarse contigo.\n"
             "\n"
-            "Si gustas, podemos comenzar."
+            "Te escucho."
         ),
         "comfort_brief_intro": "Comparte lo que llevas en el corazón.",
         "comfort_input_too_long": (
