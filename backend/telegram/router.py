@@ -143,4 +143,6 @@ async def receive_update(
                 await comfort_flow.confirm_passage_sent(session_id)
         return JSONResponse({"status": "ok"})
 
+    # Plain text outside of any active flow (likely a new or confused parishioner).
+    await send_message(chat_id, get_string("telegram_cmd_start", language))
     return JSONResponse({"status": "ok"})

@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
@@ -57,3 +57,34 @@ def test_non_text_message_triggers_text_only_notice(client: TestClient, mock_sen
     chat_id, text = mock_send.call_args.args
     assert chat_id == _CHAT_ID
     assert text == STRINGS["en"]["telegram_text_only"]
+
+
+def test_plain_text_with_no_active_flow_sends_welcome_message(client: TestClient, mock_send: AsyncMock) -> None:
+    """A confused/new parishioner sending plain text with no active
+    /contact or /comfort flow gets the welcome message."""
+    resp = client.post(
+        "/telegram/webhook",
+        json=_TEXT_UPDATE,
+        headers={"X-Telegram-Bot-Api-Secret-Token": TEST_SECRET},
+    )
+    assert resp.status_code == 200
+    mock_send.assert_awaited_once()
+    chat_id, text = mock_send.call_args.args
+    assert chat_id == _CHAT_ID
+    assert text == STRINGS["en"]["telegram_cmd_start"]
+
+
+def test_plain_text_with_no_active_flow_respects_detected_language(
+    client: TestClient, mock_send: AsyncMock
+) -> None:
+    # Uses the session's own detected language
+    with patch("telegram.router.get_language", AsyncMock(return_value="es")):
+        resp = client.post(
+            "/telegram/webhook",
+            json=_TEXT_UPDATE,
+            headers={"X-Telegram-Bot-Api-Secret-Token": TEST_SECRET},
+        )
+    assert resp.status_code == 200
+    mock_send.assert_awaited_once()
+    _, text = mock_send.call_args.args
+    assert text == STRINGS["es"]["telegram_cmd_start"]
