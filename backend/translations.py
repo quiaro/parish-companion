@@ -146,7 +146,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "/horarios: Horarios de Misa y Confesiones\n"
         ),
         "telegram_cmd_unknown": (
-            "Lo siento, no reconozco ese comando. Escribe /help para ver lo que puedo hacer."
+            "Lo siento, no reconozco ese comando. Escribe /ayuda para ver lo que puedo hacer."
         ),
         "schedule_mass_header": "Horarios de Misa",
         "schedule_confession_header": "Confesiones",
