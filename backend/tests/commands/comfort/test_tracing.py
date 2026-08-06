@@ -10,8 +10,10 @@ from commands.comfort import tracing
 
 
 class TestTracedNoOp:
+    """tracing.client is forced to None for every test by the autouse
+    disable_comfort_tracing fixture in tests/conftest.py."""
+
     def test_yields_none_when_unconfigured(self) -> None:
-        assert tracing.client is None
         with tracing.traced("comfort.some_step") as span:
             assert span is None
 

@@ -39,6 +39,18 @@ def pin_default_language(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(config.settings, "default_language", "en")
 
 
+@pytest.fixture(autouse=True)
+def disable_comfort_tracing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Forces tracing off for every test, regardless of whether env vars
+    LANGFUSE_PUBLIC_KEY/LANGFUSE_SECRET_KEY are set; otherwise, every test running
+    comfort's retrieval.py would create real Langfuse traces.
+    """
+    from commands.comfort import tracing
+
+    monkeypatch.setattr(tracing, "client", None)
+
+
 @pytest.fixture()
 def client() -> TestClient:
     return TestClient(app)
