@@ -222,6 +222,12 @@ GROUP BY time_bucket
 ORDER BY count(*) DESC;
 ```
 
+## Anonymized `/comfort` retrieval performance tracing (optional)
+
+The retrieval pipeline (query translation, embedding, Qdrant search) can optionally be traced with [Langfuse](https://langfuse.com/docs) for latency/bottleneck analysis, using using `commands/comfort/tracing.py`'s `traced()` helper. If the keys (`LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY`) are not set, tracing is entirely disabled. This project doesn't run a Langfuse server itself so one must be deployed separately and point `LANGFUSE_BASE_URL` at it.
+
+**Only timing and structural metadata are ever traced:** model names, candidate counts, similarity scores, and which retrieval branch was taken (real match vs. Step G fallback). Traces will never include identifiable data, like the parishioner's message text, `telegram_user_id` or `session_id`. If adding a new traced step, please keep to that same rule: metadata only, not content or identifiers.
+
 ## Running tests
 
 ### Backend

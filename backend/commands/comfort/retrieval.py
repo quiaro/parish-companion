@@ -14,6 +14,7 @@ from qdrant_client.models import FieldCondition, Filter, MatchAny
 
 from commands.comfort.constants import FALLBACK_EMOTIONAL_TAGS
 from commands.comfort.models import ClassificationResult
+from commands.comfort.tracing import traced
 from config import settings
 from db.parishioners import get_recent_sent_passages
 
@@ -47,14 +48,15 @@ async def _translate_to_english(text: str) -> str:
     relying on a multilingual embedding model's cross-lingual alignment. Classification
     works directly on the original text so (Step B) is unaffected by this.
     """
-    completion = await client.chat.completions.create(
-        model=settings.openrouter_chat_model,
-        messages=[
-            {"role": "system", "content": _TRANSLATION_SYSTEM_PROMPT},
-            {"role": "user", "content": text},
-        ],
-        timeout=30.0,
-    )
+    with traced("comfort.translate_to_english", as_type="generation", model=settings.openrouter_chat_model):
+        completion = await client.chat.completions.create(
+            model=settings.openrouter_chat_model,
+            messages=[
+                {"role": "system", "content": _TRANSLATION_SYSTEM_PROMPT},
+                {"role": "user", "content": text},
+            ],
+            timeout=30.0,
+        )
     content = completion.choices[0].message.content
     if content is None:
         raise ValueError("Translation call returned no content")
@@ -62,13 +64,14 @@ async def _translate_to_english(text: str) -> str:
 
 
 async def _embed(text: str) -> list[float]:
-    response = await client.embeddings.create(
-        model=settings.openrouter_embedding_model,
-        input=text,
-        # Explicit, since the openai SDK otherwise defaults to requesting base64
-        # encoding, which this OpenRouter-proxied model doesn't handle correctly.
-        encoding_format="float",
-    )
+    with traced("comfort.embed", as_type="generation", model=settings.openrouter_embedding_model):
+        response = await client.embeddings.create(
+            model=settings.openrouter_embedding_model,
+            input=text,
+            # Explicit, since the openai SDK otherwise defaults to requesting base64
+            # encoding, which this OpenRouter-proxied model doesn't handle correctly.
+            encoding_format="float",
+        )
     return response.data[0].embedding
 
 
@@ -95,19 +98,17 @@ def _log_if_tag_mismatch(reference: str, payload: dict, classification: Classifi
 
 async def _random_fallback_passage() -> RetrievedPassage:
     """
-    Step G: no relevant match was found. Rather than force a bad match or re-send a
-    previously-sent passage — which could be irrelevant to what the parishioner just shared —
-    a random encouraging verse is presented instead. Deliberately not filtered against the
-    parishioner's sent history. Allowing a repeat here (though, unlikely) is an acceptable 
-    simplification, unlike the real-match path above.
+    Step G: no relevant match was found. Rather than force a bad match, a random encouraging verse is presented instead, deliberately not filtered against the
+    parishioner's sent history. Allowing a repeat here (though, unlikely) is an acceptable simplification, unlike the real-match path above.
     """
     tag_values = [t.value for t in FALLBACK_EMOTIONAL_TAGS]
-    points, _ = await qdrant.scroll(
-        collection_name=settings.qdrant_collection_name,
-        scroll_filter=Filter(must=[FieldCondition(key="emotional_tags", match=MatchAny(any=tag_values))]),
-        limit=1000,
-        with_payload=True,
-    )
+    with traced("comfort.qdrant_scroll_fallback_pool"):
+        points, _ = await qdrant.scroll(
+            collection_name=settings.qdrant_collection_name,
+            scroll_filter=Filter(must=[FieldCondition(key="emotional_tags", match=MatchAny(any=tag_values))]),
+            limit=1000,
+            with_payload=True,
+        )
     if not points:
         raise RuntimeError(
             f"No verses tagged with any of {tag_values} found in Qdrant collection "
@@ -133,26 +134,53 @@ async def retrieve_passage(
     higher either, so it goes straight to the Step G fallback. A recently-sent hit 
     just advances `j`.
     """
-    recent_sent = await asyncio.to_thread(get_recent_sent_passages, telegram_user_id)
-    recently_sent_references = {p.passage_reference for p in recent_sent}
+    with traced("comfort.retrieve_passage") as span:
+        recent_sent = await asyncio.to_thread(get_recent_sent_passages, telegram_user_id)
+        recently_sent_references = {p.passage_reference for p in recent_sent}
 
-    text_to_embed = await _translate_to_english(text) if language != "en" else text
-    vector = await _embed(text_to_embed)
-    response = await qdrant.query_points(
-        collection_name=settings.qdrant_collection_name, query=vector, limit=_MAX_K, with_payload=True
-    )
-    for candidate in response.points:
-        if candidate.score < settings.comfort_similarity_threshold:
-            return await _random_fallback_passage()
-        payload = _require_payload(candidate)
-        reference = payload["reference"]
-        if reference not in recently_sent_references:
-            _log_if_tag_mismatch(reference, payload, classification)
-            return RetrievedPassage(
-                reference=reference,
-                verse_text=payload["verse_text"],
-                verse_text_es=payload["verse_text_es"],
-                is_fallback=False,
+        text_to_embed = await _translate_to_english(text) if language != "en" else text
+        vector = await _embed(text_to_embed)
+
+        with traced("comfort.qdrant_query_points", k=_MAX_K):
+            response = await qdrant.query_points(
+                collection_name=settings.qdrant_collection_name, query=vector, limit=_MAX_K, with_payload=True
             )
 
-    return await _random_fallback_passage()
+        for checked, candidate in enumerate(response.points, start=1):
+            if candidate.score < settings.comfort_similarity_threshold:
+                if span:
+                    span.update(
+                        metadata={
+                            "outcome": "candidate_below_threshold", 
+                            "candidates_checked": checked
+                        }
+                    )
+                return await _random_fallback_passage()
+            
+            payload = _require_payload(candidate)
+            reference = payload["reference"]
+            if reference not in recently_sent_references:
+                _log_if_tag_mismatch(reference, payload, classification)
+                if span:
+                    span.update(
+                        metadata={
+                            "outcome": "match",
+                            "candidates_checked": checked,
+                            "similarity_score": candidate.score,
+                        }
+                    )
+                return RetrievedPassage(
+                    reference=reference,
+                    verse_text=payload["verse_text"],
+                    verse_text_es=payload["verse_text_es"],
+                    is_fallback=False,
+                )
+
+        if span:
+            span.update(
+                metadata={
+                    "outcome": "candidates_exhausted", 
+                    "candidates_checked": len(response.points)
+                }
+            )
+        return await _random_fallback_passage()

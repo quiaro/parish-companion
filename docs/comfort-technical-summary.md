@@ -57,8 +57,6 @@ The parishioner's message may be in any language (`/comfort` → English, `/cons
 - One or more emotional tags (inferred from the text)
 - Zero or more situational tags
 
-This is deliberately **one call, not two**. Crisis detection and emotional/situational classification are coupled in a single structured response so that no separate "classify the emotion" pathway can run independently of the safety check.
-
 ### Step C — Notification deduplication check
 
 Before any notification-triggering logic runs, the bot checks whether a parish notification has already been sent for this parishioner within the past `COMFORT_NOTIFICATION_DEDUP_WINDOW_HOURS` hours (rolling window):
@@ -73,7 +71,7 @@ If `is_crisis` is true:
 - The bot does **not** retrieve or send a verse immediately.
 - The parishioner is told the situation warrants support from a priest, in pastoral, non-alarming language.
 - An urgent notification is sent to the parish for follow-up.
-- A single **Continue** button is presented to the parishioner. If tapped, the flow proceeds to Step F using the classification output already obtained in Step B. If not tapped, no retrieval or framing occurs.
+- A single **Continue** button is presented to the parishioner. The flow proceeds to Step F until the button is tapped, using the classification output already obtained in Step B.
 
 Emotional and situational tags are populated regardless of `is_crisis`, for logging purposes (see Section 4), but the retrieval function is never invoked unless the parishioner explicitly continues.
 
@@ -160,12 +158,11 @@ Passages are removed from a parishioner's sent-history after 2 weeks, which is w
 
 ---
 
-## 4. Logging
+## 4. Logging (anonymized)
 
-Two structurally separate logging paths, kept decoupled so identifiable data never leaks into aggregate stats:
+A. **Aggregate stats:** every classified message (crisis or not) is recorded to the `comfort_aggregate_stats` table as `(is_crisis, emotional_tags, situational_tags, time_bucket)`, with `time_bucket` being one of `dawn`, `morning`, `afternoon`, `evening`, `night` (per the parish's local time, `LOCAL_TIMEZONE`). No parishioner identifier or precise timestamp are included so a row can never be correlated back to a specific request via server/webhook access logs. Recording is best-effort and happens once per successful `classify()` call i.e. not repeated on "View another passage". The goal of this data is to: 1- understand what emotional language tends to co-occur with crisis flags, 2- identify emotional and situational vocabulary gaps and 3- recognize usage patterns for parish staffing purposes. No dedicated reporting tool exists yet (TODO); see `DEVELOPMENT.md`'s for an example `psql` query.
 
-- **Crisis escalation (identifiable):** the parish notification on crisis detection necessarily includes the parishioner's identity, so a priest can follow up. This is a distinct code path from stats logging below.
-- **Aggregate stats (anonymized):** every classified message (crisis or not) is recorded to the `comfort_aggregate_stats` table as `(is_crisis, emotional_tags, situational_tags, time_bucket)`, with `time_bucket` one of `dawn`, `morning`, `afternoon`, `evening`, `night` (per the parish's local time, `LOCAL_TIMEZONE`). No parishioner identifier or precise timestamp are included: only the coarse bucket is stored, so a row can never be correlated back to a specific request via server/webhook access logs. Recording is best-effort and happens once per successful `classify()` call, not repeated on "View another passage". The use of this data is: 1- understanding what emotional language tends to co-occur with crisis flags, 2- identifying emotional and situational vocabulary gaps and 3- recognizing usage patterns for parish staffing purposes. No dedicated reporting tool exists yet (TODO); see `DEVELOPMENT.md`'s for an example `psql` query.
+B. **Performance tracing:** The retrieval pipeline can optionally be traced via [Langfuse](https://langfuse.com/docs) for latency/bottleneck analysis. Spans cover: the translation call, the embedding call, the Qdrant `query_points` call, and the overall retrieval outcome (plus how many candidates were checked and the winning similarity score). The parishioner's message text, the classification tags, `telegram_user_id`, or `session_id` are deliberately not traced, so there's no path by which a Langfuse trace could reconstruct what a parishioner wrote or who they are.
 
 ---
 

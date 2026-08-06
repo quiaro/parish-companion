@@ -66,6 +66,10 @@ class Settings(BaseSettings):
     qdrant_url: str = "http://qdrant:6333"
     qdrant_collection_name: str = "bible_verses"
 
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    langfuse_base_url: str = ""
+
 
 settings = Settings()  # type: ignore[call-arg]
 
