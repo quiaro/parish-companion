@@ -173,6 +173,83 @@ CONTACT_REQUEST_TYPES_ES=["Hablar con un sacerdote", "Cita con director espiritu
 | --------------- | -------- | ----------------------------------------------------------------------------------------------- |
 | `CONTACT_PHONE` | _(none)_ | Parish phone number. If set, shown to parishioners in the rare event that email delivery fails. |
 
+## Scripture encouragement (/comfort)
+
+The `/comfort` command (and its Spanish equivalent `/consolar`) lets a parishioner share what they're going through in their own words and receive a Bible verse from your parish's curated list, along with a brief reflection.
+
+### What parishioners experience
+
+1. Parishioners type `/comfort` or `/consolar`. On first use, the bot explains the feature and its privacy stance.
+2. Parishioners send a free-text message (up to 2,000 characters) describing how they feel or what they're going through.
+3. In most cases, the bot replies directly with a relevant verse and a short reflection, along with buttons to view another passage or exit.
+4. Two built-in safety behaviors can interrupt that flow:
+   - If the message describes self-harm, suicidal ideation, sexual abuse, or physical violence, the bot tells the parishioner a priest will reach out and a notification is sent to the parish.
+   - If a parishioner has been messaging frequently and their recent messages match a high-risk emotional pattern, the bot offers to have someone from the parish reach out (**Yes**/**No**) before continuing.
+
+Both safety notifications reuse the same `CONTACT_EMAIL_RECIPIENTS`/SMTP configuration as `/contact` (see [Email delivery](#email-delivery) above) — if that isn't configured, these alerts fail silently, so make sure it's set even if you don't plan to offer `/contact` itself.
+
+### Setting up /comfort
+
+1. **Run database migrations.**
+
+   ```bash
+   docker compose exec backend alembic upgrade head
+   ```
+
+   Run this once after first bringing up the stack, and again after pulling any update that adds a new file under `backend/alembic/versions/`.
+
+2. **Populate the verse bank.** The repo ships with a pre-curated set of verses tagged for emotional/situational matching, stored in `data/bible_OEB_verses.csv` and loaded into a Qdrant vector store:
+
+   ```bash
+   docker compose exec backend python -m scripts.ingest_verses
+   ```
+
+   This is enough to run `/comfort` out of the box, no further action required unless you want to customize the verse selection.
+
+### Customizing the verse bank (optional)
+
+`data/bible_OEB_verses.csv` has six columns:
+
+| Column                   | Description                                                                                        |
+| ------------------------ | -------------------------------------------------------------------------------------------------- |
+| `verse`                  | The verse text (English - Open English Bible (OEB))                                                |
+| `verse_es`               | A curated Spanish translation (Santa Biblia libre Latinoamericano) — not machine-translated        |
+| `reference`              | Book, chapter, and verse, e.g. `Psalm 23:4`                                                        |
+| `emotional_tags`         | JSON array of tags from [`docs/emotional-tags-reference.md`](docs/emotional-tags-reference.md)     |
+| `situational_tags`       | JSON array of tags from [`docs/situational-tags-reference.md`](docs/situational-tags-reference.md) |
+| `example_user_phrasings` | JSON array of sample things a parishioner might say that this verse should match                   |
+
+Edit the CSV — or point the ingestion script at a different file (`docker compose exec backend python -m scripts.ingest_verses path/to/your.csv`) — and re-run the ingestion command above. It's idempotent: re-running only updates the rows you changed rather than duplicating the collection. Tags must come from the fixed vocabularies in the two reference docs linked above; any other value is rejected at ingestion time.
+
+### Configuration
+
+#### Language model & embeddings
+
+| Variable                     | Default      | Description                                                                                    |
+| ---------------------------- | ------------ | ---------------------------------------------------------------------------------------------- |
+| `OPENROUTER_API_KEY`         | _(required)_ | Key from [openrouter.ai/keys](https://openrouter.ai/keys)                                      |
+| `OPENROUTER_CHAT_MODEL`      | _(required)_ | Model used for classification, translation, and reflection, e.g. `anthropic/claude-sonnet-4.6` |
+| `OPENROUTER_EMBEDDING_MODEL` | _(required)_ | Model used to embed messages for verse matching, e.g. `openai/text-embedding-3-small`          |
+
+#### Behavior tuning
+
+| Variable                                  | Default | Description                                                                                               |
+| ----------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------- |
+| `COMFORT_SIMILARITY_THRESHOLD`            | `0.2`   | Minimum match quality for a verse to be considered relevant; below this, a fallback verse is used instead |
+| `COMFORT_NOTIFICATION_DEDUP_WINDOW_HOURS` | `24`    | Minimum time between safety notifications to your staff for the same parishioner                          |
+| `COMFORT_FREQUENCY_WINDOW_HOURS`          | `24`    | Rolling window used to detect frequent messaging for the pastoral outreach offer                          |
+| `COMFORT_ESCALATION_PASSAGE_THRESHOLD`    | `10`    | Number of passages sent within the frequency window that triggers the pastoral outreach offer             |
+
+#### Performance tracing (optional)
+
+`/comfort` can optionally be traced with [Langfuse](https://langfuse.com/docs) for latency and cost analysis. This project doesn't run a Langfuse server itself, so one must be deployed separately. Only timing/metadata is ever traced, never message content or parishioner identifiers — see [DEVELOPMENT.md](DEVELOPMENT.md) for exactly what's captured.
+
+| Variable              | Default  | Description                                                         |
+| --------------------- | -------- | ------------------------------------------------------------------- |
+| `LANGFUSE_PUBLIC_KEY` | _(none)_ | Leave unset (along with the secret key) to disable tracing entirely |
+| `LANGFUSE_SECRET_KEY` | _(none)_ | —                                                                   |
+| `LANGFUSE_BASE_URL`   | _(none)_ | URL of your Langfuse instance                                       |
+
 ## Database & backups
 
 Parish Companion stores per-parishioner state (used by features like `/comfort`) in Postgres, which runs as part of the Docker Compose stack alongside the bot and Redis.
@@ -211,16 +288,16 @@ A dedicated `backup` service runs `pg_dump` once daily and uploads the result to
 
 ### Configuration
 
-| Variable                | Default       | Description                                                          |
-| ------------------------ | ------------- | ---------------------------------------------------------------------- |
-| `POSTGRES_USER`          | _(required)_  | Postgres username                                                       |
-| `POSTGRES_PASSWORD`      | _(required)_  | Postgres password                                                       |
-| `POSTGRES_DB`             | _(required)_  | Postgres database name                                                  |
-| `DATABASE_URL`            | _(required)_  | SQLAlchemy connection string, e.g. `postgresql+psycopg://user:pass@postgres:5432/db` |
-| `AWS_ACCESS_KEY_ID`       | _(required)_  | AWS credential used to upload backups to S3                            |
-| `AWS_SECRET_ACCESS_KEY`   | _(required)_  | AWS credential used to upload backups to S3                            |
-| `AWS_DEFAULT_REGION`      | _(required)_  | AWS region of the backup bucket                                         |
-| `BACKUP_S3_BUCKET`        | _(required)_  | Name of the S3 Standard bucket backups are uploaded to                 |
+| Variable                | Default      | Description                                                                          |
+| ----------------------- | ------------ | ------------------------------------------------------------------------------------ |
+| `POSTGRES_USER`         | _(required)_ | Postgres username                                                                    |
+| `POSTGRES_PASSWORD`     | _(required)_ | Postgres password                                                                    |
+| `POSTGRES_DB`           | _(required)_ | Postgres database name                                                               |
+| `DATABASE_URL`          | _(required)_ | SQLAlchemy connection string, e.g. `postgresql+psycopg://user:pass@postgres:5432/db` |
+| `AWS_ACCESS_KEY_ID`     | _(required)_ | AWS credential used to upload backups to S3                                          |
+| `AWS_SECRET_ACCESS_KEY` | _(required)_ | AWS credential used to upload backups to S3                                          |
+| `AWS_DEFAULT_REGION`    | _(required)_ | AWS region of the backup bucket                                                      |
+| `BACKUP_S3_BUCKET`      | _(required)_ | Name of the S3 Standard bucket backups are uploaded to                               |
 
 Postgres is not exposed on a public port — it's only reachable from the bot's and backup job's containers, over Docker's internal network.
 
