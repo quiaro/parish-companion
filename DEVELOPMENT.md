@@ -230,6 +230,8 @@ LLM calls are traced via Langfuse's official OpenAI SDK integration (`langfuse.o
 
 **Content is never traced, only metadata.** The OpenAI integration auto-captures full prompt/completion text as `input`/`output` by default, which would put parishioners' raw messages into Langfuse. To avoid this, `tracing.py`'s `_mask` function at the client level implements a fail-closed allow-list - a flat dict of known-safe keys (`_ALLOWED_METADATA_KEYS`). Any string or any other unexpected shape not found in the allow-list is redacted, with the exception of model name, token usage, and cost, which bypass masking entirely (Langfuse doesn't route them through `mask`). Remember: If adding a new traced `metadata=` key, add it to `_ALLOWED_METADATA_KEYS` first.
 
+**Related traces are grouped into a Langfuse session per request, not per parishioner.** `flow.py` mints a fresh, random UUID (`langfuse_session_id`) once per free-text submission and threads it through classify, retrieval, and framing via `tracing.py`'s `traced_session()` helper, so one parishioner request's traces show up together in the Langfuse UI even across the crisis/escalation button round-trip and "View another passage.".
+
 ## Running tests
 
 ### Backend

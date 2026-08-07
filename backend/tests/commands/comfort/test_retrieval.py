@@ -93,7 +93,7 @@ class TestTopMatch:
         query_points_mock.return_value = SimpleNamespace(
             points=[_point("Psalm 23:4", 0.9), _point("Romans 5:3-5", 0.8)]
         )
-        passage = await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT)
+        passage = await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT, "test-session")
 
         assert passage.reference == "Psalm 23:4"
         assert passage.is_fallback is False
@@ -104,7 +104,7 @@ class TestTopMatch:
     @pytest.mark.asyncio
     async def test_embeds_the_raw_text_directly(self, recent_passages_mock, query_points_mock, embed_mock) -> None:
         query_points_mock.return_value = SimpleNamespace(points=[_point("Psalm 23:4", 0.9)])
-        await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT)
+        await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT, "test-session")
         embed_mock.assert_awaited_once_with("I'm scared")
 
 
@@ -117,7 +117,7 @@ class TestRecencyExclusion:
         query_points_mock.return_value = SimpleNamespace(
             points=[_point("Psalm 23:4", 0.9), _point("Romans 5:3-5", 0.8)]
         )
-        passage = await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT)
+        passage = await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT, "test-session")
 
         assert passage.reference == "Romans 5:3-5"
         assert passage.is_fallback is False
@@ -136,7 +136,7 @@ class TestBelowThreshold:
         )
         scroll_mock.return_value = ([_point("Philippians 4:13", 1.0)], None)
 
-        passage = await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT)
+        passage = await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT, "test-session")
 
         assert passage.is_fallback is True
         query_points_mock.assert_awaited_once()
@@ -148,7 +148,7 @@ class TestBelowThreshold:
         query_points_mock.return_value = SimpleNamespace(points=[_point("Psalm 23:4", 0.5)])
         scroll_mock.return_value = ([_point("Philippians 4:13", 1.0)], None)
 
-        passage = await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT)
+        passage = await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT, "test-session")
 
         assert passage.reference == "Philippians 4:13"
         assert passage.is_fallback is True
@@ -166,7 +166,7 @@ class TestSingleQuery:
         points = [_point(f"R{i}", 0.9 - i * 0.01) for i in range(10)] + [_point("New Verse 1:1", 0.79)]
         query_points_mock.return_value = SimpleNamespace(points=points)
 
-        passage = await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT)
+        passage = await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT, "test-session")
 
         assert passage.reference == "New Verse 1:1"
         assert passage.is_fallback is False
@@ -184,7 +184,7 @@ class TestSingleQuery:
         )
         scroll_mock.return_value = ([_point("Philippians 4:13", 1.0)], None)
 
-        passage = await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT)
+        passage = await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT, "test-session")
 
         assert passage.is_fallback is True
         query_points_mock.assert_awaited_once()
@@ -200,7 +200,7 @@ class TestTagMismatchLogging:
         )
         result = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.GRIEF])
         with caplog.at_level("WARNING"):
-            await retrieval.retrieve_passage(_UID, "I'm grieving", result)
+            await retrieval.retrieve_passage(_UID, "I'm grieving", result, "test-session")
         assert any("shares no tags" in message for message in caplog.messages)
 
     @pytest.mark.asyncio
@@ -210,7 +210,7 @@ class TestTagMismatchLogging:
         )
         result = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.GRIEF])
         with caplog.at_level("WARNING"):
-            await retrieval.retrieve_passage(_UID, "I'm grieving", result)
+            await retrieval.retrieve_passage(_UID, "I'm grieving", result, "test-session")
         assert not any("shares no tags" in message for message in caplog.messages)
 
     @pytest.mark.asyncio
@@ -221,7 +221,7 @@ class TestTagMismatchLogging:
             points=[_point("Psalm 23:4", 0.9, emotional_tags=["joy"])]
         )
         with caplog.at_level("WARNING"):
-            await retrieval.retrieve_passage(_UID, "hello", _NO_TAGS_RESULT)
+            await retrieval.retrieve_passage(_UID, "hello", _NO_TAGS_RESULT, "test-session")
         assert not any("shares no tags" in message for message in caplog.messages)
 
 
@@ -233,7 +233,7 @@ class TestFallbackPassage:
         query_points_mock.return_value = SimpleNamespace(points=[_point("Psalm 23:4", 0.1)])
         scroll_mock.return_value = ([_point("Philippians 4:13", 1.0)], None)
 
-        await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT)
+        await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT, "test-session")
 
         scroll_mock.assert_awaited_once()
         call_kwargs = scroll_mock.await_args.kwargs
@@ -251,7 +251,7 @@ class TestFallbackPassage:
         query_points_mock.return_value = SimpleNamespace(points=[_point("Psalm 23:4", 0.1)])
         scroll_mock.return_value = ([_point("Philippians 4:13", 1.0)], None)
 
-        passage = await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT)
+        passage = await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT, "test-session")
 
         assert passage.reference == "Philippians 4:13"
         assert passage.is_fallback is True
@@ -264,7 +264,7 @@ class TestFallbackPassage:
         scroll_mock.return_value = ([], None)
 
         with pytest.raises(RuntimeError, match="fallback pool must never be empty"):
-            await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT)
+            await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT, "test-session")
 
 
 class TestQueryTranslation:
@@ -276,7 +276,7 @@ class TestQueryTranslation:
         self, recent_passages_mock, query_points_mock, embed_mock, translate_mock
     ) -> None:
         query_points_mock.return_value = SimpleNamespace(points=[_point("Psalm 23:4", 0.9)])
-        await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT, "en")
+        await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT, "test-session", "en")
 
         translate_mock.assert_not_called()
         embed_mock.assert_awaited_once_with("I'm scared")
@@ -286,7 +286,7 @@ class TestQueryTranslation:
         self, recent_passages_mock, query_points_mock, embed_mock, translate_mock
     ) -> None:
         query_points_mock.return_value = SimpleNamespace(points=[_point("Psalm 23:4", 0.9)])
-        await retrieval.retrieve_passage(_UID, "Tengo miedo", _NO_TAGS_RESULT, "es")
+        await retrieval.retrieve_passage(_UID, "Tengo miedo", _NO_TAGS_RESULT, "test-session", "es")
 
         translate_mock.assert_awaited_once_with("Tengo miedo")
         embed_mock.assert_awaited_once_with("translated text")
@@ -296,7 +296,7 @@ class TestQueryTranslation:
         self, recent_passages_mock, query_points_mock, embed_mock, translate_mock
     ) -> None:
         query_points_mock.return_value = SimpleNamespace(points=[_point("Psalm 23:4", 0.9)])
-        await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT)
+        await retrieval.retrieve_passage(_UID, "I'm scared", _NO_TAGS_RESULT, "test-session")
 
         translate_mock.assert_not_called()
         embed_mock.assert_awaited_once_with("I'm scared")

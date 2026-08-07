@@ -1,6 +1,7 @@
 """Tests for the /comfort flow — independent of the Telegram layer."""
 
 from datetime import datetime, timedelta, timezone
+from unittest.mock import ANY
 
 import pytest
 
@@ -166,7 +167,7 @@ class TestHandleText:
     ) -> None:
         await flow.start(_SESSION, _UID, "en")
         await flow.handle_text(_SESSION, "  I've been feeling anxious lately.  ")
-        classify_mock.assert_awaited_once_with("I've been feeling anxious lately.")
+        classify_mock.assert_awaited_once_with("I've been feeling anxious lately.", ANY)
 
     @pytest.mark.asyncio
     async def test_calls_retrieve_passage_with_stripped_text_and_classification(
@@ -176,7 +177,7 @@ class TestHandleText:
         await flow.start(_SESSION, _UID, "en")
         await flow.handle_text(_SESSION, "  I've been feeling anxious lately.  ")
         retrieve_passage_mock.assert_awaited_once_with(
-            _UID, "I've been feeling anxious lately.", classify_mock.return_value, "en"
+            _UID, "I've been feeling anxious lately.", classify_mock.return_value, ANY, "en"
         )
 
     @pytest.mark.asyncio
@@ -480,7 +481,7 @@ class TestHandleCallback:
         assert reply.text == _expected_verse_reply()
         classify_mock.assert_not_called()
         retrieve_passage_mock.assert_awaited_once_with(
-            _UID, "I don't want to be here anymore.", ClassificationResult(is_crisis=True), "en"
+            _UID, "I don't want to be here anymore.", ClassificationResult(is_crisis=True), ANY, "en"
         )
 
     @pytest.mark.asyncio
@@ -709,6 +710,70 @@ class TestFraming:
         )
 
 
+class TestLangfuseSessionGrouping:
+    """A fresh, random langfuse_session_id is minted once per free-text submission
+    (see flow.handle_text) and threaded through classify/retrieve_passage/frame_passage
+    so a single parishioner request's Langfuse traces group together, without linking
+    separate requests to each other."""
+
+    @pytest.mark.asyncio
+    async def test_classify_retrieve_and_frame_share_the_same_session_id(
+        self, db_mocks, flow_store, classify_mock, retrieve_passage_mock, frame_passage_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.HOPE])
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I've been feeling anxious lately.")
+
+        classify_session_id = classify_mock.call_args.args[1]
+        retrieve_session_id = retrieve_passage_mock.call_args.args[3]
+        frame_session_id = frame_passage_mock.call_args.args[3]
+        assert classify_session_id == retrieve_session_id == frame_session_id
+
+    @pytest.mark.asyncio
+    async def test_crisis_continue_reuses_the_session_id_from_classification(
+        self, db_mocks, flow_store, classify_mock, crisis_notification_mock, retrieve_passage_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=True)
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I don't want to be here anymore.")
+        classify_session_id = classify_mock.call_args.args[1]
+
+        await flow.handle_callback(_SESSION, "comfort_crisis_continue")
+
+        retrieve_session_id = retrieve_passage_mock.call_args.args[3]
+        assert retrieve_session_id == classify_session_id
+
+    @pytest.mark.asyncio
+    async def test_view_another_reuses_the_session_id_from_the_original_request(
+        self, db_mocks, flow_store, classify_mock, retrieve_passage_mock, frame_passage_mock
+    ) -> None:
+        classify_mock.return_value = ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.HOPE])
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I've been feeling anxious lately.")
+        first_session_id = retrieve_passage_mock.call_args.args[3]
+        retrieve_passage_mock.reset_mock()
+
+        await flow.handle_callback(_SESSION, "comfort_view_another")
+
+        second_session_id = retrieve_passage_mock.call_args.args[3]
+        assert second_session_id == first_session_id
+
+    @pytest.mark.asyncio
+    async def test_two_separate_submissions_get_different_session_ids(
+        self, db_mocks, flow_store, classify_mock
+    ) -> None:
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "I've been feeling anxious lately.")
+        first_session_id = classify_mock.call_args.args[1]
+        classify_mock.reset_mock()
+
+        await flow.start(_SESSION, _UID, "en")
+        await flow.handle_text(_SESSION, "A completely different message.")
+        second_session_id = classify_mock.call_args.args[1]
+
+        assert first_session_id != second_session_id
+
+
 class TestExit:
     """K-09 (Exit button): tapping Exit ends the flow like /help; free text while
     awaiting the tap is silently ignored, same as any other pending-button step."""
@@ -779,7 +844,7 @@ class TestViewAnotherPassage:
         assert reply is not None
         classify_mock.assert_not_called()
         retrieve_passage_mock.assert_awaited_once_with(
-            _UID, "I've been feeling anxious lately.", ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.HOPE]), "en"
+            _UID, "I've been feeling anxious lately.", ClassificationResult(is_crisis=False, emotional_tags=[EmotionalTag.HOPE]), ANY, "en"
         )
 
     @pytest.mark.asyncio

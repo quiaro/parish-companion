@@ -44,7 +44,7 @@ class TestClassify:
             monkeypatch,
             {"is_crisis": True, "emotional_tags": ["despair", "hopelessness"], "situational_tags": ["bereavement"]},
         )
-        result = await classifier.classify("I don't want to be here anymore after losing him.")
+        result = await classifier.classify("I don't want to be here anymore after losing him.", "test-session")
 
         assert result.is_crisis is True
         assert result.emotional_tags == [EmotionalTag.DESPAIR, EmotionalTag.HOPELESSNESS]
@@ -56,7 +56,7 @@ class TestClassify:
             monkeypatch,
             {"is_crisis": False, "emotional_tags": ["joy", "gratitude"], "situational_tags": []},
         )
-        result = await classifier.classify("Today was such a good day, I'm so thankful.")
+        result = await classifier.classify("Today was such a good day, I'm so thankful.", "test-session")
 
         assert result.is_crisis is False
         assert result.emotional_tags == [EmotionalTag.JOY, EmotionalTag.GRATITUDE]
@@ -65,7 +65,7 @@ class TestClassify:
     @pytest.mark.asyncio
     async def test_ambiguous_message_returns_empty_emotional_tags_without_error(self, monkeypatch) -> None:
         _mock_llm_response(monkeypatch, {"is_crisis": False, "emotional_tags": [], "situational_tags": []})
-        result = await classifier.classify("ok")
+        result = await classifier.classify("ok", "test-session")
 
         assert result.is_crisis is False
         assert result.emotional_tags == []
@@ -81,7 +81,7 @@ class TestClassify:
                 "situational_tags": ["job_loss", "not_a_real_situation"],
             },
         )
-        result = await classifier.classify("A mixed message.")
+        result = await classifier.classify("A mixed message.", "test-session")
 
         assert result.emotional_tags == [EmotionalTag.JOY]
         assert result.situational_tags == [SituationalTag.JOB_LOSS]
@@ -91,7 +91,7 @@ class TestClassify:
         _mock_llm_response(monkeypatch, {"emotional_tags": [], "situational_tags": []})
 
         with pytest.raises(KeyError):
-            await classifier.classify("Some text.")
+            await classifier.classify("Some text.", "test-session")
 
     def test_classification_result_structurally_requires_is_crisis(self) -> None:
         # No path can construct a result without is_crisis — it's a required positional
@@ -107,7 +107,7 @@ class TestClassify:
             monkeypatch,
             {"is_crisis": False, "emotional_tags": ["grief", "sadness"], "situational_tags": ["bereavement"]},
         )
-        result = await classifier.classify("Perdí a mi mamá y no sé cómo seguir adelante.")
+        result = await classifier.classify("Perdí a mi mamá y no sé cómo seguir adelante.", "test-session")
 
         assert result.is_crisis is False
         assert result.emotional_tags == [EmotionalTag.GRIEF, EmotionalTag.SADNESS]
@@ -117,7 +117,7 @@ class TestClassify:
     async def test_system_prompt_instructs_multilingual_classification(self, monkeypatch) -> None:
         mock = AsyncMock(return_value=_FakeCompletion(json.dumps({"is_crisis": False})))
         monkeypatch.setattr(classifier.client.chat.completions, "create", mock)
-        await classifier.classify("Some text.")
+        await classifier.classify("Some text.", "test-session")
 
         _, kwargs = mock.call_args
         system_message = next(m["content"] for m in kwargs["messages"] if m["role"] == "system")

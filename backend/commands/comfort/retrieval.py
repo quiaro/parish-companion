@@ -14,7 +14,7 @@ from qdrant_client.models import FieldCondition, Filter, MatchAny
 
 from commands.comfort.constants import FALLBACK_EMOTIONAL_TAGS
 from commands.comfort.models import ClassificationResult
-from commands.comfort.tracing import traced
+from commands.comfort.tracing import traced, traced_session
 from config import settings
 from db.parishioners import get_recent_sent_passages
 
@@ -125,16 +125,16 @@ async def _random_fallback_passage() -> RetrievedPassage:
 
 
 async def retrieve_passage(
-    telegram_user_id: int, text: str, classification: ClassificationResult, language: str = "en"
+    telegram_user_id: int, text: str, classification: ClassificationResult, session_id: str, language: str = "en"
 ) -> RetrievedPassage:
     """
     Step F: embeds the parishioner's raw text (translated to English first if `language`
-    isn't English), then walks Qdrant's similarity-sorted top-`_MAX_K` results with a 
-    `j`-pointer. A below-threshold hit means nothing later in the batch could score 
-    higher either, so it goes straight to the Step G fallback. A recently-sent hit 
+    isn't English), then walks Qdrant's similarity-sorted top-`_MAX_K` results with a
+    `j`-pointer. A below-threshold hit means nothing later in the batch could score
+    higher either, so it goes straight to the Step G fallback. A recently-sent hit
     just advances `j`.
     """
-    with traced("comfort.retrieve_passage") as span:
+    with traced_session(session_id), traced("comfort.retrieve_passage") as span:
         recent_sent = await asyncio.to_thread(get_recent_sent_passages, telegram_user_id)
         recently_sent_references = {p.passage_reference for p in recent_sent}
 

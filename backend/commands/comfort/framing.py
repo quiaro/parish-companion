@@ -3,6 +3,7 @@ already selected by K-07's retrieve_passage."""
 
 from langfuse.openai import AsyncOpenAI  # type: ignore[reportPrivateImportUsage]
 
+from commands.comfort.tracing import traced_session
 from config import settings
 
 client = AsyncOpenAI(base_url=settings.openrouter_base_url, api_key=settings.openrouter_api_key)
@@ -20,7 +21,7 @@ _SYSTEM_PROMPT = (
 )
 
 
-async def frame_passage(raw_text: str, reference: str, verse_text: str, language: str = "en") -> str:
+async def frame_passage(raw_text: str, reference: str, verse_text: str, session_id: str, language: str = "en") -> str:
     """
     One LLM call, no re-classification: receives the parishioner's message and the verse
     already chosen by retrieval, and returns a short reflection. Never called on the Step
@@ -34,15 +35,16 @@ async def frame_passage(raw_text: str, reference: str, verse_text: str, language
         f"Selected verse ({reference}): {verse_text}\n\n"
         f"Write the reflection in {language_name}."
     )
-    completion = await client.chat.completions.create(
-        model=settings.openrouter_chat_model,
-        messages=[
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": user_message},
-        ],
-        timeout=30.0,
-        name="comfort.frame_passage",  # type: ignore[call-overload]  # Langfuse-injected kwarg, stripped before the real API call
-    )
+    with traced_session(session_id):
+        completion = await client.chat.completions.create(
+            model=settings.openrouter_chat_model,
+            messages=[
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user", "content": user_message},
+            ],
+            timeout=30.0,
+            name="comfort.frame_passage",  # type: ignore[call-overload]  # Langfuse-injected kwarg, stripped before the real API call
+        )
     content = completion.choices[0].message.content
     if content is None:
         raise ValueError("Framing call returned no content")

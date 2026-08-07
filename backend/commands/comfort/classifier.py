@@ -6,6 +6,7 @@ from typing import TypeVar
 from langfuse.openai import AsyncOpenAI  # type: ignore[reportPrivateImportUsage]
 
 from commands.comfort.models import ClassificationResult, EmotionalTag, SituationalTag
+from commands.comfort.tracing import traced_session
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -49,22 +50,23 @@ def _parse_tags(raw_values: list, tag_enum: type[_TagEnum]) -> list[_TagEnum]:
     return tags
 
 
-async def classify(text: str) -> ClassificationResult:
+async def classify(text: str, session_id: str) -> ClassificationResult:
     """
     Makes exactly one LLM call returning is_crisis, emotional_tags, and situational_tags
     together. Raises on API failure or a response that can't be parsed at all;
     tags with unrecognized values are dropped individually rather than failing the whole call.
     """
-    completion = await client.chat.completions.create(
-        model=settings.openrouter_chat_model,
-        messages=[
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": text},
-        ],
-        response_format={"type": "json_object"},
-        timeout=30.0,
-        name="comfort.classify",  # type: ignore[call-overload]  # Langfuse-injected kwarg, stripped before the real API call
-    )
+    with traced_session(session_id):
+        completion = await client.chat.completions.create(
+            model=settings.openrouter_chat_model,
+            messages=[
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user", "content": text},
+            ],
+            response_format={"type": "json_object"},
+            timeout=30.0,
+            name="comfort.classify",  # type: ignore[call-overload]  # Langfuse-injected kwarg, stripped before the real API call
+        )
     content = completion.choices[0].message.content
     if content is None:
         raise ValueError("Classifier returned no content")

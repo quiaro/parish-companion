@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from redis.asyncio import Redis
@@ -112,14 +113,23 @@ def _deserialize_classification(data: dict) -> ClassificationResult:
 
 
 async def _complete_with_retrieval(
-    session_id: str, telegram_user_id: int, language: str, raw_text: str, result: ClassificationResult
+    session_id: str,
+    telegram_user_id: int,
+    language: str,
+    raw_text: str,
+    result: ClassificationResult,
+    langfuse_session_id: str,
 ) -> FlowReply:
     """Step F/G/H: retrieves a passage and frames it (skipped entirely on the Step G
     fallback path). This is the terminal step of every path once notification gating
-    is resolved. Flow state is kept alive (not cleared) so passage is recorded once 
-    the send is confirmed. "View another passage" restarts retrieval without reclassifying, 
-    "Exit" finally clears the flow state."""
-    passage = await retrieve_passage(telegram_user_id, raw_text, result, language)
+    is resolved. Flow state is kept alive (not cleared) so passage is recorded once
+    the send is confirmed. "View another passage" restarts retrieval without reclassifying,
+    "Exit" finally clears the flow state.
+
+    `langfuse_session_id` is the same fresh, per-request Langfuse grouping token minted
+    when this message was first classified.
+    """
+    passage = await retrieve_passage(telegram_user_id, raw_text, result, langfuse_session_id, language)
     # Localized once — passage.reference itself stays English throughout (it's
     # the canonical key used for DB history and Qdrant point IDs). Only what's
     # shown to the parishioner is localized.
@@ -132,7 +142,9 @@ async def _complete_with_retrieval(
         )
     else:
         try:
-            framing = await frame_passage(raw_text, localized_reference, localized_verse_text, language)
+            framing = await frame_passage(
+                raw_text, localized_reference, localized_verse_text, langfuse_session_id, language
+            )
         except Exception as exc:
             # A framing failure shouldn't block the parishioner from getting the verse
             # itself — same "don't let an LLM hiccup block the reply" principle as classify().
@@ -154,6 +166,7 @@ async def _complete_with_retrieval(
             "raw_text": raw_text,
             "classification": _serialize_classification(result),
             "passage_reference": passage.reference,
+            "langfuse_session_id": langfuse_session_id,
         },
     )
     return FlowReply(
@@ -196,10 +209,16 @@ async def start(session_id: str, telegram_user_id: int, language: str = "en") ->
 
 
 async def _enter_crisis_gate(
-    session_id: str, telegram_user_id: int, language: str, raw_text: str, result: ClassificationResult
+    session_id: str,
+    telegram_user_id: int,
+    language: str,
+    raw_text: str,
+    result: ClassificationResult,
+    langfuse_session_id: str,
 ) -> FlowReply:
     """K-05: pastoral message + urgent parish notification, gated behind Continue
-    rather than sending a verse straight away."""
+    rather than sending a verse straight away. `langfuse_session_id` is carried through
+    state so it's still available once the parishioner taps Continue."""
     if await send_crisis_notification(telegram_user_id, language):
         # Only recorded on success — a failed send must not close the K-04 dedup window,
         # or the next crisis message within it would silently skip retrying the parish alert.
@@ -212,6 +231,7 @@ async def _enter_crisis_gate(
             "step": "awaiting_crisis_response",
             "raw_text": raw_text,
             "classification": _serialize_classification(result),
+            "langfuse_session_id": langfuse_session_id,
         },
     )
     return FlowReply(
@@ -221,11 +241,17 @@ async def _enter_crisis_gate(
 
 
 async def _enter_escalation_gate(
-    session_id: str, telegram_user_id: int, language: str, raw_text: str, result: ClassificationResult
+    session_id: str,
+    telegram_user_id: int,
+    language: str,
+    raw_text: str,
+    result: ClassificationResult,
+    langfuse_session_id: str,
 ) -> FlowReply:
     """K-06: unlike the crisis gate, no notification is sent yet here — only if the
     parishioner taps Yes. Asking first, rather than notifying unconditionally, is the
-    whole point of this being an offer rather than a hard escalation like K-05."""
+    whole point of this being an offer rather than a hard escalation like K-05.
+    `langfuse_session_id` is carried through state the same way as the crisis gate."""
     await _set_state(
         session_id,
         {
@@ -234,6 +260,7 @@ async def _enter_escalation_gate(
             "step": "awaiting_escalation_response",
             "raw_text": raw_text,
             "classification": _serialize_classification(result),
+            "langfuse_session_id": langfuse_session_id,
         },
     )
     return FlowReply(
@@ -263,8 +290,17 @@ async def handle_text(session_id: str, text: str) -> FlowReply | None:
     if len(stripped) > _MAX_INPUT_LENGTH:
         return FlowReply(text=get_string("comfort_input_too_long", language))
 
+    # Fresh, random, per-request Langfuse grouping token — never derived from
+    # telegram_user_id or the Redis flow `session_id` above. Minted once per 
+    # free-text submission and carried through flow state so every step of this
+    # request's workflow (classify, the crisis/escalation button round-trip, 
+    # retrieval, framing) groups under one Langfuse session. This means that 
+    # separate requests (even from the same parishioner) will not be linked 
+    # to each other.
+    langfuse_session_id = str(uuid.uuid4())
+
     try:
-        result = await classify(stripped)
+        result = await classify(stripped, langfuse_session_id)
     except Exception as exc:
         # No classification available at all, so retrieval can't run intelligently —
         # don't let a classifier failure block the parishioner from getting a reply.
@@ -285,16 +321,16 @@ async def handle_text(session_id: str, text: str) -> FlowReply | None:
 
     if not await _notification_dedup_passed(telegram_user_id):
         # K-04: Steps D and E skipped entirely; proceeds directly to Step F.
-        return await _complete_with_retrieval(session_id, telegram_user_id, language, stripped, result)
+        return await _complete_with_retrieval(session_id, telegram_user_id, language, stripped, result, langfuse_session_id)
 
     if result.is_crisis:
-        return await _enter_crisis_gate(session_id, telegram_user_id, language, stripped, result)
+        return await _enter_crisis_gate(session_id, telegram_user_id, language, stripped, result, langfuse_session_id)
 
     if await _should_escalate(telegram_user_id, result):
-        return await _enter_escalation_gate(session_id, telegram_user_id, language, stripped, result)
+        return await _enter_escalation_gate(session_id, telegram_user_id, language, stripped, result, langfuse_session_id)
 
     # is_crisis False, no escalation — proceeds to Step F.
-    return await _complete_with_retrieval(session_id, telegram_user_id, language, stripped, result)
+    return await _complete_with_retrieval(session_id, telegram_user_id, language, stripped, result, langfuse_session_id)
 
 
 async def handle_callback(session_id: str, callback_data: str) -> FlowReply | None:
@@ -308,10 +344,13 @@ async def handle_callback(session_id: str, callback_data: str) -> FlowReply | No
 
     if step == "awaiting_crisis_response" and callback_data == _CALLBACK_CRISIS_CONTINUE:
         # Reuses the classification and raw text already stored in state rather than
-        # reclassifying.
+        # reclassifying, and the same langfuse_session_id minted when the message was
+        # first classified, so this stays part of the same Langfuse session.
         telegram_user_id = state["telegram_user_id"]
         result = _deserialize_classification(state["classification"])
-        return await _complete_with_retrieval(session_id, telegram_user_id, language, state["raw_text"], result)
+        return await _complete_with_retrieval(
+            session_id, telegram_user_id, language, state["raw_text"], result, state["langfuse_session_id"]
+        )
 
     if step == "awaiting_escalation_response" and callback_data in (
         _CALLBACK_ESCALATION_YES,
@@ -324,16 +363,21 @@ async def handle_callback(session_id: str, callback_data: str) -> FlowReply | No
         # Either way (Yes or No), retrieval proceeds using the classification and raw
         # text already stored in state rather than reclassifying.
         result = _deserialize_classification(state["classification"])
-        return await _complete_with_retrieval(session_id, telegram_user_id, language, state["raw_text"], result)
+        return await _complete_with_retrieval(
+            session_id, telegram_user_id, language, state["raw_text"], result, state["langfuse_session_id"]
+        )
 
     if step == "awaiting_navigation" and callback_data == _CALLBACK_VIEW_ANOTHER:
         # Skips Step C/D/E entirely (dedup, crisis gate, escalation offer). The
         # parishioner already passed through gating once for this message, so asking
         # for another verse shouldn't re-surface the crisis gate or a parish
-        # notification. Straight to Step F/G/H, reusing the stored raw_text/classification.
+        # notification. Straight to Step F/G/H, reusing the stored raw_text/classification
+        # and langfuse_session_id — still the same parishioner request/workflow.
         telegram_user_id = state["telegram_user_id"]
         result = _deserialize_classification(state["classification"])
-        return await _complete_with_retrieval(session_id, telegram_user_id, language, state["raw_text"], result)
+        return await _complete_with_retrieval(
+            session_id, telegram_user_id, language, state["raw_text"], result, state["langfuse_session_id"]
+        )
 
     if step == "awaiting_navigation" and callback_data == _CALLBACK_EXIT:
         await _clear_state(session_id)

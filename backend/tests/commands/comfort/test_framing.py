@@ -41,19 +41,19 @@ class TestFramePassage:
     @pytest.mark.asyncio
     async def test_returns_the_reflection_text(self, monkeypatch) -> None:
         _mock_llm_response(monkeypatch, "You are not alone in this moment.")
-        reflection = await framing.frame_passage("I'm scared", _REFERENCE, _VERSE_TEXT, "en")
+        reflection = await framing.frame_passage("I'm scared", _REFERENCE, _VERSE_TEXT, "test-session", "en")
         assert reflection == "You are not alone in this moment."
 
     @pytest.mark.asyncio
     async def test_strips_surrounding_whitespace(self, monkeypatch) -> None:
         _mock_llm_response(monkeypatch, "  A reflection with padding.  \n")
-        reflection = await framing.frame_passage("I'm scared", _REFERENCE, _VERSE_TEXT, "en")
+        reflection = await framing.frame_passage("I'm scared", _REFERENCE, _VERSE_TEXT, "test-session", "en")
         assert reflection == "A reflection with padding."
 
     @pytest.mark.asyncio
     async def test_includes_raw_text_and_verse_in_the_request(self, monkeypatch) -> None:
         mock = _mock_llm_response(monkeypatch, "A reflection.")
-        await framing.frame_passage("I'm scared and alone.", _REFERENCE, _VERSE_TEXT, "en")
+        await framing.frame_passage("I'm scared and alone.", _REFERENCE, _VERSE_TEXT, "test-session", "en")
 
         _, kwargs = mock.call_args
         user_message = next(m["content"] for m in kwargs["messages"] if m["role"] == "user")
@@ -64,7 +64,7 @@ class TestFramePassage:
     @pytest.mark.asyncio
     async def test_system_prompt_caps_reflection_at_three_sentences(self, monkeypatch) -> None:
         mock = _mock_llm_response(monkeypatch, "A reflection.")
-        await framing.frame_passage("I'm scared", _REFERENCE, _VERSE_TEXT, "en")
+        await framing.frame_passage("I'm scared", _REFERENCE, _VERSE_TEXT, "test-session", "en")
 
         _, kwargs = mock.call_args
         system_message = next(m["content"] for m in kwargs["messages"] if m["role"] == "system")
@@ -73,7 +73,7 @@ class TestFramePassage:
     @pytest.mark.asyncio
     async def test_does_not_ask_for_classification_or_tags(self, monkeypatch) -> None:
         mock = _mock_llm_response(monkeypatch, "A reflection.")
-        await framing.frame_passage("I'm scared", _REFERENCE, _VERSE_TEXT, "en")
+        await framing.frame_passage("I'm scared", _REFERENCE, _VERSE_TEXT, "test-session", "en")
 
         _, kwargs = mock.call_args
         system_message = next(m["content"] for m in kwargs["messages"] if m["role"] == "system")
@@ -82,7 +82,7 @@ class TestFramePassage:
     @pytest.mark.asyncio
     async def test_requests_spanish_when_session_language_is_spanish(self, monkeypatch) -> None:
         mock = _mock_llm_response(monkeypatch, "Una reflexión.")
-        await framing.frame_passage("Tengo miedo", _REFERENCE, _VERSE_TEXT, "es")
+        await framing.frame_passage("Tengo miedo", _REFERENCE, _VERSE_TEXT, "test-session", "es")
 
         _, kwargs = mock.call_args
         user_message = next(m["content"] for m in kwargs["messages"] if m["role"] == "user")
@@ -93,7 +93,7 @@ class TestFramePassage:
         # framing.py doesn't know about the verse bank's bilingual payload — it just
         # reflects on whatever text the caller (flow.py) already localized.
         mock = _mock_llm_response(monkeypatch, "Una reflexión.")
-        await framing.frame_passage("Tengo miedo", "Salmo 23:4", "Texto del verso en español.", "es")
+        await framing.frame_passage("Tengo miedo", "Salmo 23:4", "Texto del verso en español.", "test-session", "es")
 
         _, kwargs = mock.call_args
         user_message = next(m["content"] for m in kwargs["messages"] if m["role"] == "user")
@@ -104,4 +104,4 @@ class TestFramePassage:
     async def test_no_content_raises(self, monkeypatch) -> None:
         _mock_llm_response(monkeypatch, None)
         with pytest.raises(ValueError):
-            await framing.frame_passage("I'm scared", _REFERENCE, _VERSE_TEXT, "en")
+            await framing.frame_passage("I'm scared", _REFERENCE, _VERSE_TEXT, "test-session", "en")

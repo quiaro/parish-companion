@@ -6,7 +6,7 @@ No-op entirely unless both langfuse keys are configured.
 from contextlib import contextmanager
 from typing import Any, Generator, Literal
 
-from langfuse import Langfuse, LangfuseGeneration, LangfuseRetriever, LangfuseSpan
+from langfuse import Langfuse, LangfuseGeneration, LangfuseRetriever, LangfuseSpan, propagate_attributes
 
 from config import settings
 
@@ -56,3 +56,17 @@ def traced(
     """
     with client.start_as_current_observation(as_type=as_type, name=name, metadata=metadata or None) as span:
         yield span
+
+
+@contextmanager
+def traced_session(session_id: str) -> Generator[None, None, None]:
+    """
+    Groups every span/generation created within this context under one Langfuse
+    session, so a single /comfort request's classify -> retrieve -> frame steps show
+    up together in the Langfuse UI. `session_id` must be a fresh, random, per-request
+    token — never telegram_user_id nor the app's own Redis flow session id (itself 
+    derived from the Telegram chat id). Unlike `metadata=` above, session_id is a 
+    first-class span attribute that bypasses `_mask` entirely.
+    """
+    with propagate_attributes(session_id=session_id):
+        yield
