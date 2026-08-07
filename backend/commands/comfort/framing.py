@@ -1,7 +1,7 @@
 """K-08: writes a brief pastoral reflection to accompany the verse
 already selected by K-07's retrieve_passage."""
 
-from openai import AsyncOpenAI
+from langfuse.openai import AsyncOpenAI  # type: ignore[reportPrivateImportUsage]
 
 from config import settings
 
@@ -41,6 +41,7 @@ async def frame_passage(raw_text: str, reference: str, verse_text: str, language
             {"role": "user", "content": user_message},
         ],
         timeout=30.0,
+        name="comfort.frame_passage",  # type: ignore[call-overload]  # Langfuse-injected kwarg, stripped before the real API call
     )
     content = completion.choices[0].message.content
     if content is None:

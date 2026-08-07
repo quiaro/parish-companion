@@ -3,7 +3,7 @@ import logging
 from enum import Enum
 from typing import TypeVar
 
-from openai import AsyncOpenAI
+from langfuse.openai import AsyncOpenAI  # type: ignore[reportPrivateImportUsage]
 
 from commands.comfort.models import ClassificationResult, EmotionalTag, SituationalTag
 from config import settings
@@ -63,6 +63,7 @@ async def classify(text: str) -> ClassificationResult:
         ],
         response_format={"type": "json_object"},
         timeout=30.0,
+        name="comfort.classify",  # type: ignore[call-overload]  # Langfuse-injected kwarg, stripped before the real API call
     )
     content = completion.choices[0].message.content
     if content is None:

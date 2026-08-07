@@ -224,9 +224,11 @@ ORDER BY count(*) DESC;
 
 ## Anonymized `/comfort` retrieval performance tracing (optional)
 
-The retrieval pipeline (query translation, embedding, Qdrant search) can optionally be traced with [Langfuse](https://langfuse.com/docs) for latency/bottleneck analysis, using using `commands/comfort/tracing.py`'s `traced()` helper. If the keys (`LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY`) are not set, tracing is entirely disabled. This project doesn't run a Langfuse server itself so one must be deployed separately and point `LANGFUSE_BASE_URL` at it.
+The `/comfort` pipeline (classification, query translation, embedding, Qdrant search, framing) can optionally be traced with [Langfuse](https://langfuse.com/docs) for latency/bottleneck and cost analysis. If the keys (`LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY`) are not set, tracing is entirely disabled. This project doesn't run a Langfuse server itself so one must be deployed separately and point `LANGFUSE_BASE_URL` at it.
 
-**Only timing and structural metadata are ever traced:** model names, candidate counts, similarity scores, and which retrieval branch was taken (real match vs. Step G fallback). Traces will never include identifiable data, like the parishioner's message text, `telegram_user_id` or `session_id`. If adding a new traced step, please keep to that same rule: metadata only, not content or identifiers.
+LLM calls are traced via Langfuse's official OpenAI SDK integration (`langfuse.openai.AsyncOpenAI`, a drop-in subclass of the real client), so model name, token usage, and cost are captured automatically. Qdrant lookups and the outer retrieval span are still traced manually via `commands/comfort/tracing.py`'s `traced()` helper.
+
+**Content is never traced, only metadata.** The OpenAI integration auto-captures full prompt/completion text as `input`/`output` by default, which would put parishioners' raw messages into Langfuse. To avoid this, `tracing.py`'s `_mask` function at the client level implements a fail-closed allow-list - a flat dict of known-safe keys (`_ALLOWED_METADATA_KEYS`). Any string or any other unexpected shape not found in the allow-list is redacted, with the exception of model name, token usage, and cost, which bypass masking entirely (Langfuse doesn't route them through `mask`). Remember: If adding a new traced `metadata=` key, add it to `_ALLOWED_METADATA_KEYS` first.
 
 ## Running tests
 

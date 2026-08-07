@@ -8,6 +8,11 @@ os.environ.setdefault("DATABASE_URL", "postgresql+psycopg://postgres:postgres@po
 os.environ.setdefault("TELEGRAM_WEBHOOK_SECRET", "test-secret")
 os.environ.setdefault("LOCAL_TIMEZONE", "America/Costa_Rica")
 
+# The only reliable way to guarantee the test suite never creates real traces is to ensure 
+# tracing is never enabled in the first place, before config.py is ever imported.
+os.environ["LANGFUSE_PUBLIC_KEY"] = ""
+os.environ["LANGFUSE_SECRET_KEY"] = ""
+
 from typing import Generator
 from unittest.mock import AsyncMock, patch
 
@@ -37,18 +42,6 @@ def mock_session_language() -> Generator[None, None, None]:
 def pin_default_language(monkeypatch: pytest.MonkeyPatch) -> None:
     """Pin default_language to English so tests are independent of .env locale settings."""
     monkeypatch.setattr(config.settings, "default_language", "en")
-
-
-@pytest.fixture(autouse=True)
-def disable_comfort_tracing(monkeypatch: pytest.MonkeyPatch) -> None:
-    """
-    Forces tracing off for every test, regardless of whether env vars
-    LANGFUSE_PUBLIC_KEY/LANGFUSE_SECRET_KEY are set; otherwise, every test running
-    comfort's retrieval.py would create real Langfuse traces.
-    """
-    from commands.comfort import tracing
-
-    monkeypatch.setattr(tracing, "client", None)
 
 
 @pytest.fixture()
