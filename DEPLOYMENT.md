@@ -144,6 +144,7 @@ Best time to reach: Weekday evenings
 | -------------------------- | ------------------------------- | ----------------------------------------------------------------- |
 | `CONTACT_EMAIL_RECIPIENTS` | _(required)_                    | JSON array of staff email addresses, e.g. `["pastor@parish.org"]` |
 | `SMTP_HOST`                | _(required)_                    | SMTP server hostname, e.g. `smtp.gmail.com`                       |
+| `ENVIRONMENT`              | `production`                    |                                                                   |
 | `SMTP_PORT`                | `587`                           | SMTP server port                                                  |
 | `SMTP_USERNAME`            | _(none)_                        | SMTP username (usually your full email address)                   |
 | `SMTP_PASSWORD`            | _(none)_                        | SMTP password or app password                                     |
@@ -151,6 +152,8 @@ Best time to reach: Weekday evenings
 | `SMTP_FROM_ADDRESS`        | _(falls back to SMTP_USERNAME)_ | The sender address shown on outgoing emails                       |
 
 **Gmail users:** Generate an [App Password](https://support.google.com/accounts/answer/185833) rather than using your account password. Set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, and `SMTP_USE_TLS=true`.
+
+The app enforces `CONTACT_EMAIL_RECIPIENTS`/`SMTP_HOST` at startup and refuses to start without them if `ENVIRONMENT=production` (the default). Set `ENVIRONMENT=development` only for local development, where running without email configured is fine.
 
 #### Request type options
 

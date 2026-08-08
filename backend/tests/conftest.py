@@ -8,10 +8,12 @@ os.environ.setdefault("DATABASE_URL", "postgresql+psycopg://postgres:postgres@po
 os.environ.setdefault("TELEGRAM_WEBHOOK_SECRET", "test-secret")
 os.environ.setdefault("LOCAL_TIMEZONE", "America/Costa_Rica")
 
-# The only reliable way to guarantee the test suite never creates real traces is to ensure 
+# The only reliable way to guarantee the test suite never creates real traces is to ensure
 # tracing is never enabled in the first place, before config.py is ever imported.
 os.environ["LANGFUSE_PUBLIC_KEY"] = ""
 os.environ["LANGFUSE_SECRET_KEY"] = ""
+
+os.environ["ENVIRONMENT"] = "development"
 
 from typing import Generator
 from unittest.mock import AsyncMock, patch

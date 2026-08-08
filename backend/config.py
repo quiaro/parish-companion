@@ -1,11 +1,14 @@
 import json
+from typing import Literal
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=(".env", ".env.dev"), extra="ignore")
+
+    environment: Literal["production", "development"] = "production"
 
     telegram_bot_token: str = ""
     telegram_webhook_secret: str = ""
@@ -57,6 +60,26 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_use_tls: bool = True
     smtp_from_address: str = ""
+
+    @model_validator(mode="after")
+    def must_have_email_configured_in_production(self) -> "Settings":
+        if self.environment != "production":
+            return self
+        missing = []
+        if not self.smtp_host:
+            missing.append("SMTP_HOST")
+        try:
+            recipients = json.loads(self.contact_email_recipients)
+        except (json.JSONDecodeError, TypeError):
+            recipients = []
+        if not isinstance(recipients, list) or not recipients:
+            missing.append("CONTACT_EMAIL_RECIPIENTS")
+        if missing:
+            raise ValueError(
+                f"{', '.join(missing)} must be set in production; set ENVIRONMENT=development "
+                "to bypass this for local development."
+            )
+        return self
 
     comfort_notification_dedup_window_hours: int = 24
     comfort_frequency_window_hours: int = 24
