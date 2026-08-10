@@ -19,13 +19,14 @@
 
    Required values to set in `.env`:
 
-   | Variable                     | Description                                                                 |
-   | ---------------------------- | --------------------------------------------------------------------------- |
-   | `TELEGRAM_BOT_TOKEN`         | Token from [@BotFather](https://t.me/botfather)                             |
-   | `TELEGRAM_WEBHOOK_SECRET`    | Random string used to authenticate Telegram's POST requests                 |
-   | `OPENROUTER_API_KEY`         | Key from [openrouter.ai/keys](https://openrouter.ai/keys)                   |
-   | `OPENROUTER_EMBEDDING_MODEL` | Open Router embedding model identifier (e.g. openai/text-embedding-3-small) |
-   | `OPENROUTER_CHAT_MODEL`      | Open Router LLM identifier (e.g. anthropic/claude-sonnet-4.6)               |
+   | Variable                     | Description                                                                                             |
+   | ---------------------------- | ------------------------------------------------------------------------------------------------------- |
+   | `TELEGRAM_BOT_TOKEN`         | Token from [@BotFather](https://t.me/botfather)                                                         |
+   | `TELEGRAM_WEBHOOK_SECRET`    | Random string used to authenticate Telegram's POST requests                                             |
+   | `TELEGRAM_WEBHOOK_URL`       | Public HTTPS URL Telegram POSTs updates to; see [Connecting to Telegram](#connecting-to-telegram) below |
+   | `OPENROUTER_API_KEY`         | Key from [openrouter.ai/keys](https://openrouter.ai/keys)                                               |
+   | `OPENROUTER_EMBEDDING_MODEL` | Open Router embedding model identifier (e.g. openai/text-embedding-3-small)                             |
+   | `OPENROUTER_CHAT_MODEL`      | Open Router LLM identifier (e.g. anthropic/claude-sonnet-4.6)                                           |
 
 ## Running
 
@@ -102,15 +103,13 @@ docker compose down
 
 ## Connecting to Telegram
 
-The bot receives messages via a webhook — Telegram POSTs every incoming update to `/webhook` on a publicly reachable HTTPS URL. For local development, [ngrok](https://ngrok.com) creates that public URL and tunnels traffic to your machine.
+The bot receives messages via a webhook. Telegram POSTs every incoming update to `/webhook` on a publicly reachable HTTPS URL; therefore, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, and `TELEGRAM_WEBHOOK_URL` are all required and need to be set in order to run the app. For local development, [ngrok](https://ngrok.com) creates that public URL and tunnels traffic to your machine.
 
 **Prerequisites:** [Install ngrok](https://ngrok.com/download) on your host machine (not inside the container).
 
 **Steps:**
 
-1. Start the stack first (`docker compose up --build`), so port 8000 is available on the host.
-
-2. In a separate terminal, start ngrok:
+1. Start ngrok first, so you have a real forwarding URL before starting the backend:
 
    ```bash
    ngrok http 8000
@@ -118,25 +117,23 @@ The bot receives messages via a webhook — Telegram POSTs every incoming update
 
    ngrok prints a forwarding URL like `https://abc123.ngrok-free.app`. Copy it.
 
-3. Set `TELEGRAM_WEBHOOK_URL` in `.env`:
+2. Set `TELEGRAM_WEBHOOK_URL` in `.env`:
 
    ```
    TELEGRAM_WEBHOOK_URL=https://abc123.ngrok-free.app/webhook
    ```
 
-4. Recreate the backend container so it picks up the new value and registers the webhook on startup:
+3. Start the stack:
 
    ```bash
-   docker compose up -d --force-recreate backend
+   docker compose up --build
    ```
 
    You should see `Webhook registered: https://abc123.ngrok-free.app/webhook` in the logs.
 
-5. Open Telegram, find your bot by username, and send it a message. The full request flow will be visible in `docker compose logs -f backend`.
+4. Open Telegram, find your bot by username, and send it a message. The full request flow will be visible in `docker compose logs -f backend`.
 
-> **Note:** The ngrok URL changes every time you restart ngrok (on the free plan). When that happens, update `TELEGRAM_WEBHOOK_URL` in `.env` and recreate the backend container again.
->
-> For local `curl` testing without ngrok, leave `TELEGRAM_WEBHOOK_URL` unset — the backend starts normally and skips webhook registration.
+> **Note:** The ngrok URL changes every time you restart ngrok (on the free plan). When that happens, update `TELEGRAM_WEBHOOK_URL` in `.env` and recreate the backend container: `docker compose up -d --force-recreate backend`.
 
 ## Viewing logs
 

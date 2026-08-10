@@ -5,7 +5,9 @@ import os
 # before any test file imports main or config.
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("DATABASE_URL", "postgresql+psycopg://postgres:postgres@postgres:5432/parish_companion")
+os.environ.setdefault("TELEGRAM_BOT_TOKEN", "test-token")
 os.environ.setdefault("TELEGRAM_WEBHOOK_SECRET", "test-secret")
+os.environ.setdefault("TELEGRAM_WEBHOOK_URL", "https://example.com/webhook")
 os.environ.setdefault("LOCAL_TIMEZONE", "America/Costa_Rica")
 
 # The only reliable way to guarantee the test suite never creates real traces is to ensure

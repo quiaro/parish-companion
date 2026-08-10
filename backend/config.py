@@ -14,6 +14,20 @@ class Settings(BaseSettings):
     telegram_webhook_secret: str = ""
     telegram_webhook_url: str = ""
 
+    @model_validator(mode="after")
+    def must_have_telegram_configured(self) -> "Settings":
+        # There's no legitimate way to run this app without a Telegram connection.
+        missing = []
+        if not self.telegram_bot_token:
+            missing.append("TELEGRAM_BOT_TOKEN")
+        if not self.telegram_webhook_url:
+            missing.append("TELEGRAM_WEBHOOK_URL")
+        if not self.telegram_webhook_secret:
+            missing.append("TELEGRAM_WEBHOOK_SECRET")
+        if missing:
+            raise ValueError(f"{', '.join(missing)} must be set.")
+        return self
+
     openrouter_api_key: str = ""
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openrouter_embedding_model: str = ""
