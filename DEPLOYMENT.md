@@ -140,16 +140,16 @@ Best time to reach: Weekday evenings
 
 #### Email delivery
 
-| Variable                   | Default                         | Description                                                       |
-| -------------------------- | ------------------------------- | ----------------------------------------------------------------- |
-| `CONTACT_EMAIL_RECIPIENTS` | _(required)_                    | JSON array of staff email addresses, e.g. `["pastor@parish.org"]` |
-| `SMTP_HOST`                | _(required)_                    | SMTP server hostname, e.g. `smtp.gmail.com`                       |
-| `ENVIRONMENT`              | `production`                    |                                                                   |
-| `SMTP_PORT`                | `587`                           | SMTP server port                                                  |
-| `SMTP_USERNAME`            | _(none)_                        | SMTP username (usually your full email address)                   |
-| `SMTP_PASSWORD`            | _(none)_                        | SMTP password or app password                                     |
-| `SMTP_USE_TLS`             | `true`                          | Set to `false` only if your mail server does not support STARTTLS |
-| `SMTP_FROM_ADDRESS`        | _(falls back to SMTP_USERNAME)_ | The sender address shown on outgoing emails                       |
+| Variable                   | Default                         | Description                                                                                |
+| -------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------ |
+| `CONTACT_EMAIL_RECIPIENTS` | _(required)_                    | JSON array of staff email addresses, e.g. `["pastor@parish.org"]`                          |
+| `SMTP_HOST`                | _(required)_                    | SMTP server hostname, e.g. `smtp.gmail.com`                                                |
+| `ENVIRONMENT`              | `production`                    | Set to `development` to boot without `CONTACT_EMAIL_RECIPIENTS` and `SMTP_HOST` configured |
+| `SMTP_PORT`                | `587`                           | SMTP server port                                                                           |
+| `SMTP_USERNAME`            | _(none)_                        | SMTP username (usually your full email address)                                            |
+| `SMTP_PASSWORD`            | _(none)_                        | SMTP password or app password                                                              |
+| `SMTP_USE_TLS`             | `true`                          | Set to `false` only if your mail server does not support STARTTLS                          |
+| `SMTP_FROM_ADDRESS`        | _(falls back to SMTP_USERNAME)_ | The sender address shown on outgoing emails                                                |
 
 **Gmail users:** Generate an [App Password](https://support.google.com/accounts/answer/185833) rather than using your account password. Set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, and `SMTP_USE_TLS=true`.
 
