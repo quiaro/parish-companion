@@ -14,8 +14,10 @@ class _FakeResponse:
 
 
 class _FakeAsyncClient:
-    def __init__(self):
+    def __init__(self, response: "_FakeResponse | None" = None, raise_error: Exception | None = None):
         self.calls: list[dict] = []
+        self._response = response or _FakeResponse()
+        self._raise_error = raise_error
 
     async def __aenter__(self):
         return self
@@ -23,9 +25,11 @@ class _FakeAsyncClient:
     async def __aexit__(self, *exc_info):
         return False
 
-    async def post(self, url, json, timeout):
+    async def post(self, url, json=None, timeout=None):
         self.calls.append({"url": url, "json": json, "timeout": timeout})
-        return _FakeResponse()
+        if self._raise_error:
+            raise self._raise_error
+        return self._response
 
 
 @pytest.fixture(autouse=True)
@@ -33,8 +37,12 @@ def bot_token(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(config.settings, "telegram_bot_token", "test-token")
 
 
-def _mock_http(monkeypatch: pytest.MonkeyPatch) -> _FakeAsyncClient:
-    fake = _FakeAsyncClient()
+def _mock_http(
+    monkeypatch: pytest.MonkeyPatch,
+    response: "_FakeResponse | None" = None,
+    raise_error: Exception | None = None,
+) -> _FakeAsyncClient:
+    fake = _FakeAsyncClient(response=response, raise_error=raise_error)
     monkeypatch.setattr(client.httpx2, "AsyncClient", lambda *a, **k: fake)
     return fake
 
@@ -71,13 +79,6 @@ class TestSendMessage:
         assert "reply_markup" not in fake.calls[0]["json"]
         assert "reply_markup" in fake.calls[1]["json"]
 
-    @pytest.mark.asyncio
-    async def test_does_nothing_when_bot_token_not_configured(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr(config.settings, "telegram_bot_token", "")
-        fake = _mock_http(monkeypatch)
-        await client.send_message(123, "hello")
-        assert fake.calls == []
-
 
 class TestAnswerCallbackQuery:
     @pytest.mark.asyncio
@@ -87,9 +88,52 @@ class TestAnswerCallbackQuery:
         assert len(fake.calls) == 1
         assert fake.calls[0]["json"] == {"callback_query_id": "cb123"}
 
+
+@pytest.fixture(autouse=True)
+def webhook_url(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(config.settings, "telegram_webhook_url", "https://example.com/webhook")
+
+
+class TestRegisterWebhook:
     @pytest.mark.asyncio
-    async def test_does_nothing_when_bot_token_not_configured(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr(config.settings, "telegram_bot_token", "")
+    async def test_registers_with_configured_url_and_secret(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(config.settings, "telegram_webhook_secret", "shh")
         fake = _mock_http(monkeypatch)
-        await client.answer_callback_query("cb123")
-        assert fake.calls == []
+        await client.register_webhook()
+        assert len(fake.calls) == 1
+        assert fake.calls[0]["json"] == {"url": "https://example.com/webhook", "secret_token": "shh"}
+
+    @pytest.mark.asyncio
+    async def test_logs_and_raises_when_telegram_rejects_the_request(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        _mock_http(monkeypatch, response=_FakeResponse(is_success=False))
+        with caplog.at_level("ERROR"), pytest.raises(RuntimeError, match="setWebhook failed"):
+            await client.register_webhook()
+        assert any("setWebhook failed" in message for message in caplog.messages)
+
+    @pytest.mark.asyncio
+    async def test_logs_and_raises_when_telegram_is_unreachable(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        _mock_http(monkeypatch, raise_error=client.httpx2.RequestError("connection failed"))
+        with caplog.at_level("ERROR"), pytest.raises(client.httpx2.RequestError):
+            await client.register_webhook()
+        assert any("Could not reach Telegram to register webhook" in message for message in caplog.messages)
+
+
+class TestDeleteWebhook:
+    @pytest.mark.asyncio
+    async def test_deletes_with_configured_url(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        fake = _mock_http(monkeypatch)
+        await client.delete_webhook()
+        assert len(fake.calls) == 1
+
+    @pytest.mark.asyncio
+    async def test_does_not_raise_when_telegram_is_unreachable(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        _mock_http(monkeypatch, raise_error=client.httpx2.RequestError("connection failed"))
+        with caplog.at_level("ERROR"):
+            await client.delete_webhook()
+        assert any("Could not reach Telegram to delete webhook" in message for message in caplog.messages)

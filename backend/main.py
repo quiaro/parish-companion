@@ -28,7 +28,6 @@ def _build_schedule_adapter():
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     _app.state.schedule_adapter = _build_schedule_adapter()
     _app.state.contact_notifier = EmailContactNotifier()
-    # TODO: In production, gracefully handle the case where Telegram is down or the webhook registration fails.
     await register_webhook()
     yield
     await delete_webhook()

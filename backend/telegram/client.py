@@ -9,41 +9,52 @@ logger = logging.getLogger(__name__)
 
 
 async def register_webhook() -> None:
-    if not settings.telegram_webhook_url:
-        logger.info("TELEGRAM_WEBHOOK_URL not set, skipping webhook registration")
-        return
+    """
+    Whether Telegram's API can't be reached at all, or is reached but rejects the
+    request (bad token, malformed URL, etc.), there's nothing useful this instance can
+    do either way — both are logged and re-raised deliberately, rather than booting 
+    into a state that looks healthy but can never receive an update. Docker's restart 
+    policy (docker-compose.yml) retries automatically, which covers transient outages 
+    without any custom retry logic here. A persistent misconfiguration will keep 
+    crash-looping until it's fixed, which is the correct, visible signal for that case.
+    """
     async with httpx2.AsyncClient() as http:
-        resp = await http.post(
-            f"https://api.telegram.org/bot{settings.telegram_bot_token}/setWebhook",
-            json={
-                "url": settings.telegram_webhook_url,
-                "secret_token": settings.telegram_webhook_secret,
-            },
-            timeout=10.0,
-        )
-        if resp.is_success:
-            logger.info("Webhook registered: %s", settings.telegram_webhook_url)
-        else:
+        try:
+            resp = await http.post(
+                f"https://api.telegram.org/bot{settings.telegram_bot_token}/setWebhook",
+                json={
+                    "url": settings.telegram_webhook_url,
+                    "secret_token": settings.telegram_webhook_secret,
+                },
+                timeout=10.0,
+            )
+        except httpx2.RequestError as exc:
+            logger.error("Could not reach Telegram to register webhook: %s", exc)
+            raise
+        if not resp.is_success:
             logger.error("setWebhook failed: status=%d body=%s", resp.status_code, resp.text)
+            raise RuntimeError(f"setWebhook failed: status={resp.status_code} body={resp.text}")
+        logger.info("Webhook registered: %s", settings.telegram_webhook_url)
 
 
 async def delete_webhook() -> None:
-    if not settings.telegram_webhook_url:
-        return
+    """Runs during shutdown, so a failure here is logged and swallowed rather than
+    raised since the process is exiting any way."""
     async with httpx2.AsyncClient() as http:
-        await http.post(
-            f"https://api.telegram.org/bot{settings.telegram_bot_token}/deleteWebhook",
-            timeout=10.0,
-        )
+        try:
+            await http.post(
+                f"https://api.telegram.org/bot{settings.telegram_bot_token}/deleteWebhook",
+                timeout=10.0,
+            )
+        except httpx2.RequestError as exc:
+            logger.error("Could not reach Telegram to delete webhook: %s", exc)
+            return
     logger.info("Webhook deleted")
 
 
 async def send_message(chat_id: int, text: str, buttons: list[tuple[str, str]] | None = None) -> bool:
     """buttons is a list of (label, callback_data) pairs, rendered as one row of inline
     buttons attached to the final message part (if the text is long enough to be split)."""
-    if not settings.telegram_bot_token:
-        logger.warning("TELEGRAM_BOT_TOKEN not configured, skipping outbound message to chat_id=%d", chat_id)
-        return False
     parts = split_message(text)
     success = True
     async with httpx2.AsyncClient() as http:
@@ -67,8 +78,6 @@ async def send_message(chat_id: int, text: str, buttons: list[tuple[str, str]] |
 async def answer_callback_query(callback_query_id: str) -> None:
     """Clears the loading spinner on a tapped inline button. Telegram doesn't do this
     automatically — without it, the button stays in a "loading" state client-side."""
-    if not settings.telegram_bot_token:
-        return
     async with httpx2.AsyncClient() as http:
         resp = await http.post(
             f"https://api.telegram.org/bot{settings.telegram_bot_token}/answerCallbackQuery",
