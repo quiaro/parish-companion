@@ -52,8 +52,10 @@ Verify everything is up:
 
 ```bash
 curl http://localhost:8000/health
-# {"status":"ok"}
+# {"status":"ok","telegram_reachable":true}
 ```
+
+`telegram_reachable` reflects Telegram's own availability, checked fresh on every call. `false` means the app can't currently reach `api.telegram.org` (usually a VPN, firewall, or ISP blocking it), not that the app itself is broken.
 
 ### Picking up Python source changes
 

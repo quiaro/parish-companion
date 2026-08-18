@@ -8,6 +8,33 @@ from telegram.formatting import split_message
 logger = logging.getLogger(__name__)
 
 
+def _log_request_error(action: str, exc: httpx2.RequestError) -> None:
+    """httpx2.TransportError (connect/read timeouts, DNS failures, refused
+    connections, etc.) means the network path to Telegram is broken — VPN,
+    firewall, or ISP — not that the app is broken."""
+    if isinstance(exc, httpx2.TransportError):
+        logger.error(
+            "Could not %s: %s. This looks like a network problem reaching Telegram "
+            "(VPN, firewall, or ISP blocking api.telegram.org), not an application bug.",
+            action,
+            exc,
+        )
+    else:
+        logger.error("Could not %s: %s", action, exc)
+
+
+async def check_connectivity() -> bool:
+    """Lightweight reachability probe for api.telegram.org, used by the /health
+    endpoint so network outages are visible on demand and easier to diagnose."""
+    async with httpx2.AsyncClient() as http:
+        try:
+            await http.get("https://api.telegram.org", timeout=3.0)
+            return True
+        except httpx2.RequestError as exc:
+            _log_request_error("reach Telegram for a connectivity check", exc)
+            return False
+
+
 async def register_webhook() -> None:
     """
     Whether Telegram's API can't be reached at all, or is reached but rejects the
@@ -29,7 +56,7 @@ async def register_webhook() -> None:
                 timeout=10.0,
             )
         except httpx2.RequestError as exc:
-            logger.error("Could not reach Telegram to register webhook: %s", exc)
+            _log_request_error("reach Telegram to register webhook", exc)
             raise
         if not resp.is_success:
             logger.error("setWebhook failed: status=%d body=%s", resp.status_code, resp.text)
@@ -47,7 +74,7 @@ async def delete_webhook() -> None:
                 timeout=10.0,
             )
         except httpx2.RequestError as exc:
-            logger.error("Could not reach Telegram to delete webhook: %s", exc)
+            _log_request_error("reach Telegram to delete webhook", exc)
             return
     logger.info("Webhook deleted")
 
@@ -64,11 +91,15 @@ async def send_message(chat_id: int, text: str, buttons: list[tuple[str, str]] |
                 payload["reply_markup"] = {
                     "inline_keyboard": [[{"text": label, "callback_data": data} for label, data in buttons]]
                 }
-            resp = await http.post(
-                f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage",
-                json=payload,
-                timeout=10.0,
-            )
+            try:
+                resp = await http.post(
+                    f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage",
+                    json=payload,
+                    timeout=10.0,
+                )
+            except httpx2.RequestError as exc:
+                _log_request_error(f"send message to chat {chat_id}", exc)
+                return False
             if not resp.is_success:
                 logger.error("sendMessage failed: status=%d body=%s", resp.status_code, resp.text)
                 success = False
@@ -79,10 +110,14 @@ async def answer_callback_query(callback_query_id: str) -> None:
     """Clears the loading spinner on a tapped inline button. Telegram doesn't do this
     automatically — without it, the button stays in a "loading" state client-side."""
     async with httpx2.AsyncClient() as http:
-        resp = await http.post(
-            f"https://api.telegram.org/bot{settings.telegram_bot_token}/answerCallbackQuery",
-            json={"callback_query_id": callback_query_id},
-            timeout=10.0,
-        )
+        try:
+            resp = await http.post(
+                f"https://api.telegram.org/bot{settings.telegram_bot_token}/answerCallbackQuery",
+                json={"callback_query_id": callback_query_id},
+                timeout=10.0,
+            )
+        except httpx2.RequestError as exc:
+            _log_request_error(f"answer callback query {callback_query_id}", exc)
+            return
         if not resp.is_success:
             logger.error("answerCallbackQuery failed: status=%d body=%s", resp.status_code, resp.text)

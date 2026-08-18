@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from config import settings
 from commands.contact.email_notifier import EmailContactNotifier
 from commands.schedules import CachedScheduleAdapter, GoogleSheetsScheduleAdapter, StaticScheduleAdapter
-from telegram.client import delete_webhook, register_webhook
+from telegram.client import check_connectivity, delete_webhook, register_webhook
 from telegram.router import router as telegram_router
 
 logging.basicConfig(level=logging.INFO)
@@ -40,4 +40,6 @@ app.include_router(telegram_router)
 
 @app.get("/health", tags=["ops"])
 async def health() -> JSONResponse:
-    return JSONResponse({"status": "ok"})
+    # telegram_reachable reflects Telegram's availability: false
+    # here means "check your network/VPN," instead of "the app is broken."
+    return JSONResponse({"status": "ok", "telegram_reachable": await check_connectivity()})

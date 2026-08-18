@@ -31,6 +31,12 @@ class _FakeAsyncClient:
             raise self._raise_error
         return self._response
 
+    async def get(self, url, timeout=None):
+        self.calls.append({"url": url, "timeout": timeout})
+        if self._raise_error:
+            raise self._raise_error
+        return self._response
+
 
 @pytest.fixture(autouse=True)
 def bot_token(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -79,6 +85,16 @@ class TestSendMessage:
         assert "reply_markup" not in fake.calls[0]["json"]
         assert "reply_markup" in fake.calls[1]["json"]
 
+    @pytest.mark.asyncio
+    async def test_logs_and_returns_false_when_telegram_is_unreachable(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        _mock_http(monkeypatch, raise_error=client.httpx2.ConnectTimeout("timed out"))
+        with caplog.at_level("ERROR"):
+            result = await client.send_message(123, "hello")
+        assert result is False
+        assert any("network problem reaching Telegram" in message for message in caplog.messages)
+
 
 class TestAnswerCallbackQuery:
     @pytest.mark.asyncio
@@ -87,6 +103,32 @@ class TestAnswerCallbackQuery:
         await client.answer_callback_query("cb123")
         assert len(fake.calls) == 1
         assert fake.calls[0]["json"] == {"callback_query_id": "cb123"}
+
+    @pytest.mark.asyncio
+    async def test_logs_and_does_not_raise_when_telegram_is_unreachable(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        _mock_http(monkeypatch, raise_error=client.httpx2.ConnectTimeout("timed out"))
+        with caplog.at_level("ERROR"):
+            await client.answer_callback_query("cb123")
+        assert any("network problem reaching Telegram" in message for message in caplog.messages)
+
+
+class TestCheckConnectivity:
+    @pytest.mark.asyncio
+    async def test_returns_true_when_telegram_is_reachable(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        _mock_http(monkeypatch)
+        assert await client.check_connectivity() is True
+
+    @pytest.mark.asyncio
+    async def test_returns_false_and_logs_when_telegram_is_unreachable(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        _mock_http(monkeypatch, raise_error=client.httpx2.ConnectTimeout("timed out"))
+        with caplog.at_level("ERROR"):
+            result = await client.check_connectivity()
+        assert result is False
+        assert any("network problem reaching Telegram" in message for message in caplog.messages)
 
 
 @pytest.fixture(autouse=True)
@@ -113,13 +155,22 @@ class TestRegisterWebhook:
         assert any("setWebhook failed" in message for message in caplog.messages)
 
     @pytest.mark.asyncio
-    async def test_logs_and_raises_when_telegram_is_unreachable(
+    async def test_logs_a_generic_message_when_the_request_error_is_not_a_transport_error(
         self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ) -> None:
         _mock_http(monkeypatch, raise_error=client.httpx2.RequestError("connection failed"))
         with caplog.at_level("ERROR"), pytest.raises(client.httpx2.RequestError):
             await client.register_webhook()
         assert any("Could not reach Telegram to register webhook" in message for message in caplog.messages)
+
+    @pytest.mark.asyncio
+    async def test_logs_a_network_hint_when_the_failure_is_a_connection_timeout(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        _mock_http(monkeypatch, raise_error=client.httpx2.ConnectTimeout("timed out"))
+        with caplog.at_level("ERROR"), pytest.raises(client.httpx2.ConnectTimeout):
+            await client.register_webhook()
+        assert any("network problem reaching Telegram" in message for message in caplog.messages)
 
 
 class TestDeleteWebhook:
@@ -130,7 +181,7 @@ class TestDeleteWebhook:
         assert len(fake.calls) == 1
 
     @pytest.mark.asyncio
-    async def test_does_not_raise_when_telegram_is_unreachable(
+    async def test_logs_and_does_not_raise_when_telegram_is_unreachable(
         self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ) -> None:
         _mock_http(monkeypatch, raise_error=client.httpx2.RequestError("connection failed"))
