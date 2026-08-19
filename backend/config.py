@@ -33,11 +33,11 @@ class Settings(BaseSettings):
     openrouter_embedding_model: str = ""
     openrouter_chat_model: str = ""
 
-    google_credentials_path: str = ""
-    google_spreadsheet_id: str = ""
-    regular_schedule_tab: str = "Regular Schedule"
-    special_schedule_tab: str = "Special Schedules"
-    cached_schedule_ttl: int = 3600
+    schedules_google_credentials_path: str = ""
+    schedules_google_spreadsheet_id: str = ""
+    schedules_regular_tab: str = "Regular Schedule"
+    schedules_special_tab: str = "Special Schedules"
+    schedules_cache_ttl_seconds: int = 3600
 
     redis_url: str
 

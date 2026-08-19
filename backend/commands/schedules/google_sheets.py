@@ -35,8 +35,8 @@ class GoogleSheetsScheduleAdapter(ScheduleAdapter):
 
     Expected sheet layout
     ---------------------
-    Tab named by REGULAR_SCHEDULE_TAB  — columns: Type, Day, Time, End Time, Language, Notes
-    Tab named by SPECIAL_SCHEDULE_TAB  — columns: Name, Start Date, End Date, Type, Day, Time, End Time, Language, Notes
+    Tab named by SCHEDULES_REGULAR_TAB  — columns: Type, Day, Time, End Time, Language, Notes
+    Tab named by SCHEDULES_SPECIAL_TAB  — columns: Name, Start Date, End Date, Type, Day, Time, End Time, Language, Notes
 
     Dates in "Special Schedules" must be in ISO 8601 format (YYYY-MM-DD).
     Special schedule rows are denormalised: repeat Name/Start Date/End Date on
@@ -69,7 +69,7 @@ class GoogleSheetsScheduleAdapter(ScheduleAdapter):
             ) from exc
 
     def _read_regular(self, spreadsheet: gspread.Spreadsheet) -> list[ScheduleEntry]:
-        worksheet = spreadsheet.worksheet(settings.regular_schedule_tab)
+        worksheet = spreadsheet.worksheet(settings.schedules_regular_tab)
         rows = worksheet.get_all_records()
         entries = []
         for row_index, row in enumerate(rows, start=2):
@@ -82,7 +82,7 @@ class GoogleSheetsScheduleAdapter(ScheduleAdapter):
 
     def _read_special(self, spreadsheet: gspread.Spreadsheet) -> Optional[SpecialSchedule]:
         try:
-            worksheet = spreadsheet.worksheet(settings.special_schedule_tab)
+            worksheet = spreadsheet.worksheet(settings.schedules_special_tab)
         except gspread.WorksheetNotFound:
             return None
 

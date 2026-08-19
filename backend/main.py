@@ -15,12 +15,12 @@ logging.basicConfig(level=logging.INFO)
 
 
 def _build_schedule_adapter():
-    if settings.google_credentials_path and settings.google_spreadsheet_id:
+    if settings.schedules_google_credentials_path and settings.schedules_google_spreadsheet_id:
         base = GoogleSheetsScheduleAdapter(
-            spreadsheet_id=settings.google_spreadsheet_id,
-            credentials_path=settings.google_credentials_path,
+            spreadsheet_id=settings.schedules_google_spreadsheet_id,
+            credentials_path=settings.schedules_google_credentials_path,
         )
-        return CachedScheduleAdapter(base, ttl_seconds=settings.cached_schedule_ttl)
+        return CachedScheduleAdapter(base, ttl_seconds=settings.schedules_cache_ttl_seconds)
     return StaticScheduleAdapter()
 
 

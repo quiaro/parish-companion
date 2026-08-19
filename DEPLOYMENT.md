@@ -16,7 +16,7 @@ The spreadsheet must contain two tabs. Their names are configurable via environm
 
 #### Regular Schedule
 
-Tab name: `REGULAR_SCHEDULE_TAB` (default: `Regular Schedule`)
+Tab name: `SCHEDULES_REGULAR_TAB` (default: `Regular Schedule`)
 
 | Column   | Required | Description                                |
 | -------- | -------- | ------------------------------------------ |
@@ -37,7 +37,7 @@ Example:
 
 #### Special Schedules
 
-Tab name: `SPECIAL_SCHEDULE_TAB` (default: `Special Schedules`)
+Tab name: `SCHEDULES_SPECIAL_TAB` (default: `Special Schedules`)
 
 Used for seasonal or one-off schedule changes such as Holy Week or Christmas.
 
@@ -69,7 +69,7 @@ CSV templates for both tabs are provided in [`docs/templates/`](docs/templates/)
 
 1. Create a new Google Spreadsheet.
 2. For each template file, go to **File → Import**, upload the CSV, and choose **Insert new sheet** — this creates a tab with the correct column headers and example rows already filled in.
-3. Rename each tab to match your `REGULAR_SCHEDULE_TAB` and `SPECIAL_SCHEDULE_TAB` settings (defaults: `Regular Schedule` and `Special Schedules`).
+3. Rename each tab to match your `SCHEDULES_REGULAR_TAB` and `SCHEDULES_SPECIAL_TAB` settings (defaults: `Regular Schedule` and `Special Schedules`).
 4. Replace the example rows with your parish's actual schedule.
 
 The `Type` column accepts values in English (`mass`, `confession`) or Spanish (`misa`, `confesión`).
@@ -86,15 +86,15 @@ If more than one special schedule is active at the same time, the one that start
 
 ### Configuration
 
-| Variable                       | Default                                 | Description                                       |
-| ------------------------------ | --------------------------------------- | ------------------------------------------------- |
-| `GOOGLE_SPREADSHEET_ID`        | _(required)_                            | The ID from the spreadsheet URL                   |
-| `GOOGLE_CREDENTIALS_HOST_PATH` | `./secrets/google-service-account.json` | Path to the service account JSON file on the host |
-| `REGULAR_SCHEDULE_TAB`         | `Regular Schedule`                      | Name of the regular schedule tab                  |
-| `SPECIAL_SCHEDULE_TAB`         | `Special Schedules`                     | Name of the special schedules tab                 |
-| `CACHED_SCHEDULE_TTL`          | `3600`                                  | How long (in seconds) to cache schedule data      |
+| Variable                                 | Default                                 | Description                                       |
+| ----------------------------------------- | --------------------------------------- | ------------------------------------------------- |
+| `SCHEDULES_GOOGLE_SPREADSHEET_ID`        | _(required)_                            | The ID from the spreadsheet URL                   |
+| `SCHEDULES_GOOGLE_CREDENTIALS_HOST_PATH` | `./secrets/google-service-account.json` | Path to the service account JSON file on the host |
+| `SCHEDULES_REGULAR_TAB`                  | `Regular Schedule`                      | Name of the regular schedule tab                  |
+| `SCHEDULES_SPECIAL_TAB`                  | `Special Schedules`                     | Name of the special schedules tab                 |
+| `SCHEDULES_CACHE_TTL_SECONDS`            | `3600`                                  | How long (in seconds) to cache schedule data      |
 
-Schedule data is cached for `CACHED_SCHEDULE_TTL` seconds (default: 1 hour). Updates made to the spreadsheet will be visible to users within that window without any restart required.
+Schedule data is cached for `SCHEDULES_CACHE_TTL_SECONDS` seconds (default: 1 hour). Updates made to the spreadsheet will be visible to users within that window without any restart required.
 
 ## Contact requests
 
