@@ -13,12 +13,12 @@ STRINGS: dict[str, dict[str, str]] = {
             "Hello! This is the bot for Nuestra Señora del Pilar.\n"
             "Use /help or /ayuda (Spanish) to know what I can do."
         ),
-        "telegram_cmd_help": (
-            "Here is what I can do:\n"
+        "help_intro": "Here is what I can do:\n",
+        "help_line_comfort": (
             "/comfort: Share what's on your heart and receive an encouraging Bible passage\n"
-            "/contact: Reach a parish staff member\n"
-            "/schedules: View Mass and Confession times\n"
         ),
+        "help_line_contact": "/contact: Reach a parish staff member\n",
+        "help_line_schedules": "/schedules: View Mass and Confession times\n",
         "telegram_cmd_unknown": (
             "Sorry, I don't recognize that command. Type /help to see what I can do."
         ),
@@ -139,12 +139,12 @@ STRINGS: dict[str, dict[str, str]] = {
             "¡Hola! Soy el bot de Nuestra Señora del Pilar.\n"
             "Utiliza /ayuda o /help (inglés) para ver lo que puedo hacer."
         ),
-        "telegram_cmd_help": (
-            "Esto es lo que puedo hacer:\n"
+        "help_intro": "Esto es lo que puedo hacer:\n",
+        "help_line_comfort": (
             "/consolar: Comparte lo que llevas en el corazón y recibe un pasaje bíblico de aliento\n"
-            "/contacto: Contactar personal de la parroquia\n"
-            "/horarios: Horarios de Misa y Confesiones\n"
         ),
+        "help_line_contact": "/contacto: Contactar personal de la parroquia\n",
+        "help_line_schedules": "/horarios: Horarios de Misa y Confesiones\n",
         "telegram_cmd_unknown": (
             "Lo siento, no reconozco ese comando. Escribe /ayuda para ver lo que puedo hacer."
         ),

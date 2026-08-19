@@ -11,17 +11,22 @@ from translations import get_string
 logger = logging.getLogger(__name__)
 
 
+def is_configured() -> bool:
+    try:
+        recipients = json.loads(settings.contact_email_recipients)
+    except (json.JSONDecodeError, TypeError):
+        recipients = []
+    return bool(recipients) and bool(settings.smtp_host)
+
+
 class EmailContactNotifier(ContactNotifier):
 
     def send(self, request: ContactRequest) -> bool:
-        try:
-            recipients = json.loads(settings.contact_email_recipients)
-        except (json.JSONDecodeError, TypeError):
-            recipients = []
-        if not recipients or not settings.smtp_host:
+        if not is_configured():
             logger.error("Contact email not configured — recipients or SMTP host missing")
             return False
         try:
+            recipients = json.loads(settings.contact_email_recipients)
             msg = EmailMessage()
             msg["Subject"] = f"Parish Companion: {request.request_type}"
             msg["From"] = settings.smtp_from_address or settings.smtp_username

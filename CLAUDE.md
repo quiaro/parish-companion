@@ -38,4 +38,6 @@ backend/
 
 **Language forcing** — Telegram commands that are inherently in one language (e.g. `/schedules` → English, `/horarios` → Spanish) override the session language in the router. The mapping lives in `_SCHEDULE_COMMAND_LANGUAGES` in `telegram/router.py`. Do not use the session language for these commands.
 
-**Adding a new command** — update all of the following: `translations.py` (both languages), the router, `tests/commands/` (new file or `test_static.py`), the `/help` and `/ayuda` strings in `translations.py`, and the Features table in `README.md`.
+**Feature gating** — Any command whose data source or external dependency can be left unconfigured (e.g. `/contact`'s SMTP settings, `/comfort`'s OpenRouter key) exposes an `is_configured() -> bool` at its package's `commands/<feature>/__init__.py`. The router (`telegram/router.py`) checks it before dispatching the command so an unconfigured command falls through to the standard "unknown command" reply rather than failing at runtime. `telegram/commands.py`'s `/help`/`/ayuda` builder also checks `is_configured()` before including the command's line. Commands with a safe built-in fallback don't need this.
+
+**Adding a new command** — update all of the following: `translations.py` (both languages), the router, `tests/commands/` (new file or `test_static.py`), the `/help` and `/ayuda` strings in `translations.py`, and the Features table in `README.md`. If the command's data source can be unconfigured, add `is_configured()` per the Feature gating convention above.

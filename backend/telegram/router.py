@@ -4,7 +4,9 @@ from fastapi import APIRouter, Header, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 
 from commands.comfort import flow as comfort_flow
+from commands.comfort import is_configured as comfort_is_configured
 from commands.contact import flow as contact_flow
+from commands.contact import is_configured as contact_is_configured
 from config import settings
 from session import get_language
 from telegram import commands
@@ -97,10 +99,10 @@ async def receive_update(
         if command in _SCHEDULE_COMMAND_LANGUAGES:
             forced_lang = _SCHEDULE_COMMAND_LANGUAGES[command]
             reply = telegram_schedule.handle_schedules(request.app.state.schedule_adapter, forced_lang)
-        elif command in _CONTACT_COMMAND_LANGUAGES:
+        elif command in _CONTACT_COMMAND_LANGUAGES and contact_is_configured():
             forced_lang = _CONTACT_COMMAND_LANGUAGES[command]
             reply = await contact_flow.start(session_id, forced_lang)
-        elif command in _COMFORT_COMMAND_LANGUAGES:
+        elif command in _COMFORT_COMMAND_LANGUAGES and comfort_is_configured():
             forced_lang = _COMFORT_COMMAND_LANGUAGES[command]
             reply = await comfort_flow.start(session_id, sender.id if sender else chat_id, forced_lang)
         elif command == "/cancel":
