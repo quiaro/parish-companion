@@ -35,8 +35,8 @@ class Settings(BaseSettings):
 
     schedules_google_credentials_path: str = ""
     schedules_google_spreadsheet_id: str = ""
-    schedules_regular_tab: str = "Regular Schedule"
-    schedules_special_tab: str = "Special Schedules"
+    schedules_regular_tab: str = ""
+    schedules_special_tab: str = ""
     schedules_cache_ttl_seconds: int = 3600
 
     redis_url: str

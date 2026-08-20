@@ -7,6 +7,7 @@ from commands.comfort import flow as comfort_flow
 from commands.comfort import is_configured as comfort_is_configured
 from commands.contact import flow as contact_flow
 from commands.contact import is_configured as contact_is_configured
+from commands.schedules import is_configured as schedules_is_configured
 from config import settings
 from session import get_language
 from telegram import commands
@@ -96,7 +97,7 @@ async def receive_update(
     text = update.message.text
     if text.startswith("/"):
         command = text.split()[0].split("@")[0].lower()
-        if command in _SCHEDULE_COMMAND_LANGUAGES:
+        if command in _SCHEDULE_COMMAND_LANGUAGES and schedules_is_configured():
             forced_lang = _SCHEDULE_COMMAND_LANGUAGES[command]
             reply = telegram_schedule.handle_schedules(request.app.state.schedule_adapter, forced_lang)
         elif command in _CONTACT_COMMAND_LANGUAGES and contact_is_configured():

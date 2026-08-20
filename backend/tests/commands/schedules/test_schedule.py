@@ -1,5 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from main import app
@@ -9,6 +10,12 @@ from tests.conftest import TEST_SECRET
 _CHAT_ID = 42
 
 _headers = {"X-Telegram-Bot-Api-Secret-Token": TEST_SECRET}
+
+
+@pytest.fixture(autouse=True)
+def schedules_configured(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test /schedules behavior assuming a data source is configured."""
+    monkeypatch.setattr("telegram.router.schedules_is_configured", lambda: True)
 
 
 def _command_update(command: str) -> dict:

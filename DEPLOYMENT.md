@@ -8,15 +8,15 @@ For information on contributing to the project itself, see [DEVELOPMENT.md](DEVE
 
 Parish Companion reads Mass and Confession times from a Google Spreadsheet. Parish administrators can update the spreadsheet directly — no code changes or developer involvement required. Changes are reflected in the bot within the cache window (see [Configuration](#configuration) below).
 
-In the absence of a Google Spreadsheet, the app falls back to using a static schedule.
+Without a Google Spreadsheet configured (see [Configuration](#configuration) below), `/schedules` and `/horarios` are disabled entirely rather than showing an error.
 
 ### Spreadsheet structure
 
-The spreadsheet must contain two tabs. Their names are configurable via environment variables (see below); the defaults are shown here.
+The spreadsheet must contain two tabs. Their names are set via environment variables (see below).
 
 #### Regular Schedule
 
-Tab name: `SCHEDULES_REGULAR_TAB` (default: `Regular Schedule`)
+Tab name: `SCHEDULES_REGULAR_TAB` — the CSV template below names this tab (`Regular Schedule`). Any name works, but this variable must match the tab's name.
 
 | Column   | Required | Description                                |
 | -------- | -------- | ------------------------------------------ |
@@ -37,7 +37,7 @@ Example:
 
 #### Special Schedules
 
-Tab name: `SCHEDULES_SPECIAL_TAB` (default: `Special Schedules`)
+Tab name: `SCHEDULES_SPECIAL_TAB` — the CSV template below names this tab (`Special Schedules`). Any name works, but this variable must match the tab's name.
 
 Used for seasonal or one-off schedule changes such as Holy Week or Christmas.
 
@@ -69,7 +69,7 @@ CSV templates for both tabs are provided in [`docs/templates/`](docs/templates/)
 
 1. Create a new Google Spreadsheet.
 2. For each template file, go to **File → Import**, upload the CSV, and choose **Insert new sheet** — this creates a tab with the correct column headers and example rows already filled in.
-3. Rename each tab to match your `SCHEDULES_REGULAR_TAB` and `SCHEDULES_SPECIAL_TAB` settings (defaults: `Regular Schedule` and `Special Schedules`).
+3. Rename each tab to match your `SCHEDULES_REGULAR_TAB` and `SCHEDULES_SPECIAL_TAB` settings (the templates below set the tab names to `Regular Schedule` and `Special Schedules` respectively).
 4. Replace the example rows with your parish's actual schedule.
 
 The `Type` column accepts values in English (`mass`, `confession`) or Spanish (`misa`, `confesión`).
@@ -87,12 +87,14 @@ If more than one special schedule is active at the same time, the one that start
 ### Configuration
 
 | Variable                                 | Default                                 | Description                                       |
-| ----------------------------------------- | --------------------------------------- | ------------------------------------------------- |
+| ---------------------------------------- | --------------------------------------- | ------------------------------------------------- |
 | `SCHEDULES_GOOGLE_SPREADSHEET_ID`        | _(required)_                            | The ID from the spreadsheet URL                   |
 | `SCHEDULES_GOOGLE_CREDENTIALS_HOST_PATH` | `./secrets/google-service-account.json` | Path to the service account JSON file on the host |
-| `SCHEDULES_REGULAR_TAB`                  | `Regular Schedule`                      | Name of the regular schedule tab                  |
-| `SCHEDULES_SPECIAL_TAB`                  | `Special Schedules`                     | Name of the special schedules tab                 |
+| `SCHEDULES_REGULAR_TAB`                  | _(required)_                            | Name of the regular schedule tab                  |
+| `SCHEDULES_SPECIAL_TAB`                  | _(required)_                            | Name of the special schedules tab                 |
 | `SCHEDULES_CACHE_TTL_SECONDS`            | `3600`                                  | How long (in seconds) to cache schedule data      |
+
+All four required variables above must be set for `/schedules`/`/horarios` to be enabled at all.
 
 Schedule data is cached for `SCHEDULES_CACHE_TTL_SECONDS` seconds (default: 1 hour). Updates made to the spreadsheet will be visible to users within that window without any restart required.
 

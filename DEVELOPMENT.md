@@ -196,6 +196,20 @@ psql "postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5433/$POSTGRES_DB
 
 This only works when the stack is up via the dev override (`docker compose -f docker-compose.yml -f docker-compose.dev.yml up ...`) — the base production compose file doesn't expose the port to the host at all.
 
+## Working on `/schedules` without a Google Sheet
+
+`commands/schedules/static.py`'s `StaticScheduleAdapter` returns a hardcoded schedule and needs no credentials. It can be used to manually exercise `/schedules` end-to-end over Telegram without a Google spreadsheet by temporarily swapping it into `_build_schedule_adapter()` in `main.py`:
+
+```python
+from commands.schedules import StaticScheduleAdapter  # add this import
+
+def _build_schedule_adapter():
+    return StaticScheduleAdapter()  # add this line to bypass the is_configured() check below, temporarily
+    # ... existing code
+```
+
+Don't commit this, it's a local-only edit for manual testing.
+
 ## Bible verse bank ingestion (`/comfort` and `/consolar`)
 
 The `/comfort` (English) and `/consolar` (Spanish) commands retrieve Bible verses from Qdrant, populated from `data/bible_OEB_verses.csv`. This is a manual, occasional operation — not something that runs on every backend startup — so re-run it whenever the CSV changes:

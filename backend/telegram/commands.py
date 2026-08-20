@@ -1,5 +1,6 @@
 from commands.comfort import is_configured as comfort_is_configured
 from commands.contact import is_configured as contact_is_configured
+from commands.schedules import is_configured as schedules_is_configured
 from translations import get_string
 
 # (translation_key, forced_language | None)
@@ -21,7 +22,8 @@ def _build_help_reply(language: str) -> str:
         lines.append(get_string("help_line_comfort", language))
     if contact_is_configured():
         lines.append(get_string("help_line_contact", language))
-    lines.append(get_string("help_line_schedules", language))
+    if schedules_is_configured():
+        lines.append(get_string("help_line_schedules", language))
     return "".join(lines)
 
 

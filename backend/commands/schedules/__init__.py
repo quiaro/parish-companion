@@ -10,6 +10,7 @@ from commands.schedules.models import (
     SpecialSchedule,
 )
 from commands.schedules.static import StaticScheduleAdapter
+from config import settings
 
 __all__ = [
     "Language",
@@ -22,4 +23,14 @@ __all__ = [
     "ScheduleUnavailableError",
     "SpecialSchedule",
     "StaticScheduleAdapter",
+    "is_configured",
 ]
+
+
+def is_configured() -> bool:
+    return bool(
+        settings.schedules_google_credentials_path
+        and settings.schedules_google_spreadsheet_id
+        and settings.schedules_regular_tab
+        and settings.schedules_special_tab
+    )

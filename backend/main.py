@@ -7,7 +7,8 @@ from fastapi.responses import JSONResponse
 
 from config import settings
 from commands.contact.email_notifier import EmailContactNotifier
-from commands.schedules import CachedScheduleAdapter, GoogleSheetsScheduleAdapter, StaticScheduleAdapter
+from commands.schedules import CachedScheduleAdapter, GoogleSheetsScheduleAdapter
+from commands.schedules import is_configured as schedules_is_configured
 from telegram.client import check_connectivity, delete_webhook, register_webhook
 from telegram.router import router as telegram_router
 
@@ -15,13 +16,13 @@ logging.basicConfig(level=logging.INFO)
 
 
 def _build_schedule_adapter():
-    if settings.schedules_google_credentials_path and settings.schedules_google_spreadsheet_id:
-        base = GoogleSheetsScheduleAdapter(
-            spreadsheet_id=settings.schedules_google_spreadsheet_id,
-            credentials_path=settings.schedules_google_credentials_path,
-        )
-        return CachedScheduleAdapter(base, ttl_seconds=settings.schedules_cache_ttl_seconds)
-    return StaticScheduleAdapter()
+    if not schedules_is_configured():
+        return None
+    base = GoogleSheetsScheduleAdapter(
+        spreadsheet_id=settings.schedules_google_spreadsheet_id,
+        credentials_path=settings.schedules_google_credentials_path,
+    )
+    return CachedScheduleAdapter(base, ttl_seconds=settings.schedules_cache_ttl_seconds)
 
 
 @asynccontextmanager
