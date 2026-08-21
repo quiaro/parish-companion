@@ -28,9 +28,4 @@ __all__ = [
 
 
 def is_configured() -> bool:
-    return bool(
-        settings.schedules_google_credentials_path
-        and settings.schedules_google_spreadsheet_id
-        and settings.schedules_regular_tab
-        and settings.schedules_special_tab
-    )
+    return bool(settings.schedules_google_credentials_path and settings.schedules_google_spreadsheet_id)
