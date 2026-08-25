@@ -171,14 +171,38 @@ def test_callback_query_is_answered_before_dispatch(client: TestClient, mock_sen
     answer_mock.assert_awaited_once_with("cb-xyz")
 
 
-def test_tapping_back_to_menu_is_currently_inert(client: TestClient, mock_send: AsyncMock) -> None:
-    # I-06 wires up real back-to-menu navigation; for now the button exists (I-05)
-    # but tapping it does nothing.
-    app.state.information_adapter = _mock_adapter([_topic()])
+def test_tapping_back_to_menu_re_renders_the_menu(client: TestClient, mock_send: AsyncMock) -> None:
+    topics = [_topic(key="b", label_en="Baptism", order=1), _topic(key="a", label_en="Anointing", order=2)]
+    app.state.information_adapter = _mock_adapter(topics)
     with patch("telegram.router.answer_callback_query", AsyncMock()):
         resp = client.post("/telegram/webhook", json=_callback_update("info|menu"), headers=_headers)
     assert resp.status_code == 200
-    mock_send.assert_not_awaited()
+    mock_send.assert_awaited_once()
+    assert mock_send.await_args is not None
+    assert mock_send.await_args[0][1] == get_string("information_menu_intro", "en")
+    assert mock_send.await_args.kwargs["button_rows"] == [
+        [("Baptism", "info|topic|b")],
+        [("Anointing", "info|topic|a")],
+    ]
+
+
+def test_tapping_back_to_menu_reflects_admin_edits_made_mid_session(
+    client: TestClient, mock_send: AsyncMock
+) -> None:
+    # The adapter (via its own TTL cache) is re-queried on every tap rather than
+    # reusing a stale snapshot held by the presentation layer.
+    adapter = _mock_adapter()
+    adapter.list_topics.side_effect = [
+        [_topic(key="a", label_en="Old Topic", order=1)],
+        [_topic(key="a", label_en="Updated Topic", order=1)],
+    ]
+    app.state.information_adapter = adapter
+    with patch("telegram.router.answer_callback_query", AsyncMock()):
+        client.post("/telegram/webhook", json=_command_update("/information"), headers=_headers)
+        resp = client.post("/telegram/webhook", json=_callback_update("info|menu"), headers=_headers)
+    assert resp.status_code == 200
+    assert mock_send.await_args is not None
+    assert mock_send.await_args.kwargs["button_rows"] == [[("Updated Topic", "info|topic|a")]]
 
 
 def test_information_callback_is_ignored_when_not_configured(

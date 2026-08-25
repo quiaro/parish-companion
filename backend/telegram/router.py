@@ -74,7 +74,11 @@ async def _handle_callback_query(request: Request, callback_query: CallbackQuery
                 )
                 if info_reply is not None:
                     await send_message(chat_id, info_reply.text, button_rows=info_reply.button_rows)
-            # MENU_ACTION ("Back to menu") is not yet wired up — I-06.
+            elif action == telegram_information.MENU_ACTION:
+                # English-only for now, matching I-05's back button — I-09 threads
+                # language through this entry point.
+                info_reply = telegram_information.handle_command(request.app.state.information_adapter, "en")
+                await send_message(chat_id, info_reply.text, button_rows=info_reply.button_rows)
             return JSONResponse({"status": "ok"})
 
     comfort_state = await comfort_flow.get_state(session_id)
