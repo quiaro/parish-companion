@@ -79,18 +79,25 @@ async def delete_webhook() -> None:
     logger.info("Webhook deleted")
 
 
-async def send_message(chat_id: int, text: str, buttons: list[tuple[str, str]] | None = None) -> bool:
-    """buttons is a list of (label, callback_data) pairs, rendered as one row of inline
-    buttons attached to the final message part (if the text is long enough to be split)."""
+async def send_message(
+    chat_id: int,
+    text: str,
+    buttons: list[tuple[str, str]] | None = None,
+    button_rows: list[list[tuple[str, str]]] | None = None,
+) -> bool:
+    """buttons is a list of (label, callback_data) pairs rendered as one row of inline buttons. button_rows is a list of such rows, each rendered on its own line. Either is attached to the final message part; passing both is not supported by any caller today."""
     parts = split_message(text)
     success = True
+    keyboard = None
+    if button_rows:
+        keyboard = [[{"text": label, "callback_data": data} for label, data in row] for row in button_rows]
+    elif buttons:
+        keyboard = [[{"text": label, "callback_data": data} for label, data in buttons]]
     async with httpx2.AsyncClient() as http:
         for i, part in enumerate(parts):
             payload = {"chat_id": chat_id, "text": part, "parse_mode": "Markdown"}
-            if buttons and i == len(parts) - 1:
-                payload["reply_markup"] = {
-                    "inline_keyboard": [[{"text": label, "callback_data": data} for label, data in buttons]]
-                }
+            if keyboard and i == len(parts) - 1:
+                payload["reply_markup"] = {"inline_keyboard": keyboard}
             try:
                 resp = await http.post(
                     f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage",

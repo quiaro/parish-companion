@@ -115,7 +115,9 @@ async def receive_update(
             reply = await comfort_flow.start(session_id, sender.id if sender else chat_id, forced_lang)
         elif command in _INFORMATION_COMMAND_LANGUAGES and information_is_configured():
             forced_lang = _INFORMATION_COMMAND_LANGUAGES[command]
-            reply = telegram_information.handle_command(forced_lang)
+            info_reply = telegram_information.handle_command(request.app.state.information_adapter, forced_lang)
+            await send_message(chat_id, info_reply.text, button_rows=info_reply.button_rows)
+            return JSONResponse({"status": "ok"})
         elif command == "/cancel":
             flow_state = await contact_flow.get_state(session_id)
             if flow_state:

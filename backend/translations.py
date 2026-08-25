@@ -131,10 +131,7 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "comfort_button_view_another": "View another passage",
         "comfort_button_exit": "Exit",
-        "information_ack_placeholder": (
-            "This feature is still being built, so I can't share parish information "
-            "yet. Please check back soon."
-        ),
+        "information_menu_intro": "What would you like to know more about?",
     },
     "es": {
         "telegram_text_only": (
@@ -264,10 +261,7 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "comfort_button_view_another": "Ver otro pasaje",
         "comfort_button_exit": "Salir",
-        "information_ack_placeholder": (
-            "Esta función todavía está en desarrollo, así que todavía no puedo "
-            "compartir información de la parroquia. Vuelve pronto, por favor."
-        ),
+        "information_menu_intro": "¿Sobre qué te gustaría saber más?",
     },
 }
 

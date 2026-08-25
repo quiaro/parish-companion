@@ -86,6 +86,37 @@ class TestSendMessage:
         assert "reply_markup" in fake.calls[1]["json"]
 
     @pytest.mark.asyncio
+    async def test_attaches_button_rows_as_separate_rows(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        fake = _mock_http(monkeypatch)
+        await client.send_message(
+            123, "hello", button_rows=[[("A", "a_data")], [("B", "b_data")]]
+        )
+        payload = fake.calls[0]["json"]
+        assert payload["reply_markup"] == {
+            "inline_keyboard": [
+                [{"text": "A", "callback_data": "a_data"}],
+                [{"text": "B", "callback_data": "b_data"}],
+            ]
+        }
+
+    @pytest.mark.asyncio
+    async def test_button_rows_only_attached_to_final_part_of_a_split_message(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        fake = _mock_http(monkeypatch)
+        await client.send_message(123, "a" * 400, button_rows=[[("A", "a_data")]])
+        assert len(fake.calls) == 2
+        assert "reply_markup" not in fake.calls[0]["json"]
+        assert "reply_markup" in fake.calls[1]["json"]
+
+    @pytest.mark.asyncio
+    async def test_empty_button_rows_list_omits_reply_markup(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        fake = _mock_http(monkeypatch)
+        await client.send_message(123, "hello", button_rows=None)
+        payload = fake.calls[0]["json"]
+        assert "reply_markup" not in payload
+
+    @pytest.mark.asyncio
     async def test_logs_and_returns_false_when_telegram_is_unreachable(
         self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ) -> None:

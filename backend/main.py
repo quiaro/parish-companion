@@ -7,6 +7,8 @@ from fastapi.responses import JSONResponse
 
 from config import settings
 from commands.contact.email_notifier import EmailContactNotifier
+from commands.information import CachedInformationAdapter, GoogleSheetsInformationAdapter
+from commands.information import is_configured as information_is_configured
 from commands.schedules import CachedScheduleAdapter, GoogleSheetsScheduleAdapter
 from commands.schedules import is_configured as schedules_is_configured
 from telegram.client import check_connectivity, delete_webhook, register_webhook
@@ -25,9 +27,20 @@ def _build_schedule_adapter():
     return CachedScheduleAdapter(base, ttl_seconds=settings.schedules_cache_ttl_seconds)
 
 
+def _build_information_adapter():
+    if not information_is_configured():
+        return None
+    base = GoogleSheetsInformationAdapter(
+        spreadsheet_id=settings.information_google_spreadsheet_id,
+        credentials_path=settings.information_google_credentials_path,
+    )
+    return CachedInformationAdapter(base, ttl_seconds=settings.information_cache_ttl_seconds)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     _app.state.schedule_adapter = _build_schedule_adapter()
+    _app.state.information_adapter = _build_information_adapter()
     _app.state.contact_notifier = EmailContactNotifier()
     await register_webhook()
     yield
