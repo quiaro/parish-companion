@@ -132,6 +132,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "comfort_button_view_another": "View another passage",
         "comfort_button_exit": "Exit",
         "information_menu_intro": "What would you like to know more about?",
+        "information_button_back": "Back to menu",
     },
     "es": {
         "telegram_text_only": (
@@ -262,6 +263,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "comfort_button_view_another": "Ver otro pasaje",
         "comfort_button_exit": "Salir",
         "information_menu_intro": "¿Sobre qué te gustaría saber más?",
+        "information_button_back": "Volver al menú",
     },
 }
 

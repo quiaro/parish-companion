@@ -55,7 +55,7 @@ _INFORMATION_COMMAND_LANGUAGES: dict[str, str] = {
 }
 
 
-async def _handle_callback_query(callback_query: CallbackQuery) -> JSONResponse:
+async def _handle_callback_query(request: Request, callback_query: CallbackQuery) -> JSONResponse:
     await answer_callback_query(callback_query.id)
 
     if callback_query.message is None or callback_query.data is None:
@@ -63,6 +63,19 @@ async def _handle_callback_query(callback_query: CallbackQuery) -> JSONResponse:
 
     chat_id = callback_query.message.chat.id
     session_id = str(chat_id)
+
+    if information_is_configured():
+        parsed = telegram_information.parse_callback(callback_query.data)
+        if parsed is not None:
+            action, key = parsed
+            if action == telegram_information.TOPIC_ACTION and key is not None:
+                info_reply = telegram_information.handle_topic_selection(
+                    request.app.state.information_adapter, key
+                )
+                if info_reply is not None:
+                    await send_message(chat_id, info_reply.text, button_rows=info_reply.button_rows)
+            # MENU_ACTION ("Back to menu") is not yet wired up — I-06.
+            return JSONResponse({"status": "ok"})
 
     comfort_state = await comfort_flow.get_state(session_id)
     if comfort_state:
@@ -84,7 +97,7 @@ async def receive_update(
     _verify_secret(x_telegram_bot_api_secret_token)
 
     if update.callback_query is not None:
-        return await _handle_callback_query(update.callback_query)
+        return await _handle_callback_query(request, update.callback_query)
 
     if update.message is None:
         return JSONResponse({"status": "ok"})
