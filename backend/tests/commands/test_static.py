@@ -29,6 +29,7 @@ def _full_help(language: str) -> str:
         + STRINGS[language]["help_line_comfort"]
         + STRINGS[language]["help_line_contact"]
         + STRINGS[language]["help_line_schedules"]
+        + STRINGS[language]["help_line_information"]
     )
 
 
@@ -41,6 +42,7 @@ def all_features_configured(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("telegram.commands.comfort_is_configured", lambda: True)
     monkeypatch.setattr("telegram.commands.contact_is_configured", lambda: True)
     monkeypatch.setattr("telegram.commands.schedules_is_configured", lambda: True)
+    monkeypatch.setattr("telegram.commands.information_is_configured", lambda: True)
 
 
 # --- English commands --------------------------------------------------------
@@ -155,5 +157,28 @@ def test_schedules_command_is_unreachable_when_not_configured(
 ) -> None:
     monkeypatch.setattr("telegram.router.schedules_is_configured", lambda: False)
     resp = client.post("/telegram/webhook", json=_command_update("/schedules"), headers=_headers)
+    assert resp.status_code == 200
+    mock_send.assert_awaited_once_with(_CHAT_ID, STRINGS["en"]["telegram_cmd_unknown"])
+
+
+def test_help_omits_information_line_when_information_is_not_configured(
+    client: TestClient, mock_send: AsyncMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("telegram.commands.information_is_configured", lambda: False)
+    resp = client.post("/telegram/webhook", json=_command_update("/help"), headers=_headers)
+    assert resp.status_code == 200
+    assert mock_send.await_args is not None
+    sent_text = mock_send.await_args.args[1]
+    assert "/information" not in sent_text
+    assert "/comfort" in sent_text
+    assert "/contact" in sent_text
+    assert "/schedules" in sent_text
+
+
+def test_information_command_is_unreachable_when_not_configured(
+    client: TestClient, mock_send: AsyncMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("telegram.router.information_is_configured", lambda: False)
+    resp = client.post("/telegram/webhook", json=_command_update("/information"), headers=_headers)
     assert resp.status_code == 200
     mock_send.assert_awaited_once_with(_CHAT_ID, STRINGS["en"]["telegram_cmd_unknown"])

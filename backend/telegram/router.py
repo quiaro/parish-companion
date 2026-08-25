@@ -7,10 +7,12 @@ from commands.comfort import flow as comfort_flow
 from commands.comfort import is_configured as comfort_is_configured
 from commands.contact import flow as contact_flow
 from commands.contact import is_configured as contact_is_configured
+from commands.information import is_configured as information_is_configured
 from commands.schedules import is_configured as schedules_is_configured
 from config import settings
 from session import get_language
 from telegram import commands
+from telegram import information as telegram_information
 from telegram import schedule as telegram_schedule
 from telegram.client import answer_callback_query, send_message
 from telegram.models import CallbackQuery, Update
@@ -45,6 +47,11 @@ _CONTACT_COMMAND_LANGUAGES: dict[str, str] = {
 _COMFORT_COMMAND_LANGUAGES: dict[str, str] = {
     "/comfort": "en",
     "/consolar": "es",
+}
+
+_INFORMATION_COMMAND_LANGUAGES: dict[str, str] = {
+    "/information": "en",
+    "/información": "es",
 }
 
 
@@ -106,6 +113,9 @@ async def receive_update(
         elif command in _COMFORT_COMMAND_LANGUAGES and comfort_is_configured():
             forced_lang = _COMFORT_COMMAND_LANGUAGES[command]
             reply = await comfort_flow.start(session_id, sender.id if sender else chat_id, forced_lang)
+        elif command in _INFORMATION_COMMAND_LANGUAGES and information_is_configured():
+            forced_lang = _INFORMATION_COMMAND_LANGUAGES[command]
+            reply = telegram_information.handle_command(forced_lang)
         elif command == "/cancel":
             flow_state = await contact_flow.get_state(session_id)
             if flow_state:

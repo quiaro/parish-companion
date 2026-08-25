@@ -19,6 +19,7 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "help_line_contact": "/contact: Reach a parish staff member\n",
         "help_line_schedules": "/schedules: View Mass and Confession times\n",
+        "help_line_information": "/information: Learn more about the parish\n",
         "telegram_cmd_unknown": (
             "Sorry, I don't recognize that command. Type /help to see what I can do."
         ),
@@ -130,6 +131,10 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "comfort_button_view_another": "View another passage",
         "comfort_button_exit": "Exit",
+        "information_ack_placeholder": (
+            "This feature is still being built, so I can't share parish information "
+            "yet. Please check back soon."
+        ),
     },
     "es": {
         "telegram_text_only": (
@@ -145,6 +150,7 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "help_line_contact": "/contacto: Contactar personal de la parroquia\n",
         "help_line_schedules": "/horarios: Horarios de Misa y Confesiones\n",
+        "help_line_information": "/información: Conoce más sobre la parroquia\n",
         "telegram_cmd_unknown": (
             "Lo siento, no reconozco ese comando. Escribe /ayuda para ver lo que puedo hacer."
         ),
@@ -258,6 +264,10 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "comfort_button_view_another": "Ver otro pasaje",
         "comfort_button_exit": "Salir",
+        "information_ack_placeholder": (
+            "Esta función todavía está en desarrollo, así que todavía no puedo "
+            "compartir información de la parroquia. Vuelve pronto, por favor."
+        ),
     },
 }
 
