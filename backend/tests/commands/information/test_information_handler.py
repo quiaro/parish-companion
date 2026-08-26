@@ -54,7 +54,8 @@ class TestParseCallback:
 
 class TestHandleCommand:
     def test_intro_text_is_localized(self):
-        reply = information.handle_command(_adapter([]), "es")
+        topics = [_topic(key="a", order=1)]
+        reply = information.handle_command(_adapter(topics), "es")
         assert reply.text == get_string("information_menu_intro", "es")
 
     def test_one_button_row_per_topic_in_the_order_given(self):
@@ -71,9 +72,14 @@ class TestHandleCommand:
         reply = information.handle_command(_adapter(topics), "es")
         assert reply.button_rows == [[("A", "info|topic|a")]]
 
-    def test_no_button_rows_when_there_are_no_topics(self):
+    def test_shows_apology_message_with_no_buttons_when_there_are_no_topics(self):
         reply = information.handle_command(_adapter([]), "en")
+        assert reply.text == get_string("information_empty", "en")
         assert reply.button_rows is None
+
+    def test_apology_message_is_localized(self):
+        reply = information.handle_command(_adapter([]), "es")
+        assert reply.text == get_string("information_empty", "es")
 
 
 class TestHandleTopicSelection:

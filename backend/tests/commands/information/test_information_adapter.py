@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import MagicMock, patch
 
 import gspread
@@ -184,6 +185,20 @@ class TestListTopics:
     def test_empty_sheet_returns_empty_list(self, adapter):
         _patch_open(adapter, _mock_spreadsheet([]))
         assert adapter.list_topics() == []
+
+    def test_empty_sheet_logs_a_warning(self, adapter, caplog):
+        _patch_open(adapter, _mock_spreadsheet([]))
+        with caplog.at_level(logging.WARNING, logger="commands.information.google_sheets"):
+            adapter.list_topics()
+        assert any("no usable topics" in message for message in caplog.messages)
+
+    def test_all_rows_invalid_returns_empty_list_and_logs_a_warning(self, adapter, caplog):
+        rows = [{"topic_key": "", "label_en": "Mass Times", "body_en": "Sundays.", "order": 1}]
+        _patch_open(adapter, _mock_spreadsheet(rows))
+        with caplog.at_level(logging.WARNING, logger="commands.information.google_sheets"):
+            topics = adapter.list_topics()
+        assert topics == []
+        assert any("no usable topics" in message for message in caplog.messages)
 
     def test_missing_tab_raises_information_unavailable_error(self, adapter):
         spreadsheet = MagicMock()

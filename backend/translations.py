@@ -133,6 +133,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "comfort_button_exit": "Exit",
         "information_menu_intro": "What would you like to know more about?",
         "information_button_back": "Back to menu",
+        "information_empty": (
+            "Sorry, there isn't any parish information available right now. "
+            "Please use /contact if you need assistance."
+        ),
     },
     "es": {
         "telegram_text_only": (
@@ -264,6 +268,9 @@ STRINGS: dict[str, dict[str, str]] = {
         "comfort_button_exit": "Salir",
         "information_menu_intro": "¿Sobre qué te gustaría saber más?",
         "information_button_back": "Volver al menú",
+        "information_empty": (
+            "Lo sentimos, no hay información de la parroquia disponible en este momento. Por favor, usa /contacto para comunicarte con la parroquia."
+        ),
     },
 }
 

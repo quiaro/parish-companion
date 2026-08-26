@@ -39,7 +39,9 @@ def parse_callback(data: str) -> Optional[tuple[str, Optional[str]]]:
 
 def handle_command(adapter: InformationAdapter, language: str) -> InformationReply:
     topics = adapter.list_topics()
-    button_rows = [[(t.label_en, _topic_callback(t.key))] for t in topics] or None
+    if not topics:
+        return InformationReply(text=get_string("information_empty", language))
+    button_rows = [[(t.label_en, _topic_callback(t.key))] for t in topics]
     return InformationReply(text=get_string("information_menu_intro", language), button_rows=button_rows)
 
 
