@@ -141,6 +141,9 @@ STRINGS: dict[str, dict[str, str]] = {
             "Sorry, I wasn't able to retrieve that information right now. "
             "Please use /contact if you need assistance."
         ),
+        "information_es_unavailable": (
+            "This information isn't available in Spanish yet, but it will be added soon."
+        ),
     },
     "es": {
         "telegram_text_only": (
@@ -278,6 +281,9 @@ STRINGS: dict[str, dict[str, str]] = {
         "information_unavailable": (
             "Lo siento, no pude obtener esa información en este momento. "
             "Si deseas, usa /contacto para comunicarte con la parroquia."
+        ),
+        "information_es_unavailable": (
+            "Esta información todavía no está disponible en español, pero se agregará pronto."
         ),
     },
 }

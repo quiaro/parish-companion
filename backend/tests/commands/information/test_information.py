@@ -32,7 +32,10 @@ def _command_update(command: str) -> dict:
 
 
 def _topic(**overrides) -> InformationTopic:
-    defaults = dict(key="mass_times", label_en="Mass Times", body_en="Sundays at 9am.", order=1)
+    defaults = dict(
+        key="mass_times", label_en="Mass Times", label_es="Horarios de Misa",
+        body_en="Sundays at 9am.", order=1,
+    )
     defaults.update(overrides)
     return InformationTopic(**defaults)  # type: ignore[arg-type]
 
@@ -76,8 +79,8 @@ def test_information_command_sends_one_button_row_per_topic_in_order(
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("information_menu_intro", "en")
     assert mock_send.await_args.kwargs["button_rows"] == [
-        [("Baptism", "info|topic|b")],
-        [("Anointing", "info|topic|a")],
+        [("Baptism", "info|en|topic|b")],
+        [("Anointing", "info|en|topic|a")],
     ]
 
 
@@ -157,6 +160,42 @@ def test_informacion_command_always_replies_in_spanish_even_when_session_languag
     assert mock_send.await_args[0][1] == get_string("information_menu_intro", "es")
 
 
+# --- Spanish menu localization (I-09) -----------------------------------------
+
+def test_informacion_command_uses_label_es_for_buttons(client: TestClient, mock_send: AsyncMock) -> None:
+    topics = [_topic(key="mass_times", label_en="Mass Times", label_es="Horarios de Misa", order=1)]
+    app.state.information_adapter = _mock_adapter(topics)
+    resp = client.post("/telegram/webhook", json=_command_update("/información"), headers=_headers)
+    assert resp.status_code == 200
+    assert mock_send.await_args is not None
+    assert mock_send.await_args.kwargs["button_rows"] == [
+        [("Horarios de Misa", "info|es|topic|mass_times")]
+    ]
+
+
+def test_informacion_command_hides_topics_missing_label_es(client: TestClient, mock_send: AsyncMock) -> None:
+    topics = [
+        _topic(key="a", label_en="A", label_es="", order=1),
+        _topic(key="b", label_en="B", label_es="La B", order=2),
+    ]
+    app.state.information_adapter = _mock_adapter(topics)
+    resp = client.post("/telegram/webhook", json=_command_update("/información"), headers=_headers)
+    assert resp.status_code == 200
+    assert mock_send.await_args is not None
+    assert mock_send.await_args.kwargs["button_rows"] == [[("La B", "info|es|topic|b")]]
+
+
+def test_information_command_still_shows_topics_missing_label_es(
+    client: TestClient, mock_send: AsyncMock
+) -> None:
+    topics = [_topic(key="a", label_en="A", label_es="", order=1)]
+    app.state.information_adapter = _mock_adapter(topics)
+    resp = client.post("/telegram/webhook", json=_command_update("/information"), headers=_headers)
+    assert resp.status_code == 200
+    assert mock_send.await_args is not None
+    assert mock_send.await_args.kwargs["button_rows"] == [[("A", "info|en|topic|a")]]
+
+
 # --- Topic selection (I-05) ---------------------------------------------------
 
 def test_tapping_a_topic_shows_its_content_with_a_back_button(
@@ -166,14 +205,14 @@ def test_tapping_a_topic_shows_its_content_with_a_back_button(
     app.state.information_adapter = _mock_adapter(get_topic_result=topic)
     with patch("telegram.router.answer_callback_query", AsyncMock()):
         resp = client.post(
-            "/telegram/webhook", json=_callback_update("info|topic|mass_times"), headers=_headers
+            "/telegram/webhook", json=_callback_update("info|en|topic|mass_times"), headers=_headers
         )
     assert resp.status_code == 200
     mock_send.assert_awaited_once()
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == "Sundays at 9am."
     assert mock_send.await_args.kwargs["button_rows"] == [
-        [(get_string("information_button_back", "en"), "info|menu")]
+        [(get_string("information_button_back", "en"), "info|en|menu")]
     ]
 
 
@@ -183,7 +222,7 @@ def test_tapping_a_topic_fetches_by_the_key_in_the_callback_data(
     adapter = _mock_adapter(get_topic_result=_topic(key="baptism"))
     app.state.information_adapter = adapter
     with patch("telegram.router.answer_callback_query", AsyncMock()):
-        client.post("/telegram/webhook", json=_callback_update("info|topic|baptism"), headers=_headers)
+        client.post("/telegram/webhook", json=_callback_update("info|en|topic|baptism"), headers=_headers)
     adapter.get_topic.assert_called_once_with("baptism")
 
 
@@ -191,7 +230,7 @@ def test_tapping_a_removed_topic_sends_nothing(client: TestClient, mock_send: As
     app.state.information_adapter = _mock_adapter(get_topic_result=None)
     with patch("telegram.router.answer_callback_query", AsyncMock()):
         resp = client.post(
-            "/telegram/webhook", json=_callback_update("info|topic|removed"), headers=_headers
+            "/telegram/webhook", json=_callback_update("info|en|topic|removed"), headers=_headers
         )
     assert resp.status_code == 200
     mock_send.assert_not_awaited()
@@ -205,7 +244,7 @@ def test_tapping_a_topic_shows_unavailable_message_when_fetch_fails(
     app.state.information_adapter = adapter
     with patch("telegram.router.answer_callback_query", AsyncMock()):
         resp = client.post(
-            "/telegram/webhook", json=_callback_update("info|topic|mass_times"), headers=_headers
+            "/telegram/webhook", json=_callback_update("info|en|topic|mass_times"), headers=_headers
         )
     assert resp.status_code == 200
     assert mock_send.await_args is not None
@@ -217,24 +256,72 @@ def test_callback_query_is_answered_before_dispatch(client: TestClient, mock_sen
     app.state.information_adapter = _mock_adapter(get_topic_result=_topic())
     with patch("telegram.router.answer_callback_query", AsyncMock()) as answer_mock:
         client.post(
-            "/telegram/webhook", json=_callback_update("info|topic|mass_times", "cb-xyz"), headers=_headers
+            "/telegram/webhook", json=_callback_update("info|en|topic|mass_times", "cb-xyz"), headers=_headers
         )
     answer_mock.assert_awaited_once_with("cb-xyz")
 
+
+# --- Spanish topic content localization (I-09) --------------------------------
+
+def test_tapping_a_topic_in_spanish_shows_body_es(client: TestClient, mock_send: AsyncMock) -> None:
+    topic = _topic(key="mass_times", body_en="Sundays.", body_es="Domingos.")
+    app.state.information_adapter = _mock_adapter(get_topic_result=topic)
+    with patch("telegram.router.answer_callback_query", AsyncMock()):
+        resp = client.post(
+            "/telegram/webhook", json=_callback_update("info|es|topic|mass_times"), headers=_headers
+        )
+    assert resp.status_code == 200
+    assert mock_send.await_args is not None
+    assert mock_send.await_args[0][1] == "Domingos."
+    assert mock_send.await_args.kwargs["button_rows"] == [
+        [(get_string("information_button_back", "es"), "info|es|menu")]
+    ]
+
+
+def test_tapping_a_topic_in_spanish_shows_placeholder_when_body_es_missing(
+    client: TestClient, mock_send: AsyncMock
+) -> None:
+    topic = _topic(key="mass_times", body_en="Sundays.", body_es="")
+    app.state.information_adapter = _mock_adapter(get_topic_result=topic)
+    with patch("telegram.router.answer_callback_query", AsyncMock()):
+        resp = client.post(
+            "/telegram/webhook", json=_callback_update("info|es|topic|mass_times"), headers=_headers
+        )
+    assert resp.status_code == 200
+    assert mock_send.await_args is not None
+    sent_text = mock_send.await_args[0][1]
+    assert sent_text == get_string("information_es_unavailable", "es")
+    assert sent_text != "Sundays."
+
+
+# --- Back to menu navigation (I-06) -------------------------------------------
 
 def test_tapping_back_to_menu_re_renders_the_menu(client: TestClient, mock_send: AsyncMock) -> None:
     topics = [_topic(key="b", label_en="Baptism", order=1), _topic(key="a", label_en="Anointing", order=2)]
     app.state.information_adapter = _mock_adapter(topics)
     with patch("telegram.router.answer_callback_query", AsyncMock()):
-        resp = client.post("/telegram/webhook", json=_callback_update("info|menu"), headers=_headers)
+        resp = client.post("/telegram/webhook", json=_callback_update("info|en|menu"), headers=_headers)
     assert resp.status_code == 200
     mock_send.assert_awaited_once()
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("information_menu_intro", "en")
     assert mock_send.await_args.kwargs["button_rows"] == [
-        [("Baptism", "info|topic|b")],
-        [("Anointing", "info|topic|a")],
+        [("Baptism", "info|en|topic|b")],
+        [("Anointing", "info|en|topic|a")],
     ]
+
+
+def test_tapping_back_to_menu_in_spanish_re_renders_the_spanish_menu(
+    client: TestClient, mock_send: AsyncMock
+) -> None:
+    topics = [_topic(key="a", label_en="A", label_es="La A", order=1)]
+    app.state.information_adapter = _mock_adapter(topics)
+    with patch("telegram.router.answer_callback_query", AsyncMock()):
+        resp = client.post("/telegram/webhook", json=_callback_update("info|es|menu"), headers=_headers)
+    assert resp.status_code == 200
+    assert mock_send.await_args is not None
+    assert mock_send.await_args[0][1] == get_string("information_menu_intro", "es")
+    assert mock_send.await_args.kwargs["button_rows"] == [[("La A", "info|es|topic|a")]]
 
 
 def test_tapping_back_to_menu_shows_apology_if_the_sheet_became_empty_mid_session(
@@ -242,7 +329,7 @@ def test_tapping_back_to_menu_shows_apology_if_the_sheet_became_empty_mid_sessio
 ) -> None:
     app.state.information_adapter = _mock_adapter([])
     with patch("telegram.router.answer_callback_query", AsyncMock()):
-        resp = client.post("/telegram/webhook", json=_callback_update("info|menu"), headers=_headers)
+        resp = client.post("/telegram/webhook", json=_callback_update("info|en|menu"), headers=_headers)
     assert resp.status_code == 200
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("information_empty", "en")
@@ -256,7 +343,7 @@ def test_tapping_back_to_menu_shows_unavailable_message_when_fetch_fails(
     adapter.list_topics.side_effect = InformationUnavailableError("down")
     app.state.information_adapter = adapter
     with patch("telegram.router.answer_callback_query", AsyncMock()):
-        resp = client.post("/telegram/webhook", json=_callback_update("info|menu"), headers=_headers)
+        resp = client.post("/telegram/webhook", json=_callback_update("info|en|menu"), headers=_headers)
     assert resp.status_code == 200
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("information_unavailable", "en")
@@ -276,10 +363,10 @@ def test_tapping_back_to_menu_reflects_admin_edits_made_mid_session(
     app.state.information_adapter = adapter
     with patch("telegram.router.answer_callback_query", AsyncMock()):
         client.post("/telegram/webhook", json=_command_update("/information"), headers=_headers)
-        resp = client.post("/telegram/webhook", json=_callback_update("info|menu"), headers=_headers)
+        resp = client.post("/telegram/webhook", json=_callback_update("info|en|menu"), headers=_headers)
     assert resp.status_code == 200
     assert mock_send.await_args is not None
-    assert mock_send.await_args.kwargs["button_rows"] == [[("Updated Topic", "info|topic|a")]]
+    assert mock_send.await_args.kwargs["button_rows"] == [[("Updated Topic", "info|en|topic|a")]]
 
 
 def test_information_callback_is_ignored_when_not_configured(
@@ -289,7 +376,7 @@ def test_information_callback_is_ignored_when_not_configured(
     app.state.information_adapter = _mock_adapter(get_topic_result=_topic())
     with patch("telegram.router.answer_callback_query", AsyncMock()) as answer_mock:
         resp = client.post(
-            "/telegram/webhook", json=_callback_update("info|topic|mass_times"), headers=_headers
+            "/telegram/webhook", json=_callback_update("info|en|topic|mass_times"), headers=_headers
         )
     assert resp.status_code == 200
     answer_mock.assert_awaited_once()
