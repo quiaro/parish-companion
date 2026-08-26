@@ -207,10 +207,31 @@ class TestListTopics:
         with pytest.raises(InformationUnavailableError):
             adapter.list_topics()
 
+    def test_missing_tab_logs_an_error_distinct_from_the_empty_sheet_case(self, adapter, caplog):
+        spreadsheet = MagicMock()
+        spreadsheet.worksheet.side_effect = gspread.WorksheetNotFound
+        _patch_open(adapter, spreadsheet)
+        with caplog.at_level(logging.WARNING, logger="commands.information.google_sheets"):
+            with pytest.raises(InformationUnavailableError):
+                adapter.list_topics()
+        error_records = [r for r in caplog.records if r.levelno == logging.ERROR]
+        assert any("not found" in r.message for r in error_records)
+        assert not any(r.levelno == logging.WARNING for r in caplog.records)
+
     def test_generic_api_failure_raises_information_unavailable_error(self, adapter):
         adapter._client.open_by_key.side_effect = Exception("network down")  # type: ignore[union-attr]
         with pytest.raises(InformationUnavailableError):
             adapter.list_topics()
+
+    def test_generic_api_failure_logs_an_error_with_debugging_detail(self, adapter, caplog):
+        adapter._client.open_by_key.side_effect = Exception("network down")  # type: ignore[union-attr]
+        with caplog.at_level(logging.ERROR, logger="commands.information.google_sheets"):
+            with pytest.raises(InformationUnavailableError):
+                adapter.list_topics()
+        assert any(
+            "Could not retrieve information topics" in m and "network down" in m
+            for m in caplog.messages
+        )
 
     def test_get_all_records_failure_raises_information_unavailable_error(self, adapter):
         spreadsheet = _mock_spreadsheet([])
@@ -218,6 +239,18 @@ class TestListTopics:
         _patch_open(adapter, spreadsheet)
         with pytest.raises(InformationUnavailableError):
             adapter.list_topics()
+
+    def test_get_all_records_failure_logs_an_error_with_debugging_detail(self, adapter, caplog):
+        spreadsheet = _mock_spreadsheet([])
+        spreadsheet.worksheet.return_value.get_all_records.side_effect = Exception("quota exceeded")
+        _patch_open(adapter, spreadsheet)
+        with caplog.at_level(logging.ERROR, logger="commands.information.google_sheets"):
+            with pytest.raises(InformationUnavailableError):
+                adapter.list_topics()
+        assert any(
+            "Could not read information topics" in m and "quota exceeded" in m
+            for m in caplog.messages
+        )
 
     def test_get_topic_returns_matching_topic(self, adapter):
         rows = [{"topic_key": "mass_times", "label_en": "Mass Times", "body_en": "Sundays.", "order": 1}]

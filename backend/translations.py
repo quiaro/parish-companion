@@ -137,6 +137,10 @@ STRINGS: dict[str, dict[str, str]] = {
             "Sorry, there isn't any parish information available right now. "
             "Please use /contact if you need assistance."
         ),
+        "information_unavailable": (
+            "Sorry, I wasn't able to retrieve that information right now. "
+            "Please use /contact if you need assistance."
+        ),
     },
     "es": {
         "telegram_text_only": (
@@ -270,6 +274,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "information_button_back": "Volver al menú",
         "information_empty": (
             "Lo sentimos, no hay información de la parroquia disponible en este momento. Por favor, usa /contacto para comunicarte con la parroquia."
+        ),
+        "information_unavailable": (
+            "Lo siento, no pude obtener esa información en este momento. "
+            "Si deseas, usa /contacto para comunicarte con la parroquia."
         ),
     },
 }

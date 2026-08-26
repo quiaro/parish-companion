@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from commands.information.models import InformationTopic
+from commands.information.models import InformationTopic, InformationUnavailableError
 from telegram import information
 from translations import get_string
 
@@ -81,6 +81,25 @@ class TestHandleCommand:
         reply = information.handle_command(_adapter([]), "es")
         assert reply.text == get_string("information_empty", "es")
 
+    def test_shows_unavailable_message_with_no_buttons_when_fetch_fails(self):
+        adapter = MagicMock()
+        adapter.list_topics.side_effect = InformationUnavailableError("down")
+        reply = information.handle_command(adapter, "en")
+        assert reply.text == get_string("information_unavailable", "en")
+        assert reply.button_rows is None
+
+    def test_unavailable_message_is_localized(self):
+        adapter = MagicMock()
+        adapter.list_topics.side_effect = InformationUnavailableError("down")
+        reply = information.handle_command(adapter, "es")
+        assert reply.text == get_string("information_unavailable", "es")
+
+    def test_unavailable_message_never_includes_raw_error_detail(self):
+        adapter = MagicMock()
+        adapter.list_topics.side_effect = InformationUnavailableError("secret internal detail")
+        reply = information.handle_command(adapter, "en")
+        assert "secret internal detail" not in reply.text
+
 
 class TestHandleTopicSelection:
     def test_fetches_by_key(self):
@@ -110,3 +129,18 @@ class TestHandleTopicSelection:
     def test_returns_none_when_topic_does_not_exist(self):
         reply = information.handle_topic_selection(_adapter(get_topic_result=None), "missing")
         assert reply is None
+
+    def test_shows_unavailable_message_with_no_buttons_when_fetch_fails(self):
+        adapter = MagicMock()
+        adapter.get_topic.side_effect = InformationUnavailableError("down")
+        reply = information.handle_topic_selection(adapter, "mass_times")
+        assert reply is not None
+        assert reply.text == get_string("information_unavailable", "en")
+        assert reply.button_rows is None
+
+    def test_unavailable_message_never_includes_raw_error_detail(self):
+        adapter = MagicMock()
+        adapter.get_topic.side_effect = InformationUnavailableError("secret internal detail")
+        reply = information.handle_topic_selection(adapter, "mass_times")
+        assert reply is not None
+        assert "secret internal detail" not in reply.text

@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from main import app
-from commands.information.models import InformationTopic
+from commands.information.models import InformationTopic, InformationUnavailableError
 from tests.conftest import TEST_SECRET
 from translations import get_string
 
@@ -102,6 +102,31 @@ def test_informacion_command_shows_spanish_apology_when_no_topics(
     assert mock_send.await_args[0][1] == get_string("information_empty", "es")
 
 
+def test_information_command_shows_unavailable_message_when_fetch_fails(
+    client: TestClient, mock_send: AsyncMock
+) -> None:
+    adapter = MagicMock()
+    adapter.list_topics.side_effect = InformationUnavailableError("down")
+    app.state.information_adapter = adapter
+    resp = client.post("/telegram/webhook", json=_command_update("/information"), headers=_headers)
+    assert resp.status_code == 200
+    assert mock_send.await_args is not None
+    assert mock_send.await_args[0][1] == get_string("information_unavailable", "en")
+    assert mock_send.await_args.kwargs["button_rows"] is None
+
+
+def test_informacion_command_shows_spanish_unavailable_message_when_fetch_fails(
+    client: TestClient, mock_send: AsyncMock
+) -> None:
+    adapter = MagicMock()
+    adapter.list_topics.side_effect = InformationUnavailableError("down")
+    app.state.information_adapter = adapter
+    resp = client.post("/telegram/webhook", json=_command_update("/información"), headers=_headers)
+    assert resp.status_code == 200
+    assert mock_send.await_args is not None
+    assert mock_send.await_args[0][1] == get_string("information_unavailable", "es")
+
+
 def test_informacion_command_shows_spanish_intro_text(client: TestClient, mock_send: AsyncMock) -> None:
     app.state.information_adapter = _mock_adapter([_topic()])
     resp = client.post("/telegram/webhook", json=_command_update("/información"), headers=_headers)
@@ -172,6 +197,22 @@ def test_tapping_a_removed_topic_sends_nothing(client: TestClient, mock_send: As
     mock_send.assert_not_awaited()
 
 
+def test_tapping_a_topic_shows_unavailable_message_when_fetch_fails(
+    client: TestClient, mock_send: AsyncMock
+) -> None:
+    adapter = MagicMock()
+    adapter.get_topic.side_effect = InformationUnavailableError("down")
+    app.state.information_adapter = adapter
+    with patch("telegram.router.answer_callback_query", AsyncMock()):
+        resp = client.post(
+            "/telegram/webhook", json=_callback_update("info|topic|mass_times"), headers=_headers
+        )
+    assert resp.status_code == 200
+    assert mock_send.await_args is not None
+    assert mock_send.await_args[0][1] == get_string("information_unavailable", "en")
+    assert mock_send.await_args.kwargs["button_rows"] is None
+
+
 def test_callback_query_is_answered_before_dispatch(client: TestClient, mock_send: AsyncMock) -> None:
     app.state.information_adapter = _mock_adapter(get_topic_result=_topic())
     with patch("telegram.router.answer_callback_query", AsyncMock()) as answer_mock:
@@ -205,6 +246,20 @@ def test_tapping_back_to_menu_shows_apology_if_the_sheet_became_empty_mid_sessio
     assert resp.status_code == 200
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("information_empty", "en")
+    assert mock_send.await_args.kwargs["button_rows"] is None
+
+
+def test_tapping_back_to_menu_shows_unavailable_message_when_fetch_fails(
+    client: TestClient, mock_send: AsyncMock
+) -> None:
+    adapter = MagicMock()
+    adapter.list_topics.side_effect = InformationUnavailableError("down")
+    app.state.information_adapter = adapter
+    with patch("telegram.router.answer_callback_query", AsyncMock()):
+        resp = client.post("/telegram/webhook", json=_callback_update("info|menu"), headers=_headers)
+    assert resp.status_code == 200
+    assert mock_send.await_args is not None
+    assert mock_send.await_args[0][1] == get_string("information_unavailable", "en")
     assert mock_send.await_args.kwargs["button_rows"] is None
 
 

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from commands.information.adapter import InformationAdapter
+from commands.information.models import InformationUnavailableError
 from translations import get_string
 
 CALLBACK_PREFIX = "info"
@@ -38,7 +39,11 @@ def parse_callback(data: str) -> Optional[tuple[str, Optional[str]]]:
 
 
 def handle_command(adapter: InformationAdapter, language: str) -> InformationReply:
-    topics = adapter.list_topics()
+    try:
+        topics = adapter.list_topics()
+    except InformationUnavailableError:
+        # The adapter logs the failure with debugging detail.
+        return InformationReply(text=get_string("information_unavailable", language))
     if not topics:
         return InformationReply(text=get_string("information_empty", language))
     button_rows = [[(t.label_en, _topic_callback(t.key))] for t in topics]
@@ -48,7 +53,10 @@ def handle_command(adapter: InformationAdapter, language: str) -> InformationRep
 def handle_topic_selection(adapter: InformationAdapter, key: str) -> Optional[InformationReply]:
     """Returns None if the topic no longer exists (e.g. removed from the sheet since
     the menu was rendered); the router sends nothing in that case."""
-    topic = adapter.get_topic(key)
+    try:
+        topic = adapter.get_topic(key)
+    except InformationUnavailableError:
+        return InformationReply(text=get_string("information_unavailable", "en"))
     if topic is None:
         return None
     # English-only for now, matching I-04's body_en/label_en scope — I-09 localizes
