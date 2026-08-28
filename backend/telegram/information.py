@@ -59,7 +59,7 @@ def handle_command(adapter: InformationAdapter, language: str) -> InformationRep
         for topic in untranslated:
             logger.error(
                 "Information topic %r has no Spanish label (label_es is empty)."
-                "It is hidden from /información until an admin adds one",
+                "It is hidden from /informacion until an admin adds one",
                 topic.key,
             )
         topics = translated

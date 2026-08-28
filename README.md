@@ -60,7 +60,7 @@ Parish Companion seeks to use technology in service of the Gospel by helping peo
 | -------------------------------- | --------------------------------------------------------------------------------- |
 | `/comfort` or `/consolar`        | Share what's on your heart and receive an encouraging Bible passage               |
 | `/schedules` or `/horarios`      | View Mass and Confession times, including any active or upcoming special schedule |
-| `/information` or `/información` | Browse parish information: sacraments, ministries, and more                       |
+| `/information` or `/informacion` | Browse parish information: sacraments, ministries, and more                       |
 | `/contact` or `/contacto`        | Reach a member of parish staff for follow-up, appointments, or questions          |
 | `/help` or `/ayuda`              | List available commands                                                           |
 

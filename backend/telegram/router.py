@@ -51,7 +51,7 @@ _COMFORT_COMMAND_LANGUAGES: dict[str, str] = {
 
 _INFORMATION_COMMAND_LANGUAGES: dict[str, str] = {
     "/information": "en",
-    "/información": "es",
+    "/informacion": "es",
 }
 
 

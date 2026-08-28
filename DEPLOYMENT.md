@@ -102,7 +102,7 @@ Schedule data is cached for `SCHEDULES_CACHE_TTL_SECONDS` seconds (default: 1 ho
 
 The `/information` command answers general parish questions (sacraments, ministries, etc.) from a Google Spreadsheet. Parish administrators can add, edit, or remove topics directly, no code changes or developer involvement required. Changes are reflected in the bot within the cache window (see Configuration below).
 
-Without a Google Spreadsheet configured, `/information` and `/información` are disabled entirely rather than showing an error.
+Without a Google Spreadsheet configured, `/information` and `/informacion` are disabled entirely rather than showing an error.
 
 ### Spreadsheet structure
 
@@ -113,7 +113,7 @@ Tab name: `INFORMATION_TOPICS_TAB` (default: `Information`)
 | `topic_key` | Yes      | Stable, unique identifier for the topic, e.g. `baptism`        |
 | `label_en`  | Yes      | English button label shown in the `/information` menu          |
 | `body_en`   | Yes      | English content shown when the topic is selected               |
-| `label_es`  | No       | Spanish button label shown in the `/información` menu          |
+| `label_es`  | No       | Spanish button label shown in the `/informacion` menu          |
 | `body_es`   | No       | Spanish content shown when the topic is selected               |
 | `order`     | Yes      | Integer controlling menu position — lower numbers appear first |
 
@@ -121,7 +121,7 @@ Content supports basic Markdown (bold with `*text*`, links with `[text](url)`).
 
 `order` only controls menu position — it does not need to be sequential or unique; topics are simply sorted by this value, lowest first.
 
-**Spanish content is optional but not silently skipped.** If `label_es` is left blank, that topic is omitted from the `/información` menu entirely rather than showing an English label to a Spanish-speaking parishioner. If `label_es` is filled in but `body_es` is left blank, the topic still appears in the `/información` menu, but tapping it shows a "not available in Spanish yet" message. Either case is logged as an **error**.
+**Spanish content is optional but not silently skipped.** If `label_es` is left blank, that topic is omitted from the `/informacion` menu entirely rather than showing an English label to a Spanish-speaking parishioner. If `label_es` is filled in but `body_es` is left blank, the topic still appears in the `/informacion` menu, but tapping it shows a "not available in Spanish yet" message. Either case is logged as an **error**.
 
 ### Setting up the spreadsheet
 
@@ -141,7 +141,7 @@ A CSV template is provided in [`docs/templates/information_topics.csv`](docs/tem
 | `INFORMATION_TOPICS_TAB`                   | `Information`                           | Name of the information topics tab                |
 | `INFORMATION_CACHE_TTL_SECONDS`            | `3600`                                  | How long (in seconds) to cache topic data         |
 
-`INFORMATION_GOOGLE_SPREADSHEET_ID` and `INFORMATION_GOOGLE_CREDENTIALS_HOST_PATH` must both be set for `/information`/`/información` to be enabled at all.
+`INFORMATION_GOOGLE_SPREADSHEET_ID` and `INFORMATION_GOOGLE_CREDENTIALS_HOST_PATH` must both be set for `/information`/`/informacion` to be enabled at all.
 
 Topic data is cached for `INFORMATION_CACHE_TTL_SECONDS` seconds (default: 1 hour). Updates made to the spreadsheet will be visible to parishioners within that window without any restart required.
 

@@ -99,7 +99,7 @@ def test_informacion_command_shows_spanish_apology_when_no_topics(
     client: TestClient, mock_send: AsyncMock
 ) -> None:
     app.state.information_adapter = _mock_adapter([])
-    resp = client.post("/telegram/webhook", json=_command_update("/información"), headers=_headers)
+    resp = client.post("/telegram/webhook", json=_command_update("/informacion"), headers=_headers)
     assert resp.status_code == 200
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("information_empty", "es")
@@ -124,7 +124,7 @@ def test_informacion_command_shows_spanish_unavailable_message_when_fetch_fails(
     adapter = MagicMock()
     adapter.list_topics.side_effect = InformationUnavailableError("down")
     app.state.information_adapter = adapter
-    resp = client.post("/telegram/webhook", json=_command_update("/información"), headers=_headers)
+    resp = client.post("/telegram/webhook", json=_command_update("/informacion"), headers=_headers)
     assert resp.status_code == 200
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("information_unavailable", "es")
@@ -132,7 +132,7 @@ def test_informacion_command_shows_spanish_unavailable_message_when_fetch_fails(
 
 def test_informacion_command_shows_spanish_intro_text(client: TestClient, mock_send: AsyncMock) -> None:
     app.state.information_adapter = _mock_adapter([_topic()])
-    resp = client.post("/telegram/webhook", json=_command_update("/información"), headers=_headers)
+    resp = client.post("/telegram/webhook", json=_command_update("/informacion"), headers=_headers)
     assert resp.status_code == 200
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("information_menu_intro", "es")
@@ -154,7 +154,7 @@ def test_informacion_command_always_replies_in_spanish_even_when_session_languag
 ) -> None:
     app.state.information_adapter = _mock_adapter([_topic()])
     with patch("telegram.router.get_language", AsyncMock(return_value="en")):
-        resp = client.post("/telegram/webhook", json=_command_update("/información"), headers=_headers)
+        resp = client.post("/telegram/webhook", json=_command_update("/informacion"), headers=_headers)
     assert resp.status_code == 200
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("information_menu_intro", "es")
@@ -165,7 +165,7 @@ def test_informacion_command_always_replies_in_spanish_even_when_session_languag
 def test_informacion_command_uses_label_es_for_buttons(client: TestClient, mock_send: AsyncMock) -> None:
     topics = [_topic(key="mass_times", label_en="Mass Times", label_es="Horarios de Misa", order=1)]
     app.state.information_adapter = _mock_adapter(topics)
-    resp = client.post("/telegram/webhook", json=_command_update("/información"), headers=_headers)
+    resp = client.post("/telegram/webhook", json=_command_update("/informacion"), headers=_headers)
     assert resp.status_code == 200
     assert mock_send.await_args is not None
     assert mock_send.await_args.kwargs["button_rows"] == [
@@ -179,7 +179,7 @@ def test_informacion_command_hides_topics_missing_label_es(client: TestClient, m
         _topic(key="b", label_en="B", label_es="La B", order=2),
     ]
     app.state.information_adapter = _mock_adapter(topics)
-    resp = client.post("/telegram/webhook", json=_command_update("/información"), headers=_headers)
+    resp = client.post("/telegram/webhook", json=_command_update("/informacion"), headers=_headers)
     assert resp.status_code == 200
     assert mock_send.await_args is not None
     assert mock_send.await_args.kwargs["button_rows"] == [[("La B", "info|es|topic|b")]]

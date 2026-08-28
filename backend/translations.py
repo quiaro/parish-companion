@@ -159,7 +159,7 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "help_line_contact": "/contacto: Contactar personal de la parroquia\n",
         "help_line_schedules": "/horarios: Horarios de Misa y Confesiones\n",
-        "help_line_information": "/información: Conoce más sobre la parroquia\n",
+        "help_line_information": "/informacion: Conoce más sobre la parroquia\n",
         "telegram_cmd_unknown": (
             "Lo siento, no reconozco ese comando. Escribe /ayuda para ver lo que puedo hacer."
         ),
