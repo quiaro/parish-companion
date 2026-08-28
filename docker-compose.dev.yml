@@ -7,9 +7,11 @@ services:
       - .env.dev
     environment:
       - SCHEDULES_GOOGLE_CREDENTIALS_PATH=/run/secrets/google-service-account.json
+      - INFORMATION_GOOGLE_CREDENTIALS_PATH=/run/secrets/google-service-account-information.json
       - ENVIRONMENT=development
     volumes:
       - ${SCHEDULES_GOOGLE_CREDENTIALS_HOST_PATH:-./secrets/google-service-account.json}:/run/secrets/google-service-account.json:ro
+      - ${INFORMATION_GOOGLE_CREDENTIALS_HOST_PATH:-./secrets/google-service-account.json}:/run/secrets/google-service-account-information.json:ro
 
   redis:
     ports:
