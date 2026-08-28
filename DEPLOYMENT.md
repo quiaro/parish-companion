@@ -4,7 +4,7 @@ This guide is for parishes and developers who want to deploy Parish Companion fo
 
 For information on contributing to the project itself, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
-## Schedule data
+## Parish Schedules
 
 Parish Companion reads Mass and Confession times from a Google Spreadsheet. Parish administrators can update the spreadsheet directly — no code changes or developer involvement required. Changes are reflected in the bot within the cache window (see [Configuration](#configuration) below).
 
@@ -98,7 +98,56 @@ If more than one special schedule is active at the same time, the one that start
 
 Schedule data is cached for `SCHEDULES_CACHE_TTL_SECONDS` seconds (default: 1 hour). Updates made to the spreadsheet will be visible to users within that window without any restart required.
 
-## Contact requests
+## Parish Information
+
+The `/information` command answers general parish questions (sacraments, ministries, etc.) from a Google Spreadsheet. Parish administrators can add, edit, or remove topics directly, no code changes or developer involvement required. Changes are reflected in the bot within the cache window (see Configuration below).
+
+Without a Google Spreadsheet configured, `/information` and `/información` are disabled entirely rather than showing an error.
+
+### Spreadsheet structure
+
+Tab name: `INFORMATION_TOPICS_TAB` (default: `Information`)
+
+| Column      | Required | Description                                                    |
+| ----------- | -------- | -------------------------------------------------------------- |
+| `topic_key` | Yes      | Stable, unique identifier for the topic, e.g. `baptism`        |
+| `label_en`  | Yes      | English button label shown in the `/information` menu          |
+| `body_en`   | Yes      | English content shown when the topic is selected               |
+| `label_es`  | No       | Spanish button label shown in the `/información` menu          |
+| `body_es`   | No       | Spanish content shown when the topic is selected               |
+| `order`     | Yes      | Integer controlling menu position — lower numbers appear first |
+
+Content supports basic Markdown (bold with `*text*`, links with `[text](url)`).
+
+`order` only controls menu position — it does not need to be sequential or unique; topics are simply sorted by this value, lowest first.
+
+**Spanish content is optional but not silently skipped.** If `label_es` is left blank, that topic is omitted from the `/información` menu entirely rather than showing an English label to a Spanish-speaking parishioner. If `label_es` is filled in but `body_es` is left blank, the topic still appears in the `/información` menu, but tapping it shows a "not available in Spanish yet" message. Either case is logged as an **error**.
+
+### Setting up the spreadsheet
+
+A CSV template is provided in [`docs/templates/information_topics.csv`](docs/templates/information_topics.csv). To use it:
+
+1. Create a new Google Spreadsheet (or reuse the one used for [Schedule data](#schedule-data) above).
+2. Go to **File → Import**, upload the CSV, and choose **Insert new sheet** — this creates a tab with the correct column headers and example rows already filled in.
+3. Rename the tab to match your `INFORMATION_TOPICS_TAB` setting (default: `Information`).
+4. Replace the example rows with your parish's actual information topics.
+
+### Configuration
+
+| Variable                                   | Default                                 | Description                                       |
+| ------------------------------------------ | --------------------------------------- | ------------------------------------------------- |
+| `INFORMATION_GOOGLE_SPREADSHEET_ID`        | _(required)_                            | The ID from the spreadsheet URL                   |
+| `INFORMATION_GOOGLE_CREDENTIALS_HOST_PATH` | `./secrets/google-service-account.json` | Path to the service account JSON file on the host |
+| `INFORMATION_TOPICS_TAB`                   | `Information`                           | Name of the information topics tab                |
+| `INFORMATION_CACHE_TTL_SECONDS`            | `3600`                                  | How long (in seconds) to cache topic data         |
+
+`INFORMATION_GOOGLE_SPREADSHEET_ID` and `INFORMATION_GOOGLE_CREDENTIALS_HOST_PATH` must both be set for `/information`/`/información` to be enabled at all.
+
+Topic data is cached for `INFORMATION_CACHE_TTL_SECONDS` seconds (default: 1 hour). Updates made to the spreadsheet will be visible to parishioners within that window without any restart required.
+
+By default, `/information` reuses the same service account file as `/schedules` (`INFORMATION_GOOGLE_CREDENTIALS_HOST_PATH` defaults to the same path).
+
+## Contact Requests
 
 The `/contact` command (and its Spanish equivalent `/contacto`) lets a parishioner reach a member of your parish staff directly through the bot.
 
@@ -174,11 +223,9 @@ CONTACT_REQUEST_TYPES_ES=["Hablar con un sacerdote", "Cita con director espiritu
 
 #### Fallback contact
 
-| Variable        | Default  | Description                                                                                     |
-| --------------- | -------- | ----------------------------------------------------------------------------------------------- |
-| `CONTACT_PHONE` | _(none)_ | Parish phone number. If set, shown to parishioners in the rare event that email delivery fails. |
+`CONTACT_PHONE`: Parish phone number. If set, shown to parishioners in the rare event that email delivery fails.
 
-## Scripture encouragement (/comfort)
+## Scripture Encouragement (/comfort Feature)
 
 The `/comfort` command (and its Spanish equivalent `/consolar`) lets a parishioner share what they're going through in their own words and receive a Bible verse from your parish's curated list, along with a brief reflection.
 
@@ -306,7 +353,7 @@ A dedicated `backup` service runs `pg_dump` once daily and uploads the result to
 
 Postgres is not exposed on a public port — it's only reachable from the bot's and backup job's containers, over Docker's internal network.
 
-## Custom schedule data sources
+## Custom Schedule Data Sources
 
 The schedule feature is built around a `ScheduleAdapter` interface defined in [`backend/schedules/adapter.py`](backend/schedules/adapter.py). The Google Sheets integration is one concrete implementation; you can replace it with any data source — a parish website scraper, a local database, a different spreadsheet tool — without touching bot logic.
 

@@ -56,12 +56,13 @@ Parish Companion seeks to use technology in service of the Gospel by helping peo
 
 ## Features (what parishioners can do)
 
-| Command                     | Description                                                                       |
-| --------------------------- | --------------------------------------------------------------------------------- |
-| `/comfort` or `/consolar`   | Share what's on your heart and receive an encouraging Bible passage               |
-| `/schedules` or `/horarios` | View Mass and Confession times, including any active or upcoming special schedule |
-| `/contact` or `/contacto`   | Reach a member of parish staff for follow-up, appointments, or questions          |
-| `/help` or `/ayuda`         | List available commands                                                           |
+| Command                          | Description                                                                       |
+| -------------------------------- | --------------------------------------------------------------------------------- |
+| `/comfort` or `/consolar`        | Share what's on your heart and receive an encouraging Bible passage               |
+| `/schedules` or `/horarios`      | View Mass and Confession times, including any active or upcoming special schedule |
+| `/information` or `/información` | Browse parish information: sacraments, ministries, and more                       |
+| `/contact` or `/contacto`        | Reach a member of parish staff for follow-up, appointments, or questions          |
+| `/help` or `/ayuda`              | List available commands                                                           |
 
 > Bible passages shared through `/comfort` are taken from the [Open English Bible (OEB)](https://openenglishbible.org/); the corresponding Spanish passages shared through `/consolar` are taken from the [Santa Biblia libre Latinoamericano](https://ebible.org/details.php?id=spabll).
 
