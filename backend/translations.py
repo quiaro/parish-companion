@@ -133,6 +133,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "comfort_button_exit": "Exit",
         "information_menu_intro": "What would you like to know more about?",
         "information_button_back": "Back to menu",
+        "information_button_home": "Back to Home",
         "information_empty": (
             "Sorry, there isn't any parish information available right now. "
             "Please use /contact if you need assistance."
@@ -275,6 +276,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "comfort_button_exit": "Salir",
         "information_menu_intro": "¿Sobre qué te gustaría saber más?",
         "information_button_back": "Volver al menú",
+        "information_button_home": "Volver al Inicio",
         "information_empty": (
             "Lo sentimos, no hay información de la parroquia disponible en este momento. Por favor, usa /contacto para comunicarte con la parroquia."
         ),
@@ -283,7 +285,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "Si deseas, usa /contacto para comunicarte con la parroquia."
         ),
         "information_es_unavailable": (
-            "Esta información todavía no está disponible en español, pero se agregará pronto."
+            "Esta información todavía no está disponible. Estamos trabajando en agregarla, regresa pronto."
         ),
     },
 }

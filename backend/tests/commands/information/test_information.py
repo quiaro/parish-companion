@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from main import app
 from commands.information.models import InformationTopic, InformationUnavailableError
+from telegram import commands as telegram_commands
 from tests.conftest import TEST_SECRET
 from translations import get_string
 
@@ -81,10 +82,11 @@ def test_information_command_sends_one_button_row_per_topic_in_order(
     assert mock_send.await_args.kwargs["button_rows"] == [
         [("Baptism", "info|en|topic|b")],
         [("Anointing", "info|en|topic|a")],
+        [(get_string("information_button_home", "en"), "info|en|home")],
     ]
 
 
-def test_information_command_shows_apology_with_no_buttons_when_no_topics(
+def test_information_command_shows_apology_with_only_a_home_button_when_no_topics(
     client: TestClient, mock_send: AsyncMock
 ) -> None:
     app.state.information_adapter = _mock_adapter([])
@@ -92,7 +94,9 @@ def test_information_command_shows_apology_with_no_buttons_when_no_topics(
     assert resp.status_code == 200
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("information_empty", "en")
-    assert mock_send.await_args.kwargs["button_rows"] is None
+    assert mock_send.await_args.kwargs["button_rows"] == [
+        [(get_string("information_button_home", "en"), "info|en|home")]
+    ]
 
 
 def test_informacion_command_shows_spanish_apology_when_no_topics(
@@ -115,7 +119,9 @@ def test_information_command_shows_unavailable_message_when_fetch_fails(
     assert resp.status_code == 200
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("information_unavailable", "en")
-    assert mock_send.await_args.kwargs["button_rows"] is None
+    assert mock_send.await_args.kwargs["button_rows"] == [
+        [(get_string("information_button_home", "en"), "info|en|home")]
+    ]
 
 
 def test_informacion_command_shows_spanish_unavailable_message_when_fetch_fails(
@@ -168,7 +174,7 @@ def test_informacion_command_uses_label_es_for_buttons(client: TestClient, mock_
     resp = client.post("/telegram/webhook", json=_command_update("/informacion"), headers=_headers)
     assert resp.status_code == 200
     assert mock_send.await_args is not None
-    assert mock_send.await_args.kwargs["button_rows"] == [
+    assert mock_send.await_args.kwargs["button_rows"][:-1] == [
         [("Horarios de Misa", "info|es|topic|mass_times")]
     ]
 
@@ -182,7 +188,7 @@ def test_informacion_command_hides_topics_missing_label_es(client: TestClient, m
     resp = client.post("/telegram/webhook", json=_command_update("/informacion"), headers=_headers)
     assert resp.status_code == 200
     assert mock_send.await_args is not None
-    assert mock_send.await_args.kwargs["button_rows"] == [[("La B", "info|es|topic|b")]]
+    assert mock_send.await_args.kwargs["button_rows"][:-1] == [[("La B", "info|es|topic|b")]]
 
 
 def test_information_command_still_shows_topics_missing_label_es(
@@ -193,7 +199,7 @@ def test_information_command_still_shows_topics_missing_label_es(
     resp = client.post("/telegram/webhook", json=_command_update("/information"), headers=_headers)
     assert resp.status_code == 200
     assert mock_send.await_args is not None
-    assert mock_send.await_args.kwargs["button_rows"] == [[("A", "info|en|topic|a")]]
+    assert mock_send.await_args.kwargs["button_rows"][:-1] == [[("A", "info|en|topic|a")]]
 
 
 # --- Topic selection (I-05) ---------------------------------------------------
@@ -249,7 +255,9 @@ def test_tapping_a_topic_shows_unavailable_message_when_fetch_fails(
     assert resp.status_code == 200
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("information_unavailable", "en")
-    assert mock_send.await_args.kwargs["button_rows"] is None
+    assert mock_send.await_args.kwargs["button_rows"] == [
+        [(get_string("information_button_home", "en"), "info|en|home")]
+    ]
 
 
 def test_callback_query_is_answered_before_dispatch(client: TestClient, mock_send: AsyncMock) -> None:
@@ -308,6 +316,7 @@ def test_tapping_back_to_menu_re_renders_the_menu(client: TestClient, mock_send:
     assert mock_send.await_args.kwargs["button_rows"] == [
         [("Baptism", "info|en|topic|b")],
         [("Anointing", "info|en|topic|a")],
+        [(get_string("information_button_home", "en"), "info|en|home")],
     ]
 
 
@@ -321,7 +330,7 @@ def test_tapping_back_to_menu_in_spanish_re_renders_the_spanish_menu(
     assert resp.status_code == 200
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("information_menu_intro", "es")
-    assert mock_send.await_args.kwargs["button_rows"] == [[("La A", "info|es|topic|a")]]
+    assert mock_send.await_args.kwargs["button_rows"][:-1] == [[("La A", "info|es|topic|a")]]
 
 
 def test_tapping_back_to_menu_shows_apology_if_the_sheet_became_empty_mid_session(
@@ -333,7 +342,9 @@ def test_tapping_back_to_menu_shows_apology_if_the_sheet_became_empty_mid_sessio
     assert resp.status_code == 200
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("information_empty", "en")
-    assert mock_send.await_args.kwargs["button_rows"] is None
+    assert mock_send.await_args.kwargs["button_rows"] == [
+        [(get_string("information_button_home", "en"), "info|en|home")]
+    ]
 
 
 def test_tapping_back_to_menu_shows_unavailable_message_when_fetch_fails(
@@ -347,7 +358,9 @@ def test_tapping_back_to_menu_shows_unavailable_message_when_fetch_fails(
     assert resp.status_code == 200
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("information_unavailable", "en")
-    assert mock_send.await_args.kwargs["button_rows"] is None
+    assert mock_send.await_args.kwargs["button_rows"] == [
+        [(get_string("information_button_home", "en"), "info|en|home")]
+    ]
 
 
 def test_tapping_back_to_menu_reflects_admin_edits_made_mid_session(
@@ -366,7 +379,25 @@ def test_tapping_back_to_menu_reflects_admin_edits_made_mid_session(
         resp = client.post("/telegram/webhook", json=_callback_update("info|en|menu"), headers=_headers)
     assert resp.status_code == 200
     assert mock_send.await_args is not None
-    assert mock_send.await_args.kwargs["button_rows"] == [[("Updated Topic", "info|en|topic|a")]]
+    assert mock_send.await_args.kwargs["button_rows"][:-1] == [[("Updated Topic", "info|en|topic|a")]]
+
+
+# --- Back to Home navigation ---------------------------------------------------
+
+def test_tapping_back_to_home_shows_the_english_help_reply(client: TestClient, mock_send: AsyncMock) -> None:
+    app.state.information_adapter = _mock_adapter([_topic()])
+    with patch("telegram.router.answer_callback_query", AsyncMock()):
+        resp = client.post("/telegram/webhook", json=_callback_update("info|en|home"), headers=_headers)
+    assert resp.status_code == 200
+    mock_send.assert_awaited_once_with(_CHAT_ID, telegram_commands.build_help_reply("en"))
+
+
+def test_tapping_back_to_home_shows_the_spanish_help_reply(client: TestClient, mock_send: AsyncMock) -> None:
+    app.state.information_adapter = _mock_adapter([_topic()])
+    with patch("telegram.router.answer_callback_query", AsyncMock()):
+        resp = client.post("/telegram/webhook", json=_callback_update("info|es|home"), headers=_headers)
+    assert resp.status_code == 200
+    mock_send.assert_awaited_once_with(_CHAT_ID, telegram_commands.build_help_reply("es"))
 
 
 def test_information_callback_is_ignored_when_not_configured(

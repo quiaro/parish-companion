@@ -17,7 +17,7 @@ _HELP_COMMAND_LANGUAGES: dict[str, str] = {
 }
 
 
-def _build_help_reply(language: str) -> str:
+def build_help_reply(language: str) -> str:
     lines = [get_string("help_intro", language)]
     if comfort_is_configured():
         lines.append(get_string("help_line_comfort", language))
@@ -32,6 +32,6 @@ def _build_help_reply(language: str) -> str:
 
 def get_reply(command: str, language: str = "en") -> str:
     if command in _HELP_COMMAND_LANGUAGES:
-        return _build_help_reply(_HELP_COMMAND_LANGUAGES[command])
+        return build_help_reply(_HELP_COMMAND_LANGUAGES[command])
     key, forced_language = _KEY_MAP.get(command, ("telegram_cmd_unknown", None))
     return get_string(key, forced_language or language)

@@ -79,6 +79,8 @@ async def _handle_callback_query(request: Request, callback_query: CallbackQuery
                     request.app.state.information_adapter, info_language
                 )
                 await send_message(chat_id, info_reply.text, button_rows=info_reply.button_rows)
+            elif action == telegram_information.HOME_ACTION:
+                await send_message(chat_id, commands.build_help_reply(info_language))
             return JSONResponse({"status": "ok"})
 
     comfort_state = await comfort_flow.get_state(session_id)

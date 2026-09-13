@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 CALLBACK_PREFIX = "info"
 TOPIC_ACTION = "topic"
 MENU_ACTION = "menu"
+HOME_ACTION = "home"
 
 
 @dataclass
@@ -27,6 +28,10 @@ def _menu_callback(language: str) -> str:
     return f"{CALLBACK_PREFIX}|{language}|{MENU_ACTION}"
 
 
+def _home_callback(language: str) -> str:
+    return f"{CALLBACK_PREFIX}|{language}|{HOME_ACTION}"
+
+
 def parse_callback(data: str) -> Optional[tuple[str, str, Optional[str]]]:
     """Returns (language, action, key) for a recognized /information callback, or None
     if data doesn't belong to this feature. key is only present for TOPIC_ACTION."""
@@ -34,8 +39,8 @@ def parse_callback(data: str) -> Optional[tuple[str, str, Optional[str]]]:
     if len(parts) < 3 or parts[0] != CALLBACK_PREFIX:
         return None
     language, action = parts[1], parts[2]
-    if action == MENU_ACTION and len(parts) == 3:
-        return language, MENU_ACTION, None
+    if action in (MENU_ACTION, HOME_ACTION) and len(parts) == 3:
+        return language, action, None
     if action == TOPIC_ACTION and len(parts) == 4:
         return language, TOPIC_ACTION, parts[3]
     return None
@@ -45,12 +50,18 @@ def _topic_label(topic: InformationTopic, language: str) -> str:
     return topic.label_es if language == "es" else topic.label_en
 
 
+def _home_row(language: str) -> list[tuple[str, str]]:
+    return [(get_string("information_button_home", language), _home_callback(language))]
+
+
 def handle_command(adapter: InformationAdapter, language: str) -> InformationReply:
     try:
         topics = adapter.list_topics()
     except InformationUnavailableError:
         # The adapter logs the failure with debugging detail.
-        return InformationReply(text=get_string("information_unavailable", language))
+        return InformationReply(
+            text=get_string("information_unavailable", language), button_rows=[_home_row(language)]
+        )
 
     if language == "es":
         translated, untranslated = [], []
@@ -65,8 +76,11 @@ def handle_command(adapter: InformationAdapter, language: str) -> InformationRep
         topics = translated
 
     if not topics:
-        return InformationReply(text=get_string("information_empty", language))
+        return InformationReply(
+            text=get_string("information_empty", language), button_rows=[_home_row(language)]
+        )
     button_rows = [[(_topic_label(t, language), _topic_callback(language, t.key))] for t in topics]
+    button_rows.append(_home_row(language))
     return InformationReply(text=get_string("information_menu_intro", language), button_rows=button_rows)
 
 
@@ -76,7 +90,9 @@ def handle_topic_selection(adapter: InformationAdapter, language: str, key: str)
     try:
         topic = adapter.get_topic(key)
     except InformationUnavailableError:
-        return InformationReply(text=get_string("information_unavailable", language))
+        return InformationReply(
+            text=get_string("information_unavailable", language), button_rows=[_home_row(language)]
+        )
     if topic is None:
         return None
 
