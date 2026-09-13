@@ -267,6 +267,14 @@ Then run the suite:
 docker compose exec backend pytest -v
 ```
 
+**Coverage:** `pytest-cov` is included in the `dev` stage's dependencies. Run the suite with a coverage report:
+
+```bash
+docker compose exec backend pytest --cov=. --cov-report=term-missing
+```
+
+`tests/*` is omitted from the report (see `[tool.coverage.run]` in `pyproject.toml`), so only application code is measured. `--cov-report=term-missing` lists the specific line numbers missed in each file, not just a percentage, so this should help find untested branches (error handling, edge cases).
+
 Most of the suite makes no external connections (Redis, Postgres, etc.) — it uses FastAPI's `TestClient` and stubs out external dependencies via `monkeypatch`. The one exception is `tests/db/`, which talks to the real `postgres` sibling service to exercise behavior (`ON CONFLICT` idempotency under concurrent writes, rolling-window timestamp boundaries) that can't be meaningfully faked. Those tests truncate the relevant tables before each test, so they're safe to re-run but will clear out any data you'd put in your local dev database.
 
 ## Development with VS Code Dev Containers
