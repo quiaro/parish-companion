@@ -33,3 +33,6 @@ packages = ["telegram", "commands", "commands.schedules", "commands.contact", "c
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.coverage.run]
+omit = ["tests/*"]
