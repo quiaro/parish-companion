@@ -1,9 +1,8 @@
-# Parish Companion
+# Developing Parish Companion
 
-## Features
+This guide is for contributors working on Parish Companion itself: Docker setup, running tests, DevContainers, and viewing logs.
 
-- **Telegram support** — handles customer messages over Telegram
-- **Multilingual** — detects the customer's language from their message and responds in kind; currently supports English and Spanish
+For deploying the bot for your own parish, see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Prerequisites
 

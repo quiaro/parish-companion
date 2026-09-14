@@ -66,6 +66,8 @@ Parish Companion seeks to use technology in service of the Gospel by helping peo
 
 > Bible passages shared through `/comfort` are taken from the [Open English Bible (OEB)](https://openenglishbible.org/); the corresponding Spanish passages shared through `/consolar` are taken from the [Santa Biblia libre Latinoamericano](https://ebible.org/details.php?id=spabll).
 
+Every command has an English and a Spanish form. Commands whose name is inherently tied to a language (like `/schedules`/`/horarios`) always reply in that language.
+
 ## What Parish Companion Is Not
 
 Parish Companion is NOT:
