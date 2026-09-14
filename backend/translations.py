@@ -15,11 +15,11 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "help_intro": "Here is what I can do:\n",
         "help_line_comfort": (
-            "/comfort: Share what's on your heart and receive an encouraging Bible passage\n"
+            "\n/comfort - Share what's on your heart and receive an encouraging Bible passage\n"
         ),
-        "help_line_contact": "/contact: Reach a parish staff member\n",
-        "help_line_schedules": "/schedules: View Mass and Confession times\n",
-        "help_line_information": "/information: Learn more about the parish\n",
+        "help_line_contact": "\n/contact - Reach a parish staff member\n",
+        "help_line_schedules": "\n/schedules - View masses, confession and office hours\n",
+        "help_line_information": "\n/information - Learn more about the parish's procedures and functions.\n",
         "telegram_cmd_unknown": (
             "Sorry, I don't recognize that command. Type /help to see what I can do."
         ),
@@ -27,6 +27,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "schedule_confession_header": "Confession",
         "schedule_no_confession": (
             "No Confession times are currently scheduled. "
+            "For more information, use /contact or call the parish office."
+        ),
+        "schedule_office_header": "Office Hours",
+        "schedule_no_office": (
             "For more information, use /contact or call the parish office."
         ),
         "schedule_unavailable": (
@@ -157,11 +161,11 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "help_intro": "Esto es lo que puedo hacer:\n",
         "help_line_comfort": (
-            "/consolar: Comparte lo que llevas en el corazón y recibe un pasaje bíblico de aliento\n"
+            "\n/consolar - Comparte lo que llevas en el corazón y recibe un pasaje bíblico de aliento\n"
         ),
-        "help_line_contact": "/contacto: Contactar personal de la parroquia\n",
-        "help_line_schedules": "/horarios: Horarios de Misa y Confesiones\n",
-        "help_line_information": "/informacion: Conoce más sobre la parroquia\n",
+        "help_line_contact": "\n/contacto - Contactar personal de la parroquia\n",
+        "help_line_schedules": "\n/horarios - Horarios de misas, confesiones y horas de atención\n",
+        "help_line_information": "\n/informacion - Conoce más sobre trámites y funciones de la parroquia\n",
         "telegram_cmd_unknown": (
             "Lo siento, no reconozco ese comando. Escribe /ayuda para ver lo que puedo hacer."
         ),
@@ -169,6 +173,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "schedule_confession_header": "Confesiones",
         "schedule_no_confession": (
             "Por el momento no hay horarios de confesión programados. "
+            "Para más información, usa /contacto o llama a la parroquia."
+        ),
+        "schedule_office_header": "Horario de Atención",
+        "schedule_no_office": (
             "Para más información, usa /contacto o llama a la parroquia."
         ),
         "schedule_unavailable": (

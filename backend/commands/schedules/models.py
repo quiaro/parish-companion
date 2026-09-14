@@ -7,6 +7,7 @@ from typing import Optional
 class ScheduleType(Enum):
     MASS = "mass"
     CONFESSION = "confession"
+    OFFICE = "office"
 
 
 class Language(Enum):

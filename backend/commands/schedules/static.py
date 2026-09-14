@@ -24,5 +24,6 @@ def _default_schedule() -> ParishSchedule:
             ScheduleEntry(type=ScheduleType.MASS, day="Domingo", start_time="11:00", language=Language.ES),
             ScheduleEntry(type=ScheduleType.MASS, day="Sábado", start_time="18:00", language=Language.EN),
             ScheduleEntry(type=ScheduleType.CONFESSION, day="Sábado", start_time="16:00", end_time="18:00"),
+            ScheduleEntry(type=ScheduleType.OFFICE, day="Lunes", start_time="09:00", end_time="17:00"),
         ]
     )

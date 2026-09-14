@@ -67,6 +67,10 @@ class TestStaticScheduleAdapter:
         result = StaticScheduleAdapter().get_schedule()
         assert any(e.type == ScheduleType.CONFESSION for e in result.regular)
 
+    def test_default_schedule_has_office_entries(self):
+        result = StaticScheduleAdapter().get_schedule()
+        assert any(e.type == ScheduleType.OFFICE for e in result.regular)
+
     def test_default_schedule_languages_are_language_enums(self):
         result = StaticScheduleAdapter().get_schedule()
         languages = {e.language for e in result.regular if e.language is not None}
@@ -294,6 +298,11 @@ class TestParseEntry:
         assert entry is not None
         assert entry.type == ScheduleType.CONFESSION
 
+    def test_valid_office_row(self, adapter):
+        entry = adapter._parse_entry(_row(Type="office"))
+        assert entry is not None
+        assert entry.type == ScheduleType.OFFICE
+
     def test_day_and_start_time_are_set(self, adapter):
         entry = adapter._parse_entry(_row(Day="Saturday", Time="16:00"))
         assert entry is not None
@@ -413,6 +422,11 @@ class TestParseEntry:
         entry = adapter._parse_entry(_row(Type="confesion"))
         assert entry is not None
         assert entry.type == ScheduleType.CONFESSION
+
+    def test_spanish_alias_oficina_maps_to_office(self, adapter):
+        entry = adapter._parse_entry(_row(Type="oficina"))
+        assert entry is not None
+        assert entry.type == ScheduleType.OFFICE
 
 
 # ---------------------------------------------------------------------------

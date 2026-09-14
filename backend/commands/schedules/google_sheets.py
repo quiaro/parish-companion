@@ -18,6 +18,7 @@ _TYPE_ALIASES: dict[str, str] = {
     "misa": "mass",
     "confesión": "confession",
     "confesion": "confession",
+    "oficina": "office",
 }
 _VALID_DAYS: frozenset[str] = frozenset({
     "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
@@ -31,7 +32,7 @@ _DAY_ORDER: dict[str, int] = {
 
 class GoogleSheetsScheduleAdapter(ScheduleAdapter):
     """
-    Reads Mass and Confession schedules from a Google Spreadsheet.
+    Reads Mass, Confession, and Office Hours schedules from a Google Spreadsheet.
 
     Expected sheet layout
     ---------------------

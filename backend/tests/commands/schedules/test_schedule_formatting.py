@@ -14,6 +14,10 @@ def _confession(day: str, start: str, end: str | None = None) -> ScheduleEntry:
     return ScheduleEntry(type=ScheduleType.CONFESSION, day=day, start_time=start, end_time=end)
 
 
+def _office(day: str, start: str, end: str | None = None) -> ScheduleEntry:
+    return ScheduleEntry(type=ScheduleType.OFFICE, day=day, start_time=start, end_time=end)
+
+
 # ---------------------------------------------------------------------------
 # Time formatting
 # ---------------------------------------------------------------------------
@@ -168,6 +172,49 @@ def test_no_confession_spanish_fallback() -> None:
     schedule = ParishSchedule(regular=[_mass("Sunday", "09:00")])
     result = format_schedule(schedule, "es")
     assert "/contacto" in result
+
+
+# ---------------------------------------------------------------------------
+# Office hours section
+# ---------------------------------------------------------------------------
+
+def test_office_header_present_in_english() -> None:
+    schedule = ParishSchedule(regular=[_mass("Sunday", "09:00")])
+    assert "Office Hours" in format_schedule(schedule, "en")
+
+
+def test_office_header_present_in_spanish() -> None:
+    schedule = ParishSchedule(regular=[_mass("Sunday", "09:00")])
+    assert "Horario de Atención" in format_schedule(schedule, "es")
+
+
+def test_office_times_appear_below_confession_times() -> None:
+    schedule = ParishSchedule(regular=[
+        _mass("Sunday", "09:00"),
+        _confession("Saturday", "16:00", "18:00"),
+        _office("Monday", "09:00", "17:00"),
+    ])
+    result = format_schedule(schedule, "en")
+    assert result.index("Confession") < result.index("Office Hours")
+    assert result.index("Office Hours") < result.index("Monday: 9 AM")
+
+
+def test_office_section_distinct_from_confession() -> None:
+    schedule = ParishSchedule(regular=[
+        _confession("Saturday", "16:00", "18:00"),
+        _office("Monday", "09:00", "17:00"),
+    ])
+    result = format_schedule(schedule, "en")
+    lines = result.splitlines()
+    conf_idx = next(i for i, l in enumerate(lines) if "Confession" in l)
+    office_idx = next(i for i, l in enumerate(lines) if "Office Hours" in l)
+    assert office_idx > conf_idx
+
+
+def test_no_office_fallback_shows_contact_hint() -> None:
+    schedule = ParishSchedule(regular=[_mass("Sunday", "09:00")])
+    assert "/contact" in format_schedule(schedule, "en")
+    assert "/contacto" in format_schedule(schedule, "es")
 
 
 # ---------------------------------------------------------------------------

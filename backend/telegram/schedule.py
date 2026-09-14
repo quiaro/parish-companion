@@ -92,6 +92,7 @@ def format_schedule(schedule: ParishSchedule, language: str) -> str:
 def _format_entry_sections(entries: list[ScheduleEntry], language: str) -> str:
     mass = [e for e in entries if e.type == ScheduleType.MASS]
     confession = [e for e in entries if e.type == ScheduleType.CONFESSION]
+    office = [e for e in entries if e.type == ScheduleType.OFFICE]
 
     parts: list[str] = [f"*{get_string('schedule_mass_header', language)}*"]
 
@@ -104,6 +105,13 @@ def _format_entry_sections(entries: list[ScheduleEntry], language: str) -> str:
         parts.append(_format_entries_by_day(confession, language))
     else:
         parts.append(get_string("schedule_no_confession", language))
+
+    parts += ["", f"*{get_string('schedule_office_header', language)}*"]
+
+    if office:
+        parts.append(_format_entries_by_day(office, language))
+    else:
+        parts.append(get_string("schedule_no_office", language))
 
     return "\n".join(parts)
 
