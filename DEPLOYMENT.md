@@ -6,7 +6,7 @@ For information on contributing to the project itself, see [DEVELOPMENT.md](DEVE
 
 ## Parish Schedules
 
-Parish Companion reads Mass and Confession times from a Google Spreadsheet. Parish administrators can update the spreadsheet directly — no code changes or developer involvement required. Changes are reflected in the bot within the cache window (see [Configuration](#configuration) below).
+Parish Companion reads Mass, Confession, and Office Hours times from a Google Spreadsheet. Parish administrators can update the spreadsheet directly — no code changes or developer involvement required. Changes are reflected in the bot within the cache window (see [Configuration](#configuration) below).
 
 Without a Google Spreadsheet configured (see [Configuration](#configuration) below), `/schedules` and `/horarios` are disabled entirely rather than showing an error.
 
@@ -20,7 +20,7 @@ Tab name: `SCHEDULES_REGULAR_TAB` (default: `Regular Schedule`)
 
 | Column   | Required | Description                                |
 | -------- | -------- | ------------------------------------------ |
-| Type     | Yes      | `mass` or `confession`                     |
+| Type     | Yes      | `mass`, `confession`, or `office`          |
 | Day      | Yes      | Day of the week, e.g. `Sunday`             |
 | Time     | Yes      | Start time in `HH:MM` format, e.g. `09:00` |
 | End Time | No       | End time in `HH:MM` format                 |
@@ -34,6 +34,7 @@ Example:
 | mass       | Sunday   | 09:00 |          | en       |       |
 | mass       | Sunday   | 11:00 |          | es       |       |
 | confession | Saturday | 16:00 | 18:00    |          |       |
+| office     | Monday   | 09:00 | 17:00    |          |       |
 
 #### Special Schedules
 
@@ -46,7 +47,7 @@ Used for seasonal or one-off schedule changes such as Holy Week or Christmas.
 | Name       | Yes      | Schedule name, e.g. `Holy Week`    |
 | Start Date | Yes      | ISO 8601 date: `YYYY-MM-DD`        |
 | End Date   | Yes      | ISO 8601 date: `YYYY-MM-DD`        |
-| Type       | Yes      | `mass` or `confession`             |
+| Type       | Yes      | `mass`, `confession`, or `office`  |
 | Day        | Yes      | Day of the week or specific date   |
 | Time       | Yes      | Start time in `HH:MM` format       |
 | End Time   | No       | End time in `HH:MM` format         |
@@ -72,7 +73,7 @@ CSV templates for both tabs are provided in [`docs/templates/`](docs/templates/)
 3. Rename each tab to match your `SCHEDULES_REGULAR_TAB` and `SCHEDULES_SPECIAL_TAB` settings (defaults: `Regular Schedule` and `Special Schedules`).
 4. Replace the example rows with your parish's actual schedule.
 
-The `Type` column accepts values in English (`mass`, `confession`) or Spanish (`misa`, `confesión`).
+The `Type` column accepts values in English (`mass`, `confession`, `office`) or Spanish (`misa`, `confesión`, `oficina`).
 
 ### Special schedule behavior
 
@@ -368,7 +369,7 @@ class ScheduleAdapter(ABC):
 
 `get_schedule` must return a `ParishSchedule` containing:
 
-- `regular` — a list of `ScheduleEntry` objects (Mass and Confession times that repeat weekly)
+- `regular` — a list of `ScheduleEntry` objects (Mass, Confession, and Office Hours times that repeat weekly)
 - `special` — an optional `SpecialSchedule` for seasonal overrides (Holy Week, Christmas, etc.)
 
 Raise `ScheduleUnavailableError` if the data source cannot be reached or the response cannot be parsed. The bot catches this and shows a user-friendly fallback message.
