@@ -268,8 +268,8 @@ def test_handle_schedules_returns_error_string_on_unavailable(monkeypatch: pytes
     adapter = MagicMock()
     adapter.get_schedule.side_effect = ScheduleUnavailableError("unreachable")
     result = handle_schedules(adapter, "en")
-    assert "sorry" in result.lower() and "wasn't able" in result.lower()
-    assert "/contact" in result
+    assert "sorry" in result.text.lower() and "wasn't able" in result.text.lower()
+    assert "/contact" in result.text
 
 
 def test_handle_schedules_spanish_error(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -277,5 +277,5 @@ def test_handle_schedules_spanish_error(monkeypatch: pytest.MonkeyPatch) -> None
     adapter = MagicMock()
     adapter.get_schedule.side_effect = ScheduleUnavailableError("unreachable")
     result = handle_schedules(adapter, "es")
-    assert "Lo siento" in result and "horarios" in result
-    assert "/contacto" in result
+    assert "Lo siento" in result.text and "horarios" in result.text
+    assert "/contacto" in result.text

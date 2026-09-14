@@ -83,6 +83,13 @@ async def _handle_callback_query(request: Request, callback_query: CallbackQuery
                 await send_message(chat_id, commands.build_help_reply(info_language))
             return JSONResponse({"status": "ok"})
 
+    if schedules_is_configured():
+        sched_parsed = telegram_schedule.parse_callback(callback_query.data)
+        if sched_parsed is not None:
+            sched_language, _action = sched_parsed
+            await send_message(chat_id, commands.build_help_reply(sched_language))
+            return JSONResponse({"status": "ok"})
+
     comfort_state = await comfort_flow.get_state(session_id)
     if comfort_state:
         reply = await comfort_flow.handle_callback(session_id, callback_query.data)
@@ -125,7 +132,9 @@ async def receive_update(
         command = text.split()[0].split("@")[0].lower()
         if command in _SCHEDULE_COMMAND_LANGUAGES and schedules_is_configured():
             forced_lang = _SCHEDULE_COMMAND_LANGUAGES[command]
-            reply = telegram_schedule.handle_schedules(request.app.state.schedule_adapter, forced_lang)
+            schedule_reply = telegram_schedule.handle_schedules(request.app.state.schedule_adapter, forced_lang)
+            await send_message(chat_id, schedule_reply.text, button_rows=schedule_reply.button_rows)
+            return JSONResponse({"status": "ok"})
         elif command in _CONTACT_COMMAND_LANGUAGES and contact_is_configured():
             forced_lang = _CONTACT_COMMAND_LANGUAGES[command]
             reply = await contact_flow.start(session_id, forced_lang)

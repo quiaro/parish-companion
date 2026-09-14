@@ -1,9 +1,14 @@
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import date
+from typing import Optional
 
 from commands.schedules.adapter import ScheduleAdapter
 from commands.schedules.models import Language, ParishSchedule, ScheduleEntry, ScheduleType, ScheduleUnavailableError
 from translations import get_string
+
+CALLBACK_PREFIX = "sched"
+HOME_ACTION = "home"
 
 _DAY_INDEX: dict[str, int] = {
     "sunday": 0, "domingo": 0,
@@ -31,12 +36,35 @@ _LANG_NAMES: dict[str, dict[str, str]] = {
 }
 
 
-def handle_schedules(adapter: ScheduleAdapter, language: str) -> str:
+@dataclass
+class ScheduleReply:
+    text: str
+    button_rows: Optional[list[list[tuple[str, str]]]] = None
+
+
+def _home_callback(language: str) -> str:
+    return f"{CALLBACK_PREFIX}|{language}|{HOME_ACTION}"
+
+
+def _home_row(language: str) -> list[tuple[str, str]]:
+    return [(get_string("schedule_button_home", language), _home_callback(language))]
+
+
+def parse_callback(data: str) -> Optional[tuple[str, str]]:
+    """Returns (language, action) for a recognized /schedules callback, or None if
+    data doesn't belong to this feature."""
+    parts = data.split("|")
+    if len(parts) != 3 or parts[0] != CALLBACK_PREFIX or parts[2] != HOME_ACTION:
+        return None
+    return parts[1], parts[2]
+
+
+def handle_schedules(adapter: ScheduleAdapter, language: str) -> ScheduleReply:
     try:
         schedule = adapter.get_schedule()
     except ScheduleUnavailableError:
-        return get_string("schedule_unavailable", language)
-    return format_schedule(schedule, language)
+        return ScheduleReply(text=get_string("schedule_unavailable", language), button_rows=[_home_row(language)])
+    return ScheduleReply(text=format_schedule(schedule, language), button_rows=[_home_row(language)])
 
 
 def format_schedule(schedule: ParishSchedule, language: str) -> str:

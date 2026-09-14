@@ -34,6 +34,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "Please check the parish website or use /contact for assistance."
         ),
         "schedule_upcoming_label": "Upcoming",
+        "schedule_button_home": "Back to Home",
         "contact_email_intro": (
             "A parishioner has submitted a contact request through Parish Companion."
         ),
@@ -175,6 +176,7 @@ STRINGS: dict[str, dict[str, str]] = {
             "Por favor visita el sitio web de la parroquia o usa /contacto para obtener ayuda."
         ),
         "schedule_upcoming_label": "Próximamente",
+        "schedule_button_home": "Volver al Inicio",
         "contact_email_intro": (
             "Se ha enviado una solicitud de contacto a través de Parish Companion."
         ),
