@@ -11,6 +11,7 @@ CALLBACK_PREFIX = "sched"
 HOME_ACTION = "home"
 
 _DAY_INDEX: dict[str, int] = {
+    "monday-friday": -1, "lunes-viernes": -1,
     "sunday": 0, "domingo": 0,
     "monday": 1, "lunes": 1,
     "tuesday": 2, "martes": 2,
@@ -21,6 +22,7 @@ _DAY_INDEX: dict[str, int] = {
 }
 
 _DAY_NAMES: dict[int, dict[str, str]] = {
+    -1: {"en": "Monday thru Friday", "es": "Lunes a Viernes"},
     0: {"en": "Sunday",    "es": "Domingo"},
     1: {"en": "Monday",    "es": "Lunes"},
     2: {"en": "Tuesday",   "es": "Martes"},

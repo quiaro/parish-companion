@@ -363,6 +363,16 @@ class TestParseEntry:
         assert entry is not None
         assert entry.day == "Domingo"
 
+    def test_valid_monday_friday_day_is_accepted(self, adapter):
+        entry = adapter._parse_entry(_row(Day="Monday-Friday"))
+        assert entry is not None
+        assert entry.day == "Monday-Friday"
+
+    def test_valid_spanish_monday_friday_day_is_accepted(self, adapter):
+        entry = adapter._parse_entry(_row(Day="Lunes-Viernes"))
+        assert entry is not None
+        assert entry.day == "Lunes-Viernes"
+
     def test_valid_spanish_day_with_accent_is_accepted(self, adapter):
         entry = adapter._parse_entry(_row(Day="Miércoles"))
         assert entry is not None
@@ -442,6 +452,11 @@ class TestSortEntries:
         entries = [_entry("Saturday", "09:00"), _entry("Sunday", "09:00"), _entry("Friday", "09:00")]
         result = GoogleSheetsScheduleAdapter._sort_entries(entries)
         assert [e.day for e in result] == ["Sunday", "Friday", "Saturday"]
+
+    def test_monday_friday_sorts_before_sunday(self):
+        entries = [_entry("Sunday", "09:00"), _entry("Monday-Friday", "09:00")]
+        result = GoogleSheetsScheduleAdapter._sort_entries(entries)
+        assert [e.day for e in result] == ["Monday-Friday", "Sunday"]
 
     def test_sorts_by_time_within_same_day(self):
         entries = [_entry("Sunday", "11:00"), _entry("Sunday", "09:00"), _entry("Sunday", "18:00")]

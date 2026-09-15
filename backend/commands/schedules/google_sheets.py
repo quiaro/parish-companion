@@ -23,10 +23,12 @@ _TYPE_ALIASES: dict[str, str] = {
 _VALID_DAYS: frozenset[str] = frozenset({
     "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
     "domingo", "lunes", "martes", "miércoles", "miercoles", "jueves", "viernes", "sábado", "sabado",
+    "monday-friday", "lunes-viernes",
 })
 _DAY_ORDER: dict[str, int] = {
     "sunday": 0, "monday": 1, "tuesday": 2, "wednesday": 3, "thursday": 4, "friday": 5, "saturday": 6,
     "domingo": 0, "lunes": 1, "martes": 2, "miércoles": 3, "miercoles": 3, "jueves": 4, "viernes": 5, "sábado": 6, "sabado": 6,
+    "monday-friday": -1, "lunes-viernes": -1,
 }
 
 

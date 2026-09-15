@@ -18,23 +18,23 @@ The spreadsheet must contain two tabs. Their names are configurable via environm
 
 Tab name: `SCHEDULES_REGULAR_TAB` (default: `Regular Schedule`)
 
-| Column   | Required | Description                                |
-| -------- | -------- | ------------------------------------------ |
-| Type     | Yes      | `mass`, `confession`, or `office`          |
-| Day      | Yes      | Day of the week, e.g. `Sunday`             |
-| Time     | Yes      | Start time in `HH:MM` format, e.g. `09:00` |
-| End Time | No       | End time in `HH:MM` format                 |
-| Language | No       | BCP 47 language code: `en` or `es`         |
-| Notes    | No       | Any additional information                 |
+| Column   | Required | Description                                                            |
+| -------- | -------- | ----------------------------------------------------------------------- |
+| Type     | Yes      | `mass`, `confession`, or `office`                                      |
+| Day      | Yes      | Day of the week, e.g. `Sunday`, or `Monday-Friday` for a Mon–Fri block |
+| Time     | Yes      | Start time in `HH:MM` format, e.g. `09:00`                             |
+| End Time | No       | End time in `HH:MM` format                                             |
+| Language | No       | BCP 47 language code: `en` or `es`                                     |
+| Notes    | No       | Any additional information                                             |
 
 Example:
 
-| Type       | Day      | Time  | End Time | Language | Notes |
-| ---------- | -------- | ----- | -------- | -------- | ----- |
-| mass       | Sunday   | 09:00 |          | en       |       |
-| mass       | Sunday   | 11:00 |          | es       |       |
-| confession | Saturday | 16:00 | 18:00    |          |       |
-| office     | Monday   | 09:00 | 17:00    |          |       |
+| Type       | Day           | Time  | End Time | Language | Notes |
+| ---------- | ------------- | ----- | -------- | -------- | ----- |
+| mass       | Sunday        | 09:00 |          | en       |       |
+| mass       | Sunday        | 11:00 |          | es       |       |
+| confession | Saturday      | 16:00 | 18:00    |          |       |
+| office     | Monday-Friday | 09:00 | 17:00    |          |       |
 
 #### Special Schedules
 
@@ -42,17 +42,17 @@ Tab name: `SCHEDULES_SPECIAL_TAB` (default: `Special Schedules`)
 
 Used for seasonal or one-off schedule changes such as Holy Week or Christmas.
 
-| Column     | Required | Description                        |
-| ---------- | -------- | ---------------------------------- |
-| Name       | Yes      | Schedule name, e.g. `Holy Week`    |
-| Start Date | Yes      | ISO 8601 date: `YYYY-MM-DD`        |
-| End Date   | Yes      | ISO 8601 date: `YYYY-MM-DD`        |
-| Type       | Yes      | `mass`, `confession`, or `office`  |
-| Day        | Yes      | Day of the week or specific date   |
-| Time       | Yes      | Start time in `HH:MM` format       |
-| End Time   | No       | End time in `HH:MM` format         |
-| Language   | No       | BCP 47 language code: `en` or `es` |
-| Notes      | No       | Any additional information         |
+| Column     | Required | Description                                                              |
+| ---------- | -------- | ------------------------------------------------------------------------- |
+| Name       | Yes      | Schedule name, e.g. `Holy Week`                                          |
+| Start Date | Yes      | ISO 8601 date: `YYYY-MM-DD`                                              |
+| End Date   | Yes      | ISO 8601 date: `YYYY-MM-DD`                                              |
+| Type       | Yes      | `mass`, `confession`, or `office`                                        |
+| Day        | Yes      | Day of the week or specific date, or `Monday-Friday` for a Mon–Fri block |
+| Time       | Yes      | Start time in `HH:MM` format                                             |
+| End Time   | No       | End time in `HH:MM` format                                               |
+| Language   | No       | BCP 47 language code: `en` or `es`                                       |
+| Notes      | No       | Any additional information                                               |
 
 Each special schedule entry is its own row. Repeat the Name, Start Date, and End Date on every row that belongs to the same schedule.
 

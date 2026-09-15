@@ -118,6 +118,25 @@ def test_days_appear_in_week_order() -> None:
     assert result.index("Sunday") < result.index("Saturday")
 
 
+def test_monday_friday_header_present_in_english() -> None:
+    schedule = ParishSchedule(regular=[_mass("Monday-Friday", "09:00")])
+    assert "Monday thru Friday" in format_schedule(schedule, "en")
+
+
+def test_monday_friday_header_present_in_spanish() -> None:
+    schedule = ParishSchedule(regular=[_mass("Monday-Friday", "09:00")])
+    assert "Lunes a Viernes" in format_schedule(schedule, "es")
+
+
+def test_monday_friday_sorts_before_sunday_in_reply() -> None:
+    schedule = ParishSchedule(regular=[
+        _mass("Sunday", "09:00"),
+        _mass("Monday-Friday", "08:00"),
+    ])
+    result = format_schedule(schedule, "en")
+    assert result.index("Monday thru Friday") < result.index("Sunday")
+
+
 def test_no_language_label_when_not_set() -> None:
     schedule = ParishSchedule(regular=[_mass("Sunday", "09:00")])
     result = format_schedule(schedule, "en")
