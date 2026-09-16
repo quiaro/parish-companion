@@ -61,59 +61,67 @@ def _get_request_types(language: str) -> list[str]:
         return []
 
 
-def _format_request_type_question(language: str) -> str:
+_CALLBACK_REQUEST_TYPE_PREFIX = "contact_reqtype"
+
+
+def _request_type_callback(index: int) -> str:
+    return f"{_CALLBACK_REQUEST_TYPE_PREFIX}|{index}"
+
+
+def _parse_request_type_index(callback_data: str) -> int | None:
+    prefix, sep, rest = callback_data.partition("|")
+    if not sep or prefix != _CALLBACK_REQUEST_TYPE_PREFIX:
+        return None
+    try:
+        return int(rest)
+    except ValueError:
+        return None
+
+
+def _build_request_type_reply(language: str) -> ContactFlowReply:
     types = _get_request_types(language)
-    options = "\n".join(f"{i + 1}. {t}" for i, t in enumerate(types))
-    return f"{get_string('contact_ask_request_type', language)}\n\n{options}"
+    return ContactFlowReply(
+        text=get_string("contact_ask_request_type", language),
+        button_rows=[[(label, _request_type_callback(i))] for i, label in enumerate(types)],
+    )
 
 
-def _question_for_step(step: str, language: str) -> str:
+def _reply_for_step(step: str, language: str) -> ContactFlowReply:
     if step == "request_type":
-        return _format_request_type_question(language)
-    return get_string(_STEP_QUESTION_KEYS[step], language)
+        return _build_request_type_reply(language)
+    return ContactFlowReply(text=get_string(_STEP_QUESTION_KEYS[step], language))
 
 
 async def start(session_id: str, language: str) -> str:
     state: dict = {"step": "name", "language": language, "answers": {}}
     await _set_state(session_id, state)
-    return _question_for_step("name", language)
+    return _reply_for_step("name", language).text
 
 
-async def advance(session_id: str, text: str) -> tuple[str, bool]:
+async def advance(session_id: str, text: str) -> tuple[ContactFlowReply, bool]:
     state = await _get_state(session_id)
     if state is None:
         logger.warning("advance called with no active flow session=%s", session_id)
-        return get_string("telegram_cmd_unknown", "en"), False
+        return ContactFlowReply(text=get_string("telegram_cmd_unknown", "en")), False
 
     step = state["step"]
     language = state["language"]
 
     if step == "done":
-        return get_string("contact_intake_complete", language), True
+        return ContactFlowReply(text=get_string("contact_intake_complete", language)), True
 
-    if step == "request_type":
-        types = _get_request_types(language)
-        try:
-            idx = int(text.strip()) - 1
-            if not (0 <= idx < len(types)):
-                raise ValueError
-        except ValueError:
-            re_ask = _format_request_type_question(language)
-            return f"{re_ask}\n\n{get_string('contact_invalid_choice', language)}", False
-        state["answers"]["request_type"] = types[idx]
-    else:
-        state["answers"][step] = text.strip()
+    state["answers"][step] = text.strip()
 
     current_index = STEPS.index(step)
     if current_index + 1 < len(STEPS):
         next_step = STEPS[current_index + 1]
         state["step"] = next_step
         await _set_state(session_id, state)
-        return _question_for_step(next_step, language), False
+        return _reply_for_step(next_step, language), False
 
     state["step"] = "done"
     await _set_state(session_id, state)
-    return get_string("contact_intake_complete", language), True
+    return ContactFlowReply(text=get_string("contact_intake_complete", language)), True
 
 
 _CALLBACK_SEND = "contact_confirm_send"
@@ -161,12 +169,54 @@ async def handle_callback(
     if state is None:
         logger.warning("handle_callback called with no active flow session=%s data=%s", session_id, callback_data)
         return None
-    if state.get("step") != "confirm" or callback_data not in (_CALLBACK_SEND, _CALLBACK_CANCEL):
+
+    step = state.get("step")
+    if step == "request_type":
+        return await _handle_request_type_callback(session_id, state, callback_data)
+    if step == "confirm":
+        return await _handle_confirm_callback(
+            session_id, state, callback_data, notifier, telegram_user_id, telegram_username
+        )
+
+    logger.warning(
+        "handle_callback called with mismatched step=%s data=%s session=%s", step, callback_data, session_id
+    )
+    return None
+
+
+async def _handle_request_type_callback(
+    session_id: str, state: dict, callback_data: str
+) -> ContactFlowReply:
+    language = state["language"]
+    types = _get_request_types(language)
+    idx = _parse_request_type_index(callback_data)
+
+    if idx is None or not (0 <= idx < len(types)):
         logger.warning(
-            "handle_callback called with mismatched step=%s data=%s session=%s",
-            state.get("step"),
-            callback_data,
-            session_id,
+            "stale/invalid request_type callback idx=%s data=%s session=%s", idx, callback_data, session_id
+        )
+        reply = _build_request_type_reply(language)
+        reply.text = f"{reply.text}\n\n{get_string('contact_invalid_choice', language)}"
+        return reply
+
+    state["answers"]["request_type"] = types[idx]
+    next_step = STEPS[STEPS.index("request_type") + 1]
+    state["step"] = next_step
+    await _set_state(session_id, state)
+    return _reply_for_step(next_step, language)
+
+
+async def _handle_confirm_callback(
+    session_id: str,
+    state: dict,
+    callback_data: str,
+    notifier: ContactNotifier,
+    telegram_user_id: int,
+    telegram_username: str | None,
+) -> ContactFlowReply | None:
+    if callback_data not in (_CALLBACK_SEND, _CALLBACK_CANCEL):
+        logger.warning(
+            "handle_callback called with mismatched step=confirm data=%s session=%s", callback_data, session_id
         )
         return None
 

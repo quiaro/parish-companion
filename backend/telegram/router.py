@@ -91,7 +91,7 @@ async def _handle_callback_query(request: Request, callback_query: CallbackQuery
             return JSONResponse({"status": "ok"})
 
     contact_state = await contact_flow.get_state(session_id)
-    if contact_state and contact_state.get("step") == "confirm":
+    if contact_state and contact_state.get("step") in ("confirm", "request_type"):
         contact_language = contact_state["language"]
         contact_reply = await contact_flow.handle_callback(
             session_id,
@@ -101,7 +101,9 @@ async def _handle_callback_query(request: Request, callback_query: CallbackQuery
             callback_query.from_.username,
         )
         if contact_reply is not None:
-            await send_message(chat_id, contact_reply.text)
+            await send_message(
+                chat_id, contact_reply.text, buttons=contact_reply.buttons, button_rows=contact_reply.button_rows
+            )
             if contact_reply.flow_ended:
                 await send_message(chat_id, commands.build_help_reply(contact_language))
         return JSONResponse({"status": "ok"})
@@ -176,7 +178,7 @@ async def receive_update(
     flow_state = await contact_flow.get_state(session_id)
     if flow_state:
         step = flow_state["step"]
-        if step == "confirm":
+        if step in ("confirm", "request_type"):
             # A button tap is pending — silently ignore stray text.
             return JSONResponse({"status": "ok"})
         if step == "done":
@@ -188,7 +190,7 @@ async def receive_update(
             confirmation = await contact_flow.present_confirmation(session_id)
             await send_message(chat_id, confirmation.text, buttons=confirmation.buttons)
         else:
-            await send_message(chat_id, reply)
+            await send_message(chat_id, reply.text, buttons=reply.buttons, button_rows=reply.button_rows)
         return JSONResponse({"status": "ok"})
 
     comfort_state = await comfort_flow.get_state(session_id)

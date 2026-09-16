@@ -16,4 +16,5 @@ class ContactRequest:
 class ContactFlowReply:
     text: str
     buttons: list[tuple[str, str]] | None = None
+    button_rows: list[list[tuple[str, str]]] | None = None
     flow_ended: bool = False

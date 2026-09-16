@@ -71,57 +71,23 @@ class TestAdvance:
         assert flow_store[_SESSION]["answers"]["name"] == "Alice"
         assert flow_store[_SESSION]["step"] == "request_type"
         assert not done
+        assert reply.button_rows == [
+            [("Speak with a priest", flow._request_type_callback(0))],
+            [("Spiritual director", flow._request_type_callback(1))],
+            [("General question", flow._request_type_callback(2))],
+        ]
 
     @pytest.mark.asyncio
     async def test_name_answer_strips_whitespace(self, flow_store, configured_types) -> None:
         await flow.start(_SESSION, "en")
-        await flow.advance(_SESSION, "  Alice  ")
+        await flow.advance(_SESSION, "Alice")
         assert flow_store[_SESSION]["answers"]["name"] == "Alice"
-
-    @pytest.mark.asyncio
-    async def test_request_type_valid_number_records_label(self, flow_store, configured_types) -> None:
-        await flow.start(_SESSION, "en")
-        await flow.advance(_SESSION, "Alice")
-        await flow.advance(_SESSION, "2")
-        assert flow_store[_SESSION]["answers"]["request_type"] == "Spiritual director"
-        assert flow_store[_SESSION]["step"] == "message"
-
-    @pytest.mark.asyncio
-    async def test_request_type_first_option(self, flow_store, configured_types) -> None:
-        await flow.start(_SESSION, "en")
-        await flow.advance(_SESSION, "Alice")
-        reply, done = await flow.advance(_SESSION, "1")
-        assert flow_store[_SESSION]["answers"]["request_type"] == "Speak with a priest"
-        assert not done
-
-    @pytest.mark.asyncio
-    async def test_request_type_invalid_text_stays_on_step(self, flow_store, configured_types) -> None:
-        await flow.start(_SESSION, "en")
-        await flow.advance(_SESSION, "Alice")
-        reply, done = await flow.advance(_SESSION, "not a number")
-        assert flow_store[_SESSION]["step"] == "request_type"
-        assert not done
-
-    @pytest.mark.asyncio
-    async def test_request_type_out_of_range_stays_on_step(self, flow_store, configured_types) -> None:
-        await flow.start(_SESSION, "en")
-        await flow.advance(_SESSION, "Alice")
-        reply, done = await flow.advance(_SESSION, "99")
-        assert flow_store[_SESSION]["step"] == "request_type"
-        assert not done
-
-    @pytest.mark.asyncio
-    async def test_request_type_invalid_reply_contains_error_hint(self, flow_store, configured_types) -> None:
-        await flow.start(_SESSION, "en")
-        await flow.advance(_SESSION, "Alice")
-        reply, _ = await flow.advance(_SESSION, "banana")
-        assert get_string("contact_invalid_choice", "en") in reply
 
     @pytest.mark.asyncio
     async def test_message_answer_advances_to_preferred_time(self, flow_store, configured_types) -> None:
         await flow.start(_SESSION, "en")
         await flow.advance(_SESSION, "Alice")
-        await flow.advance(_SESSION, "1")
+        await flow.handle_callback(_SESSION, flow._request_type_callback(0), _make_notifier(), 123, None)
         reply, done = await flow.advance(_SESSION, "I need help with baptism.")
         assert flow_store[_SESSION]["step"] == "preferred_time"
         assert not done
@@ -130,18 +96,18 @@ class TestAdvance:
     async def test_preferred_time_completes_flow(self, flow_store, configured_types) -> None:
         await flow.start(_SESSION, "en")
         await flow.advance(_SESSION, "Alice")
-        await flow.advance(_SESSION, "1")
+        await flow.handle_callback(_SESSION, flow._request_type_callback(0), _make_notifier(), 123, None)
         await flow.advance(_SESSION, "I need help with baptism.")
         reply, done = await flow.advance(_SESSION, "Weekday evenings")
         assert done
         assert flow_store[_SESSION]["step"] == "done"
-        assert get_string("contact_intake_complete", "en") in reply
+        assert get_string("contact_intake_complete", "en") in reply.text
 
     @pytest.mark.asyncio
     async def test_completed_state_holds_all_answers(self, flow_store, configured_types) -> None:
         await flow.start(_SESSION, "en")
         await flow.advance(_SESSION, "Alice")
-        await flow.advance(_SESSION, "3")
+        await flow.handle_callback(_SESSION, flow._request_type_callback(2), _make_notifier(), 123, None)
         await flow.advance(_SESSION, "I need help with baptism.")
         await flow.advance(_SESSION, "Weekday evenings")
         answers = flow_store[_SESSION]["answers"]
@@ -156,7 +122,62 @@ class TestAdvance:
         flow_store[_SESSION]["step"] = "done"
         reply, done = await flow.advance(_SESSION, "anything")
         assert done
-        assert get_string("contact_intake_complete", "en") in reply
+        assert get_string("contact_intake_complete", "en") in reply.text
+
+
+class TestRequestTypeCallback:
+    @pytest.mark.asyncio
+    async def test_valid_index_records_label_and_advances(self, flow_store, configured_types) -> None:
+        await flow.start(_SESSION, "en")
+        await flow.advance(_SESSION, "Alice")
+        reply = await flow.handle_callback(
+            _SESSION, flow._request_type_callback(1), _make_notifier(), 123, None
+        )
+        assert flow_store[_SESSION]["answers"]["request_type"] == "Spiritual director"
+        assert flow_store[_SESSION]["step"] == "message"
+        assert reply is not None
+        assert reply.text == get_string("contact_ask_message", "en")
+        assert reply.buttons is None
+        assert reply.button_rows is None
+
+    @pytest.mark.asyncio
+    async def test_first_option_index(self, flow_store, configured_types) -> None:
+        await flow.start(_SESSION, "en")
+        await flow.advance(_SESSION, "Alice")
+        await flow.handle_callback(_SESSION, flow._request_type_callback(0), _make_notifier(), 123, None)
+        assert flow_store[_SESSION]["answers"]["request_type"] == "Speak with a priest"
+
+    @pytest.mark.asyncio
+    async def test_uses_spanish_labels(self, flow_store, configured_types) -> None:
+        await flow.start(_SESSION, "es")
+        await flow.advance(_SESSION, "María")
+        reply = await flow.handle_callback(
+            _SESSION, flow._request_type_callback(2), _make_notifier(), 123, None
+        )
+        assert flow_store[_SESSION]["answers"]["request_type"] == "Pregunta general"
+        assert reply is not None
+        assert reply.text == get_string("contact_ask_message", "es")
+
+    @pytest.mark.asyncio
+    async def test_out_of_range_index_stays_on_step_with_error_hint(self, flow_store, configured_types) -> None:
+        await flow.start(_SESSION, "en")
+        await flow.advance(_SESSION, "Alice")
+        reply = await flow.handle_callback(
+            _SESSION, flow._request_type_callback(99), _make_notifier(), 123, None
+        )
+        assert flow_store[_SESSION]["step"] == "request_type"
+        assert reply is not None
+        assert get_string("contact_invalid_choice", "en") in reply.text
+        assert reply.button_rows is not None
+
+    @pytest.mark.asyncio
+    async def test_garbage_callback_data_stays_on_step_with_error_hint(self, flow_store, configured_types) -> None:
+        await flow.start(_SESSION, "en")
+        await flow.advance(_SESSION, "Alice")
+        reply = await flow.handle_callback(_SESSION, "not_a_reqtype_callback", _make_notifier(), 123, None)
+        assert flow_store[_SESSION]["step"] == "request_type"
+        assert reply is not None
+        assert get_string("contact_invalid_choice", "en") in reply.text
 
 
 class TestCancel:
@@ -208,7 +229,7 @@ async def _advance_to_done() -> None:
     """Drive the English flow to the done step (answers collected, before confirmation prompt)."""
     await flow.start(_SESSION, "en")
     await flow.advance(_SESSION, "Alice")
-    await flow.advance(_SESSION, "1")
+    await flow.handle_callback(_SESSION, flow._request_type_callback(0), _make_notifier(), 123, None)
     await flow.advance(_SESSION, "I need help with baptism.")
     _, done = await flow.advance(_SESSION, "Weekday evenings")
     assert done
@@ -248,7 +269,7 @@ class TestPresentConfirmation:
     async def test_uses_flow_language_for_labels(self, flow_store, configured_types) -> None:
         await flow.start(_SESSION, "es")
         await flow.advance(_SESSION, "María")
-        await flow.advance(_SESSION, "1")
+        await flow.handle_callback(_SESSION, flow._request_type_callback(0), _make_notifier(), 123, None)
         await flow.advance(_SESSION, "Necesito ayuda.")
         await flow.advance(_SESSION, "Por las tardes")
         reply = await flow.present_confirmation(_SESSION)
@@ -374,14 +395,14 @@ class TestSpanishFlow:
     async def test_uses_spanish_request_types(self, flow_store, configured_types) -> None:
         await flow.start(_SESSION, "es")
         await flow.advance(_SESSION, "María")
-        await flow.advance(_SESSION, "2")
+        await flow.handle_callback(_SESSION, flow._request_type_callback(1), _make_notifier(), 123, None)
         assert flow_store[_SESSION]["answers"]["request_type"] == "Director espiritual"
 
     @pytest.mark.asyncio
     async def test_full_happy_path(self, flow_store, configured_types) -> None:
         await flow.start(_SESSION, "es")
         await flow.advance(_SESSION, "María")
-        await flow.advance(_SESSION, "1")
+        await flow.handle_callback(_SESSION, flow._request_type_callback(0), _make_notifier(), 123, None)
         await flow.advance(_SESSION, "Necesito hablar con alguien.")
         reply, done = await flow.advance(_SESSION, "Por las tardes")
         assert done

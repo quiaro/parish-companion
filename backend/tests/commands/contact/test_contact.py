@@ -104,7 +104,12 @@ def _callback_update(data: str, callback_id: str = "cb1") -> dict:
 def _advance_to_confirm(client: TestClient) -> None:
     client.post("/telegram/webhook", json=_command_update("/contact"), headers=_headers)
     client.post("/telegram/webhook", json=_text_message("Alice"), headers=_headers)
-    client.post("/telegram/webhook", json=_text_message("1"), headers=_headers)
+    with patch("telegram.router.answer_callback_query", AsyncMock()):
+        client.post(
+            "/telegram/webhook",
+            json=_callback_update(contact_flow._request_type_callback(0)),
+            headers=_headers,
+        )
     client.post("/telegram/webhook", json=_text_message("I need help with baptism."), headers=_headers)
     client.post("/telegram/webhook", json=_text_message("Weekday evenings"), headers=_headers)
 
@@ -191,3 +196,51 @@ def test_text_at_confirm_step_is_silently_ignored(
     resp = client.post("/telegram/webhook", json=_text_message("yes"), headers=_headers)
     assert resp.status_code == 200
     mock_send.assert_not_awaited()
+
+
+def test_request_type_step_shows_buttons(
+    client: TestClient, mock_send: AsyncMock, configured_types, contact_notifier_mock, flow_store
+) -> None:
+    client.post("/telegram/webhook", json=_command_update("/contact"), headers=_headers)
+    client.post("/telegram/webhook", json=_text_message("Alice"), headers=_headers)
+
+    assert mock_send.await_args is not None
+    assert mock_send.await_args.kwargs["button_rows"] == [
+        [("Speak with a priest", contact_flow._request_type_callback(0))],
+        [("Spiritual director", contact_flow._request_type_callback(1))],
+        [("General question", contact_flow._request_type_callback(2))],
+    ]
+
+
+def test_text_at_request_type_step_is_silently_ignored(
+    client: TestClient, mock_send: AsyncMock, configured_types, contact_notifier_mock, flow_store
+) -> None:
+    client.post("/telegram/webhook", json=_command_update("/contact"), headers=_headers)
+    client.post("/telegram/webhook", json=_text_message("Alice"), headers=_headers)
+    mock_send.reset_mock()
+
+    resp = client.post("/telegram/webhook", json=_text_message("1"), headers=_headers)
+    assert resp.status_code == 200
+    mock_send.assert_not_awaited()
+
+
+def test_tapping_request_type_button_advances_to_message_question(
+    client: TestClient, mock_send: AsyncMock, configured_types, contact_notifier_mock, flow_store
+) -> None:
+    client.post("/telegram/webhook", json=_command_update("/contact"), headers=_headers)
+    client.post("/telegram/webhook", json=_text_message("Alice"), headers=_headers)
+    mock_send.reset_mock()
+
+    with patch("telegram.router.answer_callback_query", AsyncMock()) as answer_mock:
+        resp = client.post(
+            "/telegram/webhook",
+            json=_callback_update(contact_flow._request_type_callback(1)),
+            headers=_headers,
+        )
+        assert resp.status_code == 200
+        answer_mock.assert_awaited_once_with("cb1")
+
+    assert mock_send.await_args is not None
+    assert mock_send.await_args[0][1] == get_string("contact_ask_message", "en")
+    assert mock_send.await_args.kwargs.get("buttons") is None
+    assert mock_send.await_args.kwargs.get("button_rows") is None
