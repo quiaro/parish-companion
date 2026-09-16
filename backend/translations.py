@@ -42,19 +42,19 @@ STRINGS: dict[str, dict[str, str]] = {
         "contact_email_intro": (
             "A parishioner has submitted a contact request through Parish Companion."
         ),
-        "contact_email_label_request_type": "Request type:",
-        "contact_email_label_name": "Name:",
+        "contact_email_label_request_type": "Request:",
+        "contact_email_label_name": "From:",
         "contact_email_label_telegram": "Telegram contact:",
         "contact_email_label_message": "Message:",
         "contact_email_label_preferred_time": "Best time to reach:",
         "contact_ask_name": "What is your name?",
         "contact_ask_request_type": "What type of assistance are you looking for?",
-        "contact_ask_message": "Please briefly describe what you need help with.",
+        "contact_ask_message": "Briefly describe what you need help with.",
         "contact_ask_preferred_time": (
-            "What is the best time to reach you? (e.g. weekday mornings, evenings)"
+            "What is the best time to reach you? (e.g. monday to friday after 5pm.)"
         ),
         "contact_cancelled": (
-            "Your request has been cancelled. Feel free to reach out again any time."
+            "Your request has been *cancelled*. Feel free to reach out again any time."
         ),
         "contact_invalid_choice": "Please enter a number from the list above.",
         "contact_intake_complete": "Thank you! We have received your information.",
@@ -62,8 +62,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "contact_button_send": "Send",
         "contact_button_cancel": "Cancel",
         "contact_confirm_success": (
-            "Your request has been sent. "
-            "A member of our parish staff will be in touch with you soon."
+            "Your request has been *sent*. A member of our parish staff will be in touch with you soon."
         ),
         "contact_confirm_send_error": (
             "Something went wrong sending your request. "
@@ -184,20 +183,19 @@ STRINGS: dict[str, dict[str, str]] = {
         "contact_email_intro": (
             "Se ha enviado una solicitud de contacto a través de Parish Companion."
         ),
-        "contact_email_label_request_type": "Tipo de solicitud:",
-        "contact_email_label_name": "Nombre:",
+        "contact_email_label_request_type": "Solicitud:",
+        "contact_email_label_name": "De:",
         "contact_email_label_telegram": "Contacto de Telegram:",
         "contact_email_label_message": "Mensaje:",
         "contact_email_label_preferred_time": "Mejor horario para comunicarse:",
         "contact_ask_name": "¿Cuál es tu nombre?",
         "contact_ask_request_type": "¿Qué tipo de ayuda estás buscando?",
-        "contact_ask_message": "Por favor, describe brevemente en qué necesitas ayuda.",
+        "contact_ask_message": "Describe brevemente con qué necesitas ayuda.",
         "contact_ask_preferred_time": (
-            "¿Cuál es el mejor horario para comunicarnos contigo? "
-            "(e.g. mañanas entre semana, por las tardes)"
+            "¿Cuál es el mejor horario para comunicarnos contigo? (por ejemplo, lunes a viernes después de las 5pm.)"
         ),
         "contact_cancelled": (
-            "Tu solicitud ha sido cancelada. No dudes en contactarnos cuando lo necesites."
+            "Tu solicitud ha sido *cancelada*. No dudes en contactarnos cuando lo necesites."
         ),
         "contact_invalid_choice": "Por favor, ingresa un número de la lista anterior.",
         "contact_intake_complete": "Gracias! Tu información ha sido recibida.",
@@ -205,8 +203,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "contact_button_send": "Enviar",
         "contact_button_cancel": "Cancelar",
         "contact_confirm_success": (
-            "Tu solicitud ha sido enviada."
-            "Un miembro del personal de la parroquia se pondrá en contacto contigo pronto."
+            "Tu solicitud ha sido *enviada*. Un miembro del personal de la parroquia se pondrá en contacto contigo pronto."
         ),
         "contact_confirm_send_error": (
             "Algo salió mal al enviar tu solicitud. "

@@ -132,9 +132,9 @@ def _format_summary(answers: dict, language: str) -> str:
     lines = [
         get_string("contact_confirm_summary_header", language),
         "",
-        f"{get_string('contact_email_label_request_type', language)} {answers.get('request_type', '')}",
         f"{get_string('contact_email_label_name', language)} {answers.get('name', '')}",
-        f"{get_string('contact_email_label_message', language)} {answers.get('message', '')}",
+        f"{get_string('contact_email_label_request_type', language)} {answers.get('request_type', '')}",
+        f"_{answers.get('message', '')}_",
         f"{get_string('contact_email_label_preferred_time', language)} {answers.get('preferred_time', '')}",
     ]
     return "\n".join(lines)
