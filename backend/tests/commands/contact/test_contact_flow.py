@@ -230,16 +230,19 @@ class TestPresentConfirmation:
     async def test_reply_contains_all_answers(self, flow_store, configured_types) -> None:
         await _advance_to_done()
         reply = await flow.present_confirmation(_SESSION)
-        assert "Alice" in reply
-        assert "Speak with a priest" in reply
-        assert "I need help with baptism." in reply
-        assert "Weekday evenings" in reply
+        assert "Alice" in reply.text
+        assert "Speak with a priest" in reply.text
+        assert "I need help with baptism." in reply.text
+        assert "Weekday evenings" in reply.text
 
     @pytest.mark.asyncio
-    async def test_reply_contains_confirm_prompt(self, flow_store, configured_types) -> None:
+    async def test_reply_has_send_and_cancel_buttons(self, flow_store, configured_types) -> None:
         await _advance_to_done()
         reply = await flow.present_confirmation(_SESSION)
-        assert get_string("contact_confirm_prompt", "en") in reply
+        assert reply.buttons == [
+            (get_string("contact_button_send", "en"), flow._CALLBACK_SEND),
+            (get_string("contact_button_cancel", "en"), flow._CALLBACK_CANCEL),
+        ]
 
     @pytest.mark.asyncio
     async def test_uses_flow_language_for_labels(self, flow_store, configured_types) -> None:
@@ -249,23 +252,26 @@ class TestPresentConfirmation:
         await flow.advance(_SESSION, "Necesito ayuda.")
         await flow.advance(_SESSION, "Por las tardes")
         reply = await flow.present_confirmation(_SESSION)
-        assert get_string("contact_confirm_prompt", "es") in reply
+        assert reply.buttons == [
+            (get_string("contact_button_send", "es"), flow._CALLBACK_SEND),
+            (get_string("contact_button_cancel", "es"), flow._CALLBACK_CANCEL),
+        ]
 
 
-class TestSubmit:
+class TestHandleCallback:
     @pytest.mark.asyncio
-    async def test_yes_calls_notifier(self, flow_store, configured_types) -> None:
+    async def test_send_calls_notifier(self, flow_store, configured_types) -> None:
         await _advance_to_confirm()
         notifier = _make_notifier()
-        await flow.submit(_SESSION, "yes", notifier, 123, "alice")
+        await flow.handle_callback(_SESSION, flow._CALLBACK_SEND, notifier, 123, "alice")
         notifier.send.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_yes_builds_contact_request_correctly(self, flow_store, configured_types) -> None:
+    async def test_send_builds_contact_request_correctly(self, flow_store, configured_types) -> None:
         from commands.contact.models import ContactRequest
         await _advance_to_confirm()
         notifier = _make_notifier()
-        await flow.submit(_SESSION, "yes", notifier, 123, "alice")
+        await flow.handle_callback(_SESSION, flow._CALLBACK_SEND, notifier, 123, "alice")
         request: ContactRequest = notifier.send.call_args.args[0]
         assert request.name == "Alice"
         assert request.request_type == "Speak with a priest"
@@ -276,88 +282,91 @@ class TestSubmit:
         assert request.language == "en"
 
     @pytest.mark.asyncio
-    async def test_yes_clears_state_on_success(self, flow_store, configured_types) -> None:
+    async def test_send_clears_state_on_success(self, flow_store, configured_types) -> None:
         await _advance_to_confirm()
-        await flow.submit(_SESSION, "yes", _make_notifier(True), 123, None)
+        await flow.handle_callback(_SESSION, flow._CALLBACK_SEND, _make_notifier(True), 123, None)
         assert _SESSION not in flow_store
 
     @pytest.mark.asyncio
-    async def test_yes_returns_success_message(self, flow_store, configured_types) -> None:
+    async def test_send_returns_success_message(self, flow_store, configured_types) -> None:
         await _advance_to_confirm()
-        reply = await flow.submit(_SESSION, "yes", _make_notifier(True), 123, None)
-        assert get_string("contact_confirm_success", "en") in reply
+        reply = await flow.handle_callback(_SESSION, flow._CALLBACK_SEND, _make_notifier(True), 123, None)
+        assert reply is not None
+        assert get_string("contact_confirm_success", "en") in reply.text
 
     @pytest.mark.asyncio
-    async def test_y_accepted_as_yes(self, flow_store, configured_types) -> None:
+    async def test_send_success_marks_flow_ended(self, flow_store, configured_types) -> None:
         await _advance_to_confirm()
-        reply = await flow.submit(_SESSION, "y", _make_notifier(True), 123, None)
-        assert get_string("contact_confirm_success", "en") in reply
+        reply = await flow.handle_callback(_SESSION, flow._CALLBACK_SEND, _make_notifier(True), 123, None)
+        assert reply is not None
+        assert reply.flow_ended is True
 
     @pytest.mark.asyncio
-    async def test_si_accepted_as_yes(self, flow_store, configured_types) -> None:
-        await flow.start(_SESSION, "es")
-        await flow.advance(_SESSION, "María")
-        await flow.advance(_SESSION, "1")
-        await flow.advance(_SESSION, "Necesito ayuda.")
-        await flow.advance(_SESSION, "Por las tardes")
-        await flow.present_confirmation(_SESSION)
-        reply = await flow.submit(_SESSION, "sí", _make_notifier(True), 123, None)
-        assert get_string("contact_confirm_success", "es") in reply
-
-    @pytest.mark.asyncio
-    async def test_no_clears_state(self, flow_store, configured_types) -> None:
+    async def test_cancel_clears_state(self, flow_store, configured_types) -> None:
         await _advance_to_confirm()
-        await flow.submit(_SESSION, "no", _make_notifier(), 123, None)
+        await flow.handle_callback(_SESSION, flow._CALLBACK_CANCEL, _make_notifier(), 123, None)
         assert _SESSION not in flow_store
 
     @pytest.mark.asyncio
-    async def test_no_returns_cancel_message(self, flow_store, configured_types) -> None:
+    async def test_cancel_returns_cancel_message(self, flow_store, configured_types) -> None:
         await _advance_to_confirm()
-        reply = await flow.submit(_SESSION, "no", _make_notifier(), 123, None)
-        assert reply == get_string("contact_cancelled", "en")
+        reply = await flow.handle_callback(_SESSION, flow._CALLBACK_CANCEL, _make_notifier(), 123, None)
+        assert reply is not None
+        assert reply.text == get_string("contact_cancelled", "en")
 
     @pytest.mark.asyncio
-    async def test_unrecognized_input_re_asks(self, flow_store, configured_types) -> None:
+    async def test_cancel_marks_flow_ended(self, flow_store, configured_types) -> None:
         await _advance_to_confirm()
-        reply = await flow.submit(_SESSION, "maybe", _make_notifier(), 123, None)
-        assert get_string("contact_confirm_re_ask", "en") in reply
+        reply = await flow.handle_callback(_SESSION, flow._CALLBACK_CANCEL, _make_notifier(), 123, None)
+        assert reply is not None
+        assert reply.flow_ended is True
 
     @pytest.mark.asyncio
-    async def test_unrecognized_input_keeps_state_at_confirm(self, flow_store, configured_types) -> None:
+    async def test_unrecognized_callback_data_returns_none(self, flow_store, configured_types) -> None:
         await _advance_to_confirm()
-        assert flow_store[_SESSION]["step"] == "confirm"
-        await flow.submit(_SESSION, "maybe", _make_notifier(), 123, None)
+        reply = await flow.handle_callback(_SESSION, "some_other_callback", _make_notifier(), 123, None)
+        assert reply is None
         assert flow_store[_SESSION]["step"] == "confirm"
 
     @pytest.mark.asyncio
     async def test_send_failure_keeps_state(self, flow_store, configured_types) -> None:
         await _advance_to_confirm()
         assert flow_store[_SESSION]["step"] == "confirm"
-        await flow.submit(_SESSION, "yes", _make_notifier(False), 123, None)
+        await flow.handle_callback(_SESSION, flow._CALLBACK_SEND, _make_notifier(False), 123, None)
         assert _SESSION in flow_store
         assert flow_store[_SESSION]["step"] == "confirm"
 
     @pytest.mark.asyncio
     async def test_send_failure_returns_error_message(self, flow_store, configured_types) -> None:
         await _advance_to_confirm()
-        reply = await flow.submit(_SESSION, "yes", _make_notifier(False), 123, None)
-        assert get_string("contact_confirm_send_error", "en") in reply
+        reply = await flow.handle_callback(_SESSION, flow._CALLBACK_SEND, _make_notifier(False), 123, None)
+        assert reply is not None
+        assert get_string("contact_confirm_send_error", "en") in reply.text
+
+    @pytest.mark.asyncio
+    async def test_send_failure_does_not_mark_flow_ended(self, flow_store, configured_types) -> None:
+        await _advance_to_confirm()
+        reply = await flow.handle_callback(_SESSION, flow._CALLBACK_SEND, _make_notifier(False), 123, None)
+        assert reply is not None
+        assert reply.flow_ended is False
 
     @pytest.mark.asyncio
     async def test_send_failure_with_phone_includes_number(self, flow_store, configured_types, monkeypatch) -> None:
         import config
         monkeypatch.setattr(config.settings, "contact_phone", "(555) 123-4567")
         await _advance_to_confirm()
-        reply = await flow.submit(_SESSION, "yes", _make_notifier(False), 123, None)
-        assert "(555) 123-4567" in reply
+        reply = await flow.handle_callback(_SESSION, flow._CALLBACK_SEND, _make_notifier(False), 123, None)
+        assert reply is not None
+        assert "(555) 123-4567" in reply.text
 
     @pytest.mark.asyncio
     async def test_send_failure_without_phone_omits_phone(self, flow_store, configured_types, monkeypatch) -> None:
         import config
         monkeypatch.setattr(config.settings, "contact_phone", "")
         await _advance_to_confirm()
-        reply = await flow.submit(_SESSION, "yes", _make_notifier(False), 123, None)
-        assert get_string("contact_confirm_send_error", "en") in reply
+        reply = await flow.handle_callback(_SESSION, flow._CALLBACK_SEND, _make_notifier(False), 123, None)
+        assert reply is not None
+        assert get_string("contact_confirm_send_error", "en") in reply.text
 
 
 class TestSpanishFlow:

@@ -90,6 +90,22 @@ async def _handle_callback_query(request: Request, callback_query: CallbackQuery
             await send_message(chat_id, commands.build_help_reply(sched_language))
             return JSONResponse({"status": "ok"})
 
+    contact_state = await contact_flow.get_state(session_id)
+    if contact_state and contact_state.get("step") == "confirm":
+        contact_language = contact_state["language"]
+        contact_reply = await contact_flow.handle_callback(
+            session_id,
+            callback_query.data,
+            request.app.state.contact_notifier,
+            callback_query.from_.id,
+            callback_query.from_.username,
+        )
+        if contact_reply is not None:
+            await send_message(chat_id, contact_reply.text)
+            if contact_reply.flow_ended:
+                await send_message(chat_id, commands.build_help_reply(contact_language))
+        return JSONResponse({"status": "ok"})
+
     comfort_state = await comfort_flow.get_state(session_id)
     if comfort_state:
         reply = await comfort_flow.handle_callback(session_id, callback_query.data)
@@ -161,20 +177,18 @@ async def receive_update(
     if flow_state:
         step = flow_state["step"]
         if step == "confirm":
-            reply = await contact_flow.submit(
-                session_id,
-                text,
-                request.app.state.contact_notifier,
-                sender.id if sender else chat_id,
-                sender.username if sender else None,
-            )
-        elif step == "done":
-            reply = await contact_flow.present_confirmation(session_id)
+            # A button tap is pending — silently ignore stray text.
+            return JSONResponse({"status": "ok"})
+        if step == "done":
+            confirmation = await contact_flow.present_confirmation(session_id)
+            await send_message(chat_id, confirmation.text, buttons=confirmation.buttons)
+            return JSONResponse({"status": "ok"})
+        reply, done = await contact_flow.advance(session_id, text)
+        if done:
+            confirmation = await contact_flow.present_confirmation(session_id)
+            await send_message(chat_id, confirmation.text, buttons=confirmation.buttons)
         else:
-            reply, done = await contact_flow.advance(session_id, text)
-            if done:
-                reply = await contact_flow.present_confirmation(session_id)
-        await send_message(chat_id, reply)
+            await send_message(chat_id, reply)
         return JSONResponse({"status": "ok"})
 
     comfort_state = await comfort_flow.get_state(session_id)

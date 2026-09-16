@@ -10,3 +10,10 @@ class ContactRequest:
     telegram_user_id: int
     telegram_username: str | None = field(default=None)
     language: str = field(default="en")
+
+
+@dataclass
+class ContactFlowReply:
+    text: str
+    buttons: list[tuple[str, str]] | None = None
+    flow_ended: bool = False

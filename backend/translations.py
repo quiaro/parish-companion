@@ -58,24 +58,20 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "contact_invalid_choice": "Please enter a number from the list above.",
         "contact_intake_complete": "Thank you! We have received your information.",
-        "contact_confirm_summary_header": "Here is a summary of your request:",
-        "contact_confirm_prompt": (
-            "Does this look right? Reply Yes to send, or No to cancel."
-        ),
-        "contact_confirm_re_ask": (
-            "Please reply Yes to send your request, or No to cancel."
-        ),
+        "contact_confirm_summary_header": "Confirm your request:",
+        "contact_button_send": "Send",
+        "contact_button_cancel": "Cancel",
         "contact_confirm_success": (
             "Your request has been sent. "
             "A member of our parish staff will be in touch with you soon."
         ),
         "contact_confirm_send_error": (
             "Something went wrong sending your request. "
-            "Please try replying Yes again, or type /cancel to start over."
+            "Please try tapping Send again, or tap Cancel to exit."
         ),
         "contact_confirm_send_error_with_phone": (
-            "Something went wrong sending your request. Please try replying Yes again."
-            "If the problem persists, call the parish office directly at {phone} or type /cancel to start over."
+            "Something went wrong sending your request. Please try tapping Send again."
+            "If the problem persists, call the parish office directly at {phone}. Tap Cancel to exit."
         ),
         "comfort_intro": (
             "Welcome to /comfort.\n"
@@ -205,24 +201,19 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "contact_invalid_choice": "Por favor, ingresa un número de la lista anterior.",
         "contact_intake_complete": "Gracias! Tu información ha sido recibida.",
-        "contact_confirm_summary_header": "Aquí está un resumen de tu solicitud:",
-        "contact_confirm_prompt": (
-            "¿Es correcto? Responde Sí para enviar, o No para cancelar."
-        ),
-        "contact_confirm_re_ask": (
-            "Por favor, responde Sí para enviar tu solicitud, o No para cancelar."
-        ),
+        "contact_confirm_summary_header": "Confirma tu solicitud:",
+        "contact_button_send": "Enviar",
+        "contact_button_cancel": "Cancelar",
         "contact_confirm_success": (
             "Tu solicitud ha sido enviada."
             "Un miembro del personal de la parroquia se pondrá en contacto contigo pronto."
         ),
         "contact_confirm_send_error": (
             "Algo salió mal al enviar tu solicitud. "
-            "Intenta respondiendo Sí nuevamente, o escribe /cancel para empezar de nuevo."
+            "Intenta presionar Enviar nuevamente, o presiona Cancelar para salir."
         ),
         "contact_confirm_send_error_with_phone": (
-            "Algo salió mal enviando tu solicitud. Por favor, intenta respondiendo Sí nuevamente."
-            "Si el problema persiste, llama a la parroquia directamente al {phone} o escribe /cancel para empezar de nuevo."
+            "Algo salió mal enviando tu solicitud. Por favor, intenta presionar Enviar nuevamente. Si el problema persiste, llama a la parroquia directamente al {phone}. Presiona Cancelar para salir."
         ),
         "comfort_intro": (
             "Bienvenido a /consolar.\n"

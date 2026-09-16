@@ -4,7 +4,7 @@ import logging
 
 from redis.asyncio import Redis
 
-from commands.contact.models import ContactRequest
+from commands.contact.models import ContactFlowReply, ContactRequest
 from commands.contact.notifier import ContactNotifier
 from config import settings
 from translations import get_string
@@ -116,8 +116,8 @@ async def advance(session_id: str, text: str) -> tuple[str, bool]:
     return get_string("contact_intake_complete", language), True
 
 
-_YES_TOKENS = {"yes", "y", "sí", "si", "s"}
-_NO_TOKENS = {"no", "n"}
+_CALLBACK_SEND = "contact_confirm_send"
+_CALLBACK_CANCEL = "contact_confirm_cancel"
 
 
 def _format_summary(answers: dict, language: str) -> str:
@@ -132,39 +132,49 @@ def _format_summary(answers: dict, language: str) -> str:
     return "\n".join(lines)
 
 
-async def present_confirmation(session_id: str) -> str:
+async def present_confirmation(session_id: str) -> ContactFlowReply:
     state = await _get_state(session_id)
     if state is None:
         logger.warning("present_confirmation called with no active flow session=%s", session_id)
-        return get_string("telegram_cmd_unknown", "en")
+        return ContactFlowReply(text=get_string("telegram_cmd_unknown", "en"))
     language = state["language"]
     summary = _format_summary(state["answers"], language)
     state["step"] = "confirm"
     await _set_state(session_id, state)
-    return f"{summary}\n\n{get_string('contact_confirm_prompt', language)}"
+    return ContactFlowReply(
+        text=summary,
+        buttons=[
+            (get_string("contact_button_send", language), _CALLBACK_SEND),
+            (get_string("contact_button_cancel", language), _CALLBACK_CANCEL),
+        ],
+    )
 
 
-async def submit(
+async def handle_callback(
     session_id: str,
-    text: str,
+    callback_data: str,
     notifier: ContactNotifier,
     telegram_user_id: int,
     telegram_username: str | None,
-) -> str:
+) -> ContactFlowReply | None:
     state = await _get_state(session_id)
     if state is None:
-        logger.warning("submit called with no active flow session=%s", session_id)
-        return get_string("telegram_cmd_unknown", "en")
+        logger.warning("handle_callback called with no active flow session=%s data=%s", session_id, callback_data)
+        return None
+    if state.get("step") != "confirm" or callback_data not in (_CALLBACK_SEND, _CALLBACK_CANCEL):
+        logger.warning(
+            "handle_callback called with mismatched step=%s data=%s session=%s",
+            state.get("step"),
+            callback_data,
+            session_id,
+        )
+        return None
+
     language = state["language"]
-    normalized = text.strip().lower()
 
-    if normalized in _NO_TOKENS:
+    if callback_data == _CALLBACK_CANCEL:
         await _clear_state(session_id)
-        return get_string("contact_cancelled", language)
-
-    if normalized not in _YES_TOKENS:
-        summary = _format_summary(state["answers"], language)
-        return f"{summary}\n\n{get_string('contact_confirm_re_ask', language)}"
+        return ContactFlowReply(text=get_string("contact_cancelled", language), flow_ended=True)
 
     answers = state["answers"]
     contact_request = ContactRequest(
@@ -178,14 +188,16 @@ async def submit(
     )
     if await asyncio.to_thread(notifier.send, contact_request):
         await _clear_state(session_id)
-        return get_string("contact_confirm_success", language)
+        return ContactFlowReply(text=get_string("contact_confirm_success", language), flow_ended=True)
 
-    # State kept at "confirm" so the user can retry
+    # State kept at "confirm" so the user can retry by tapping Send again
     if settings.contact_phone:
-        return get_string("contact_confirm_send_error_with_phone", language).format(
-            phone=settings.contact_phone
+        return ContactFlowReply(
+            text=get_string("contact_confirm_send_error_with_phone", language).format(
+                phone=settings.contact_phone
+            )
         )
-    return get_string("contact_confirm_send_error", language)
+    return ContactFlowReply(text=get_string("contact_confirm_send_error", language))
 
 
 async def cancel(session_id: str) -> str:
