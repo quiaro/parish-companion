@@ -110,8 +110,8 @@ class TestEmailContent:
 
     def test_body_uses_english_labels_for_english_request(self, monkeypatch: pytest.MonkeyPatch) -> None:
         body = self._capture(monkeypatch).get_content()
-        assert "Request type:" in body
-        assert "Name:" in body
+        assert "Request:" in body
+        assert "From:" in body
         assert "Telegram contact:" in body
         assert "Message:" in body
         assert "Best time to reach:" in body
@@ -127,8 +127,8 @@ class TestEmailContent:
 
     def test_body_uses_spanish_labels_for_spanish_request(self, monkeypatch: pytest.MonkeyPatch) -> None:
         body = self._capture(monkeypatch, request=_REQUEST_ES).get_content()
-        assert "Tipo de solicitud:" in body
-        assert "Nombre:" in body
+        assert "Solicitud:" in body
+        assert "De:" in body
         assert "Contacto de Telegram:" in body
         assert "Mensaje:" in body
         assert "Mejor horario para comunicarse:" in body
