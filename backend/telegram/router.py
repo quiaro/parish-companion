@@ -10,7 +10,6 @@ from commands.contact import is_configured as contact_is_configured
 from commands.information import is_configured as information_is_configured
 from commands.schedules import is_configured as schedules_is_configured
 from config import settings
-from session import get_language
 from telegram import commands
 from telegram import information as telegram_information
 from telegram import schedule as telegram_schedule
@@ -137,7 +136,7 @@ async def receive_update(
     session_id = str(chat_id)
     logger.info("update=%d session=%s", update.update_id, session_id)
 
-    language = await get_language(session_id) or settings.default_language
+    language = settings.default_language
 
     if update.message.text is None:
         await send_message(chat_id, get_string("telegram_text_only", language))

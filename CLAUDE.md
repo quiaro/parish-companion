@@ -36,7 +36,7 @@ backend/
 
 **Telegram command tests** — Integration tests for Telegram commands go in `tests/commands/`, one file per command. Keep `test_static.py` for commands whose replies are static strings from `translations.py`, and create a new file for each command whose reply requires a handler or external data. `tests/commands/` has no `__init__.py` — pytest discovers test files without it, and its absence prevents the directory from shadowing `backend/commands/` in `sys.path`.
 
-**Language forcing** — Telegram commands that are inherently in one language (e.g. `/schedules` → English, `/horarios` → Spanish) override the session language in the router. The mapping lives in `_SCHEDULE_COMMAND_LANGUAGES` in `telegram/router.py`. Do not use the session language for these commands.
+**Language forcing** — Telegram commands that are inherently in one language (e.g. `/schedules` → English, `/horarios` → Spanish) override `DEFAULT_LANGUAGE` in the router.
 
 **Feature gating** — Any command whose data source or external dependency can be left unconfigured (e.g. `/contact`'s SMTP settings, `/comfort`'s OpenRouter key) exposes an `is_configured() -> bool` at its package's `commands/<feature>/__init__.py`. The router (`telegram/router.py`) checks it before dispatching the command so an unconfigured command falls through to the standard "unknown command" reply rather than failing at runtime. `telegram/commands.py`'s `/help`/`/ayuda` builder also checks `is_configured()` before including the command's line. Commands with a safe built-in fallback don't need this.
 

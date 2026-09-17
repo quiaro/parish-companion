@@ -1,7 +1,9 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
+import pytest
 from fastapi.testclient import TestClient
 
+import config
 from tests.conftest import TEST_SECRET
 from translations import STRINGS, get_start_message
 
@@ -74,16 +76,15 @@ def test_plain_text_with_no_active_flow_sends_welcome_message(client: TestClient
     assert text == get_start_message("en")
 
 
-def test_plain_text_with_no_active_flow_respects_detected_language(
-    client: TestClient, mock_send: AsyncMock
+def test_plain_text_with_no_active_flow_respects_default_language(
+    client: TestClient, mock_send: AsyncMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # Uses the session's own detected language
-    with patch("telegram.router.get_language", AsyncMock(return_value="es")):
-        resp = client.post(
-            "/telegram/webhook",
-            json=_TEXT_UPDATE,
-            headers={"X-Telegram-Bot-Api-Secret-Token": TEST_SECRET},
-        )
+    monkeypatch.setattr(config.settings, "default_language", "es")
+    resp = client.post(
+        "/telegram/webhook",
+        json=_TEXT_UPDATE,
+        headers={"X-Telegram-Bot-Api-Secret-Token": TEST_SECRET},
+    )
     assert resp.status_code == 200
     mock_send.assert_awaited_once()
     _, text = mock_send.call_args.args

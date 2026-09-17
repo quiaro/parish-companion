@@ -1,7 +1,9 @@
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
+import config
 from commands.comfort.models import ClassificationResult
 from tests.conftest import TEST_SECRET
 from translations import get_string
@@ -52,13 +54,13 @@ def test_comfort_command_sends_brief_prompt_on_subsequent_use(
     assert sent_text == get_string("comfort_brief_intro", "en")
 
 
-def test_comfort_command_always_replies_in_english_even_when_session_language_is_spanish(
-    client: TestClient, mock_send: AsyncMock, db_mocks, flow_store
+def test_comfort_command_always_replies_in_english_even_when_default_language_is_spanish(
+    client: TestClient, mock_send: AsyncMock, db_mocks, flow_store, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.setattr(config.settings, "default_language", "es")
     db_mocks["is_comfort_intro_shown"].return_value = True
-    with patch("telegram.router.get_language", AsyncMock(return_value="es")):
-        resp = client.post("/telegram/webhook", json=_command_update("/comfort"), headers=_headers)
-        assert resp.status_code == 200
+    resp = client.post("/telegram/webhook", json=_command_update("/comfort"), headers=_headers)
+    assert resp.status_code == 200
 
     mock_send.assert_awaited_once()
     assert mock_send.await_args is not None
@@ -79,13 +81,13 @@ def test_consolar_command_sends_full_intro_on_first_use(
     assert sent_text == get_string("comfort_intro", "es")
 
 
-def test_consolar_command_always_replies_in_spanish_even_when_session_language_is_english(
-    client: TestClient, mock_send: AsyncMock, db_mocks, flow_store
+def test_consolar_command_always_replies_in_spanish_even_when_default_language_is_english(
+    client: TestClient, mock_send: AsyncMock, db_mocks, flow_store, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.setattr(config.settings, "default_language", "en")
     db_mocks["is_comfort_intro_shown"].return_value = True
-    with patch("telegram.router.get_language", AsyncMock(return_value="en")):
-        resp = client.post("/telegram/webhook", json=_command_update("/consolar"), headers=_headers)
-        assert resp.status_code == 200
+    resp = client.post("/telegram/webhook", json=_command_update("/consolar"), headers=_headers)
+    assert resp.status_code == 200
 
     mock_send.assert_awaited_once()
     assert mock_send.await_args is not None

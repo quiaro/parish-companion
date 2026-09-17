@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+import config
 from main import app
 from commands.information.models import InformationTopic, InformationUnavailableError
 from telegram import commands as telegram_commands
@@ -144,23 +145,23 @@ def test_informacion_command_shows_spanish_intro_text(client: TestClient, mock_s
     assert mock_send.await_args[0][1] == get_string("information_menu_intro", "es")
 
 
-def test_information_command_always_replies_in_english_even_when_session_language_is_spanish(
-    client: TestClient, mock_send: AsyncMock
+def test_information_command_always_replies_in_english_even_when_default_language_is_spanish(
+    client: TestClient, mock_send: AsyncMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.setattr(config.settings, "default_language", "es")
     app.state.information_adapter = _mock_adapter([_topic()])
-    with patch("telegram.router.get_language", AsyncMock(return_value="es")):
-        resp = client.post("/telegram/webhook", json=_command_update("/information"), headers=_headers)
+    resp = client.post("/telegram/webhook", json=_command_update("/information"), headers=_headers)
     assert resp.status_code == 200
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("information_menu_intro", "en")
 
 
-def test_informacion_command_always_replies_in_spanish_even_when_session_language_is_english(
-    client: TestClient, mock_send: AsyncMock
+def test_informacion_command_always_replies_in_spanish_even_when_default_language_is_english(
+    client: TestClient, mock_send: AsyncMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.setattr(config.settings, "default_language", "en")
     app.state.information_adapter = _mock_adapter([_topic()])
-    with patch("telegram.router.get_language", AsyncMock(return_value="en")):
-        resp = client.post("/telegram/webhook", json=_command_update("/informacion"), headers=_headers)
+    resp = client.post("/telegram/webhook", json=_command_update("/informacion"), headers=_headers)
     assert resp.status_code == 200
     assert mock_send.await_args is not None
     assert mock_send.await_args[0][1] == get_string("information_menu_intro", "es")

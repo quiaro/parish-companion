@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+import config
 from main import app
 from commands.schedules.models import Language, ParishSchedule, ScheduleEntry, ScheduleType, ScheduleUnavailableError
 from telegram import commands as telegram_commands
@@ -86,11 +87,13 @@ def test_horarios_command_always_replies_in_spanish(client: TestClient, mock_sen
     ]
 
 
-def test_schedules_command_always_replies_in_english(client: TestClient, mock_send: AsyncMock) -> None:
+def test_schedules_command_always_replies_in_english(
+    client: TestClient, mock_send: AsyncMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # default_language is Spanish, but /schedules forces English.
+    monkeypatch.setattr(config.settings, "default_language", "es")
     app.state.schedule_adapter = _mock_adapter()
-    # Session language is Spanish, but /schedules forces English.
-    with patch("telegram.router.get_language", AsyncMock(return_value="es")):
-        resp = client.post("/telegram/webhook", json=_command_update("/schedules"), headers=_headers)
+    resp = client.post("/telegram/webhook", json=_command_update("/schedules"), headers=_headers)
     assert resp.status_code == 200
     mock_send.assert_awaited_once()
     assert mock_send.await_args is not None

@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -129,20 +129,20 @@ def test_inicio_replies_in_english_when_only_english_is_supported(
 
 # --- Language is forced regardless of the user's detected language -----------
 
-def test_help_is_always_english_even_when_session_language_is_spanish(
-    client: TestClient, mock_send: AsyncMock
+def test_help_is_always_english_even_when_default_language_is_spanish(
+    client: TestClient, mock_send: AsyncMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    with patch("telegram.router.get_language", AsyncMock(return_value="es")):
-        resp = client.post("/telegram/webhook", json=_command_update("/help"), headers=_headers)
+    monkeypatch.setattr(config.settings, "default_language", "es")
+    resp = client.post("/telegram/webhook", json=_command_update("/help"), headers=_headers)
     assert resp.status_code == 200
     mock_send.assert_awaited_once_with(_CHAT_ID, _full_help("en"))
 
 
-def test_ayuda_is_always_spanish_even_when_session_language_is_english(
-    client: TestClient, mock_send: AsyncMock
+def test_ayuda_is_always_spanish_even_when_default_language_is_english(
+    client: TestClient, mock_send: AsyncMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    with patch("telegram.router.get_language", AsyncMock(return_value="en")):
-        resp = client.post("/telegram/webhook", json=_command_update("/ayuda"), headers=_headers)
+    monkeypatch.setattr(config.settings, "default_language", "en")
+    resp = client.post("/telegram/webhook", json=_command_update("/ayuda"), headers=_headers)
     assert resp.status_code == 200
     mock_send.assert_awaited_once_with(_CHAT_ID, _full_help("es"))
 

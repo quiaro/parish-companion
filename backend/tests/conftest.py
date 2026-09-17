@@ -17,8 +17,7 @@ os.environ["LANGFUSE_SECRET_KEY"] = ""
 
 os.environ["ENVIRONMENT"] = "development"
 
-from typing import Generator
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -33,13 +32,6 @@ TEST_SECRET = "test-secret"
 def enforce_webhook_secret(monkeypatch: pytest.MonkeyPatch) -> None:
     """Pin the webhook secret to a known value for every test."""
     monkeypatch.setattr(config.settings, "telegram_webhook_secret", TEST_SECRET)
-
-
-@pytest.fixture(autouse=True)
-def mock_session_language() -> Generator[None, None, None]:
-    """Return no stored language in all tests so default_language is always used."""
-    with patch("telegram.router.get_language", AsyncMock(return_value=None)):
-        yield
 
 
 @pytest.fixture(autouse=True)
