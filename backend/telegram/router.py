@@ -16,7 +16,7 @@ from telegram import information as telegram_information
 from telegram import schedule as telegram_schedule
 from telegram.client import answer_callback_query, send_message
 from telegram.models import CallbackQuery, Update
-from translations import get_string
+from translations import get_start_message, get_string
 
 logger = logging.getLogger(__name__)
 
@@ -203,5 +203,5 @@ async def receive_update(
         return JSONResponse({"status": "ok"})
 
     # Plain text outside of any active flow (likely a new or confused parishioner).
-    await send_message(chat_id, get_string("telegram_cmd_start", language))
+    await send_message(chat_id, get_start_message(language))
     return JSONResponse({"status": "ok"})

@@ -108,5 +108,28 @@ class TestTelegramValidation:
             _settings(environment="development", telegram_bot_token="")
 
 
+class TestLanguageValidation:
+    def test_raises_when_supported_languages_is_not_json(self) -> None:
+        with pytest.raises(ValidationError, match="SUPPORTED_LANGUAGES"):
+            _settings(supported_languages="not json")
+
+    def test_raises_when_supported_languages_is_empty_json_array(self) -> None:
+        with pytest.raises(ValidationError, match="SUPPORTED_LANGUAGES"):
+            _settings(supported_languages="[]")
+
+    def test_raises_when_supported_languages_has_unknown_language(self) -> None:
+        with pytest.raises(ValidationError, match="SUPPORTED_LANGUAGES"):
+            _settings(supported_languages='["fr"]')
+
+    def test_raises_when_default_language_is_not_supported(self) -> None:
+        with pytest.raises(ValidationError, match="DEFAULT_LANGUAGE"):
+            _settings(default_language="es", supported_languages='["en"]')
+
+    def test_does_not_raise_when_default_language_is_supported(self) -> None:
+        settings = _settings(default_language="es", supported_languages='["es"]')
+        assert settings.default_language == "es"
+        assert settings.supported_languages == '["es"]'
+
+
 def test_environment_defaults_to_production() -> None:
     assert Settings.model_fields["environment"].default == "production"

@@ -3,8 +3,9 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+import config
 from tests.conftest import TEST_SECRET
-from translations import STRINGS
+from translations import STRINGS, get_start_message
 
 _CHAT_ID = 42
 
@@ -50,7 +51,7 @@ def all_features_configured(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_start_sends_english_welcome(client: TestClient, mock_send: AsyncMock) -> None:
     resp = client.post("/telegram/webhook", json=_command_update("/start"), headers=_headers)
     assert resp.status_code == 200
-    mock_send.assert_awaited_once_with(_CHAT_ID, STRINGS["en"]["telegram_cmd_start"])
+    mock_send.assert_awaited_once_with(_CHAT_ID, get_start_message("en"))
 
 
 def test_help_sends_english_help(client: TestClient, mock_send: AsyncMock) -> None:
@@ -64,13 +65,66 @@ def test_help_sends_english_help(client: TestClient, mock_send: AsyncMock) -> No
 def test_inicio_sends_spanish_welcome(client: TestClient, mock_send: AsyncMock) -> None:
     resp = client.post("/telegram/webhook", json=_command_update("/inicio"), headers=_headers)
     assert resp.status_code == 200
-    mock_send.assert_awaited_once_with(_CHAT_ID, STRINGS["es"]["telegram_cmd_start"])
+    mock_send.assert_awaited_once_with(_CHAT_ID, get_start_message("es"))
 
 
 def test_ayuda_sends_spanish_help(client: TestClient, mock_send: AsyncMock) -> None:
     resp = client.post("/telegram/webhook", json=_command_update("/ayuda"), headers=_headers)
     assert resp.status_code == 200
     mock_send.assert_awaited_once_with(_CHAT_ID, _full_help("es"))
+
+
+# --- SUPPORTED_LANGUAGES trims the welcome message for monolingual parishes --
+
+def test_start_omits_spanish_mention_when_only_english_is_supported(
+    client: TestClient, mock_send: AsyncMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(config.settings, "supported_languages", '["en"]')
+    resp = client.post("/telegram/webhook", json=_command_update("/start"), headers=_headers)
+    assert resp.status_code == 200
+    assert mock_send.await_args is not None
+    sent_text = mock_send.await_args.args[1]
+    assert "/ayuda" not in sent_text
+    assert sent_text == STRINGS["en"]["telegram_cmd_start"].format(hint="")
+
+
+def test_inicio_omits_english_mention_when_only_spanish_is_supported(
+    client: TestClient, mock_send: AsyncMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(config.settings, "supported_languages", '["es"]')
+    resp = client.post("/telegram/webhook", json=_command_update("/inicio"), headers=_headers)
+    assert resp.status_code == 200
+    assert mock_send.await_args is not None
+    sent_text = mock_send.await_args.args[1]
+    assert "/help" not in sent_text
+    assert sent_text == STRINGS["es"]["telegram_cmd_start"].format(hint="")
+
+
+def test_start_replies_in_spanish_when_only_spanish_is_supported(
+    client: TestClient, mock_send: AsyncMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """SUPPORTED_LANGUAGES overrides /start's own forced language, since a user in a
+    Spanish-only parish typing the English command still needs the Spanish reply."""
+    monkeypatch.setattr(config.settings, "supported_languages", '["es"]')
+    monkeypatch.setattr(config.settings, "default_language", "es")
+    resp = client.post("/telegram/webhook", json=_command_update("/start"), headers=_headers)
+    assert resp.status_code == 200
+    assert mock_send.await_args is not None
+    sent_text = mock_send.await_args.args[1]
+    assert sent_text == STRINGS["es"]["telegram_cmd_start"].format(hint="")
+
+
+def test_inicio_replies_in_english_when_only_english_is_supported(
+    client: TestClient, mock_send: AsyncMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """SUPPORTED_LANGUAGES overrides /inicio's own forced language, since a user in an
+    English-only parish typing the Spanish command still needs the English reply."""
+    monkeypatch.setattr(config.settings, "supported_languages", '["en"]')
+    resp = client.post("/telegram/webhook", json=_command_update("/inicio"), headers=_headers)
+    assert resp.status_code == 200
+    assert mock_send.await_args is not None
+    sent_text = mock_send.await_args.args[1]
+    assert sent_text == STRINGS["en"]["telegram_cmd_start"].format(hint="")
 
 
 # --- Language is forced regardless of the user's detected language -----------

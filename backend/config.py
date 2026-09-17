@@ -53,6 +53,31 @@ class Settings(BaseSettings):
     session_ttl_seconds: int = 86_400
 
     default_language: str = "en"
+    supported_languages: str = '["en", "es"]'
+
+    @field_validator("supported_languages")
+    @classmethod
+    def must_be_valid_language_list(cls, v: str) -> str:
+        try:
+            parsed = json.loads(v)
+        except json.JSONDecodeError:
+            raise ValueError("SUPPORTED_LANGUAGES must be a valid JSON array")
+        if not isinstance(parsed, list) or not parsed or any(lang not in ("en", "es") for lang in parsed):
+            raise ValueError('SUPPORTED_LANGUAGES must be a non-empty JSON array of "en" and/or "es"')
+        return v
+
+    @property
+    def supported_languages_list(self) -> list[str]:
+        return json.loads(self.supported_languages)
+
+    @model_validator(mode="after")
+    def default_language_must_be_supported(self) -> "Settings":
+        supported = self.supported_languages_list
+        if self.default_language not in supported:
+            raise ValueError(
+                f"DEFAULT_LANGUAGE ({self.default_language!r}) must be one of SUPPORTED_LANGUAGES ({supported!r})"
+            )
+        return self
 
     contact_email_recipients: str = ""
     contact_phone: str = ""

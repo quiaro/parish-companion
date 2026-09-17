@@ -10,9 +10,9 @@ STRINGS: dict[str, dict[str, str]] = {
             "Sorry, I can only handle text messages. Please type your question."
         ),
         "telegram_cmd_start": (
-            "Hello! This is the bot for Nuestra Señora del Pilar.\n"
-            "Use /help or /ayuda (Spanish) to know what I can do."
+            "Hello! This is the bot for Nuestra Señora del Pilar. Use /help{hint} to know what I can do."
         ),
+        "telegram_cmd_start_hint": " or /ayuda (Spanish)",
         "help_intro": "Here is what I can do:\n",
         "help_line_comfort": (
             "\n/comfort - Share what's on your heart and receive an encouraging Bible passage\n"
@@ -151,9 +151,9 @@ STRINGS: dict[str, dict[str, str]] = {
             "Lo siento, sólo puedo responder mensajes de texto. Por favor, escribe tu pregunta."
         ),
         "telegram_cmd_start": (
-            "¡Hola! Soy el bot de Nuestra Señora del Pilar.\n"
-            "Utiliza /ayuda o /help (inglés) para ver lo que puedo hacer."
+            "¡Hola! Soy el bot de Nuestra Señora del Pilar. Utiliza /ayuda{hint} para ver lo que puedo hacer."
         ),
+        "telegram_cmd_start_hint": " o /help (inglés)",
         "help_intro": "Esto es lo que puedo hacer:\n",
         "help_line_comfort": (
             "\n/consolar - Comparte lo que llevas en el corazón y recibe un pasaje bíblico de aliento\n"
@@ -299,3 +299,11 @@ def get_string(key: str, language: str) -> str:
         return value
     logger.error("Missing translation key '%s' in all languages", key)
     return ""
+
+
+def get_start_message(language: str) -> str:
+    """Return the /start welcome message, mentioning the other language's help
+    command only when SUPPORTED_LANGUAGES configures more than one language."""
+    supported = settings.supported_languages_list
+    hint = get_string("telegram_cmd_start_hint", language) if len(supported) > 1 else ""
+    return get_string("telegram_cmd_start", language).format(hint=hint)

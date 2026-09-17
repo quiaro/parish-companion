@@ -2,13 +2,12 @@ from commands.comfort import is_configured as comfort_is_configured
 from commands.contact import is_configured as contact_is_configured
 from commands.information import is_configured as information_is_configured
 from commands.schedules import is_configured as schedules_is_configured
-from translations import get_string
+from config import settings
+from translations import get_start_message, get_string
 
-# (translation_key, forced_language | None)
-# None means use the caller's detected language.
-_KEY_MAP: dict[str, tuple[str, str | None]] = {
-    "/start":  ("telegram_cmd_start", "en"),
-    "/inicio": ("telegram_cmd_start", "es"),
+_START_COMMAND_LANGUAGES: dict[str, str] = {
+    "/start": "en",
+    "/inicio": "es",
 }
 
 _HELP_COMMAND_LANGUAGES: dict[str, str] = {
@@ -33,5 +32,8 @@ def build_help_reply(language: str) -> str:
 def get_reply(command: str, language: str = "en") -> str:
     if command in _HELP_COMMAND_LANGUAGES:
         return build_help_reply(_HELP_COMMAND_LANGUAGES[command])
-    key, forced_language = _KEY_MAP.get(command, ("telegram_cmd_unknown", None))
-    return get_string(key, forced_language or language)
+    if command in _START_COMMAND_LANGUAGES:
+        supported = settings.supported_languages_list
+        start_language = supported[0] if len(supported) == 1 else _START_COMMAND_LANGUAGES[command]
+        return get_start_message(start_language)
+    return get_string("telegram_cmd_unknown", language)

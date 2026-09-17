@@ -14,7 +14,7 @@ from commands.contact import flow as contact_flow
 from main import app as fastapi_app
 from telegram import commands
 from tests.conftest import TEST_SECRET
-from translations import get_string
+from translations import get_start_message, get_string
 
 _CHAT_ID = 42
 _USER_ID = 99
@@ -166,7 +166,7 @@ def test_tapping_cancel_sends_cancellation_then_help_and_ends_flow(
     resp2 = client.post("/telegram/webhook", json=_text_message("hello"), headers=_headers)
     assert resp2.status_code == 200
     assert mock_send.await_args is not None
-    assert mock_send.await_args[0][1] == get_string("telegram_cmd_start", "en")
+    assert mock_send.await_args[0][1] == get_start_message("en")
 
 
 def test_send_failure_shows_error_without_help_followup(

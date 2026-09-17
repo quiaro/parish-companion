@@ -48,6 +48,12 @@ def pin_default_language(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(config.settings, "default_language", "en")
 
 
+@pytest.fixture(autouse=True)
+def pin_supported_languages(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pin supported_languages to both so tests are independent of .env locale settings."""
+    monkeypatch.setattr(config.settings, "supported_languages", '["en", "es"]')
+
+
 @pytest.fixture()
 def client() -> TestClient:
     return TestClient(app)

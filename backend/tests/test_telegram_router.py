@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 
 from tests.conftest import TEST_SECRET
-from translations import STRINGS
+from translations import STRINGS, get_start_message
 
 _TEXT_UPDATE = {
     "update_id": 1,
@@ -71,7 +71,7 @@ def test_plain_text_with_no_active_flow_sends_welcome_message(client: TestClient
     mock_send.assert_awaited_once()
     chat_id, text = mock_send.call_args.args
     assert chat_id == _CHAT_ID
-    assert text == STRINGS["en"]["telegram_cmd_start"]
+    assert text == get_start_message("en")
 
 
 def test_plain_text_with_no_active_flow_respects_detected_language(
@@ -87,4 +87,4 @@ def test_plain_text_with_no_active_flow_respects_detected_language(
     assert resp.status_code == 200
     mock_send.assert_awaited_once()
     _, text = mock_send.call_args.args
-    assert text == STRINGS["es"]["telegram_cmd_start"]
+    assert text == get_start_message("es")

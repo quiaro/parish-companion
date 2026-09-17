@@ -4,6 +4,10 @@ This guide is for parishes and developers who want to deploy Parish Companion fo
 
 For information on contributing to the project itself, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
+## Language
+
+Parish Companion supports English and Spanish. By default both are enabled, and every command has an English and a Spanish form (e.g. `/help`/`/ayuda`, `/schedules`/`/horarios`). If your parish only serves one language community, set `SUPPORTED_LANGUAGES` to just that language (`["en"]` or `["es"]`) so messages like the welcome text don't mention commands in a language that your parishioners will never use. However, `SUPPORTED_LANGUAGES` does not disable commands: if `SUPPORTED_LANGUAGES` == `["en"]`, `/horarios` will still work if the user types it in.
+
 ## Parish Schedules
 
 Parish Companion reads Mass, Confession, and Office Hours times from a Google Spreadsheet. Parish administrators can update the spreadsheet directly — no code changes or developer involvement required. Changes are reflected in the bot within the cache window (see [Configuration](#configuration) below).
@@ -19,7 +23,7 @@ The spreadsheet must contain two tabs. Their names are configurable via environm
 Tab name: `SCHEDULES_REGULAR_TAB` (default: `Regular Schedule`)
 
 | Column   | Required | Description                                                            |
-| -------- | -------- | ----------------------------------------------------------------------- |
+| -------- | -------- | ---------------------------------------------------------------------- |
 | Type     | Yes      | `mass`, `confession`, or `office`                                      |
 | Day      | Yes      | Day of the week, e.g. `Sunday`, or `Monday-Friday` for a Mon–Fri block |
 | Time     | Yes      | Start time in `HH:MM` format, e.g. `09:00`                             |
@@ -43,7 +47,7 @@ Tab name: `SCHEDULES_SPECIAL_TAB` (default: `Special Schedules`)
 Used for seasonal or one-off schedule changes such as Holy Week or Christmas.
 
 | Column     | Required | Description                                                              |
-| ---------- | -------- | ------------------------------------------------------------------------- |
+| ---------- | -------- | ------------------------------------------------------------------------ |
 | Name       | Yes      | Schedule name, e.g. `Holy Week`                                          |
 | Start Date | Yes      | ISO 8601 date: `YYYY-MM-DD`                                              |
 | End Date   | Yes      | ISO 8601 date: `YYYY-MM-DD`                                              |
