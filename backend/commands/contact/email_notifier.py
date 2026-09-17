@@ -52,9 +52,9 @@ class EmailContactNotifier(ContactNotifier):
             telegram = f"ID: {request.telegram_user_id}"
         return (
             f"{get_string('contact_email_intro', lang)}\n\n"
-            f"{get_string('contact_email_label_request_type', lang)} {request.request_type}\n"
             f"{get_string('contact_email_label_name', lang)} {request.name}\n"
-            f"{get_string('contact_email_label_telegram', lang)} {telegram}\n"
+            f"{get_string('contact_email_label_telegram', lang)} {telegram}\n\n"
+            f"{get_string('contact_email_label_request_type', lang)} {request.request_type}\n"
             f"{get_string('contact_email_label_message', lang)}\n{request.message}\n\n"
             f"{get_string('contact_email_label_preferred_time', lang)} {request.preferred_time}\n"
         )
