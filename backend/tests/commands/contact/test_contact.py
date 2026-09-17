@@ -29,6 +29,7 @@ _REQUEST_TYPES_ES = '["Hablar con un sacerdote", "Director espiritual", "Pregunt
 def configured_types(monkeypatch):
     monkeypatch.setattr(config.settings, "contact_request_types", _REQUEST_TYPES_EN)
     monkeypatch.setattr(config.settings, "contact_request_types_es", _REQUEST_TYPES_ES)
+    monkeypatch.setattr(config.settings, "contact_phone", "")
 
 
 @pytest.fixture

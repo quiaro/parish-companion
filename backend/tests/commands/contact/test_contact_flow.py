@@ -36,6 +36,7 @@ def configured_types(monkeypatch):
     import config
     monkeypatch.setattr(config.settings, "contact_request_types", _REQUEST_TYPES_EN)
     monkeypatch.setattr(config.settings, "contact_request_types_es", _REQUEST_TYPES_ES)
+    monkeypatch.setattr(config.settings, "contact_phone", "")
 
 
 class TestStart:
